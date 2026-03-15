@@ -1,0 +1,355 @@
+GG TRACKER APP - PROJECT STRUCTURE
+===================================
+
+gg-tracker-app/
+│
+├── Root Configuration
+│   ├── tsconfig.json                    # TypeScript config con @/* alias
+│   ├── next.config.mjs                  # Next.js 15 config
+│   ├── tailwind.config.ts               # Tailwind con tema viola scuro
+│   ├── postcss.config.mjs               # PostCSS + Autoprefixer
+│   └── package.json                     # npm dependencies
+│
+├── Development Config
+│   ├── .eslintrc.json                   # ESLint rules
+│   ├── .prettierrc.json                 # Prettier formatting
+│   └── .gitignore                       # Git ignore patterns
+│
+├── Environment
+│   ├── .env.local                       # Supabase credentials (LOCAL ONLY)
+│   └── .env.example                     # Template variables
+│
+├── Documentation
+│   ├── README.md                        # Main documentation
+│   ├── SETUP.md                         # Installation & setup guide
+│   ├── USAGE.md                         # Usage examples & patterns
+│   ├── FILES_INDEX.md                   # Complete file index
+│   └── PROJECT_STRUCTURE.txt            # This file
+│
+├── public/                              # Static assets (to be added)
+│   ├── favicon.ico
+│   ├── apple-touch-icon.png
+│   └── ...
+│
+└── src/
+    │
+    ├── app/                             # Next.js 15 App Router
+    │   ├── layout.tsx                   # Root layout (64 lines)
+    │   │   ├── Metadata
+    │   │   ├── Geist fonts
+    │   │   ├── ThemeProvider (next-themes)
+    │   │   └── Toaster (sonner)
+    │   │
+    │   ├── globals.css                  # Global styles & CSS vars (380 lines)
+    │   │   ├── Tailwind imports
+    │   │   ├── Dark theme CSS variables
+    │   │   ├── Custom components
+    │   │   │   ├── .btn-* (primary, secondary, ghost, danger, success)
+    │   │   │   ├── .card, .card-hover
+    │   │   │   ├── .input-base
+    │   │   │   ├── .badge-* (primary, success, danger, warning)
+    │   │   │   ├── .skeleton
+    │   │   │   ├── .gradient-purple
+    │   │   │   └── Animations & utilities
+    │   │   │
+    │   │   ├── Scrollbar styling (webkit + firefox)
+    │   │   ├── Focus ring
+    │   │   └── Print styles
+    │   │
+    │   ├── page.tsx                     # Home page (redirects to /dashboard)
+    │   │
+    │   ├── auth/                        # Authentication pages (TO CREATE)
+    │   │   ├── login/
+    │   │   ├── registrati/
+    │   │   └── forgot-password/
+    │   │
+    │   └── dashboard/                   # Dashboard pages (TO CREATE)
+    │       ├── page.tsx
+    │       ├── layout.tsx
+    │       ├── operazioni/
+    │       ├── strategie/
+    │       └── analytics/
+    │
+    ├── lib/                             # Utilities & logic
+    │   │
+    │   ├── supabase/                    # Supabase clients
+    │   │   ├── client.ts                # Browser client (16 lines)
+    │   │   │   └── createBrowserClient
+    │   │   │       └── Type-safe with Database generics
+    │   │   │
+    │   │   ├── server.ts                # Server client (30 lines)
+    │   │   │   └── createServerClient
+    │   │   │       └── Next.js cookies integration
+    │   │   │
+    │   │   └── middleware.ts            # Auth middleware (42 lines)
+    │   │       └── updateSession()
+    │   │           └── Refresh auth session
+    │   │
+    │   ├── utils.ts                     # Utility functions (165 lines)
+    │   │   ├── cn()                     # Tailwind merge
+    │   │   ├── formatValuta()           # EUR formatting
+    │   │   ├── formatPercentuale()      # Percentage
+    │   │   ├── formatData()             # dd/MM/yyyy
+    │   │   ├── formatDataBreve()        # "15 Mar"
+    │   │   ├── calcolaPnl()             # P&L calculation
+    │   │   ├── truncateText()
+    │   │   ├── isValidUUID()
+    │   │   ├── differenteGiorni()
+    │   │   ├── stessoGiorno()
+    │   │   ├── formatDurata()
+    │   │   ├── colorPnl()               # P&L color
+    │   │   └── bgColorPnl()             # P&L background
+    │   │
+    │   ├── cn.ts                        # Re-export cn() for convenience (2 lines)
+    │   │
+    │   ├── constants.ts                 # Global constants (212 lines)
+    │   │   ├── THEME_COLORS             # All theme colors
+    │   │   ├── TRADING_DIRECTIONS       # LONG, SHORT
+    │   │   ├── ORDER_TYPES              # MARKET, LIMIT, STOP
+    │   │   ├── OPERATION_STATUSES       # APERTA, CHIUSA, ANNULLATA
+    │   │   ├── ROUTINE_TYPES            # PRE_MARKET, POST_MARKET, etc
+    │   │   ├── FREQUENCIES              # GIORNALIERA, SETTIMANALE, MENSILE
+    │   │   ├── GOAL_PERIODS & TYPES
+    │   │   ├── ASSET_CLASSES            # FOREX, CRYPTO, STOCKS, etc
+    │   │   ├── TIMEFRAMES               # M1, M5, M15, H1, H4, D1, W1, MN1
+    │   │   ├── CURRENCIES               # EUR, USD, GBP, JPY
+    │   │   ├── VALIDATION_MESSAGES      # Error messages (Italian)
+    │   │   ├── PAGINATION
+    │   │   ├── ANIMATION_DURATIONS
+    │   │   ├── TIMEOUTS
+    │   │   ├── LIMITS
+    │   │   └── LABELS                   # Italian labels for all values
+    │   │
+    │   └── hooks/                       # Custom React hooks
+    │       └── index.ts                 # Placeholder for future hooks
+    │
+    ├── store/                           # Zustand global state
+    │   └── index.ts                     # Placeholder for stores
+    │                                     # TO CREATE:
+    │                                     # - useUserStore()
+    │                                     # - useOperationsStore()
+    │                                     # - useStrategiesStore()
+    │                                     # - useUIStore()
+    │
+    ├── types/                           # TypeScript type definitions
+    │   └── database.ts                  # Supabase schema types (654 lines)
+    │       ├── Database interface
+    │       ├── public.Tables
+    │       │   ├── profilo
+    │       │   ├── strategia
+    │       │   ├── regola_strategia
+    │       │   ├── categoria_tag
+    │       │   ├── tag
+    │       │   ├── operazione
+    │       │   ├── operazione_tag
+    │       │   ├── esecuzione
+    │       │   ├── conformita_regole
+    │       │   ├── obiettivo
+    │       │   ├── routine
+    │       │   ├── routine_step
+    │       │   └── routine_completamento
+    │       │
+    │       ├── public.Views
+    │       │   ├── vista_metriche_utente
+    │       │   ├── vista_performance_strategia
+    │       │   └── vista_equity_giornaliera
+    │       │
+    │       └── Each table has Row, Insert, Update types
+    │
+    ├── components/                      # React components
+    │   ├── ui/                          # Base UI components (TO CREATE)
+    │   │   ├── Button.tsx
+    │   │   ├── Input.tsx
+    │   │   ├── Card.tsx
+    │   │   ├── Modal.tsx
+    │   │   ├── Form.tsx
+    │   │   ├── Table.tsx
+    │   │   ├── Select.tsx
+    │   │   └── ...
+    │   │
+    │   └── layout/                      # Layout components (TO CREATE)
+    │       ├── Header.tsx
+    │       ├── Sidebar.tsx
+    │       ├── Footer.tsx
+    │       └── ...
+    │
+    └── middleware.ts                    # Next.js middleware (33 lines)
+        ├── updateSession()              # Refresh Supabase auth
+        └── Protect routes               # Redirect to /login
+
+===================================
+THEME COLORS (HEX)
+===================================
+
+Primary:        #7F00FF (Viola principale)
+Primary Dark:   #6c00db
+Primary Light:  #9e00ff
+
+Background:     #0a0a0f (Nero profondo)
+Card:           #12121a
+Border:         #1e1e2e (Grigio scuro)
+
+Status Colors:
+  Success:      #22c55e (Verde)
+  Danger:       #ef4444 (Rosso)
+  Warning:      #eab308 (Giallo)
+  Info:         #06b6d4 (Cyan)
+
+Text:
+  Primary:      #ffffff
+  Secondary:    #a8a8b8
+  Tertiary:     #72727a
+  Muted:        #4a4a52
+
+===================================
+AVAILABLE TAILWIND COMPONENTS
+===================================
+
+Buttons:
+  .btn-primary   - Viola, primario
+  .btn-secondary - Secondario scuro
+  .btn-ghost     - Trasparente
+  .btn-danger    - Rosso
+  .btn-success   - Verde
+
+Cards:
+  .card          - Semplice con border
+  .card-hover    - Interattiva
+
+Input:
+  .input-base    - Input standard
+
+Badges:
+  .badge-primary - Viola
+  .badge-success - Verde
+  .badge-danger  - Rosso
+  .badge-warning - Giallo
+
+Utilities:
+  .focus-ring            - Focus standard
+  .transition-smooth     - Transizioni fluide
+  .gradient-purple       - Gradiente viola
+  .glow-purple           - Glow viola
+  .truncate-line         - Ellissi su una riga
+  .truncate-lines        - Ellissi su due righe
+  .skeleton              - Loading skeleton
+  .overlay-dark          - Overlay semitrasparente
+  .main-section          - Padding sezione
+  .grid-auto             - Grid 1/2/3 colonne
+
+Animations:
+  .animate-in            - Fade in
+  .animate-slide-up      - Slide up
+  .animate-slide-down    - Slide down
+  .animate-pulse-soft    - Pulse soft
+
+Text Styles:
+  .text-page-title       - Titolo pagina (3xl)
+  .text-section-title    - Titolo sezione (2xl)
+  .text-card-title       - Titolo card (lg)
+
+===================================
+DEPENDENCIES SUMMARY
+===================================
+
+Frontend Framework:
+  - react@19
+  - next@15
+  - react-dom@19
+
+Styling:
+  - tailwindcss@3.4
+  - postcss@8.4
+  - autoprefixer@10.4
+  - @tailwindcss/typography
+  - @tailwindcss/forms
+  - tailwind-merge@2.2
+  - clsx@2.1
+  - geist@1.3 (Fonts)
+
+Backend Integration:
+  - @supabase/ssr@0.3.0
+  - @supabase/supabase-js@2.47.0
+
+UI & Interaction:
+  - next-themes@0.2.1 (Dark mode)
+  - sonner@1.3.0 (Toast notifications)
+  - lucide-react@0.383 (Icons)
+
+State Management:
+  - zustand@4.4
+
+HTTP Client:
+  - axios@1.6
+
+Development:
+  - typescript@5.3
+  - eslint@8.55
+  - eslint-config-next@15
+
+===================================
+QUICK COMMANDS
+===================================
+
+npm run dev          - Start development server (localhost:3000)
+npm run build        - Build for production
+npm start            - Start production server
+npm run lint         - Run ESLint
+npm run type-check   - TypeScript type checking
+
+===================================
+NEXT STEPS (TO IMPLEMENT)
+===================================
+
+Phase 1: Core Components
+  [ ] Create Button component
+  [ ] Create Input component
+  [ ] Create Card component
+  [ ] Create Form component
+  [ ] Create Modal component
+  [ ] Create Table component
+
+Phase 2: Authentication
+  [ ] Login page (/auth/login)
+  [ ] Registration page (/auth/registrati)
+  [ ] useAuth() custom hook
+  [ ] Password reset
+
+Phase 3: Layout
+  [ ] Header component
+  [ ] Sidebar component
+  [ ] Main dashboard layout
+  [ ] Navigation menu
+
+Phase 4: Features
+  [ ] Operations page (CRUD)
+  [ ] Strategies page (CRUD)
+  [ ] Tags & Categories (CRUD)
+  [ ] Analytics dashboard
+  [ ] Performance charts
+  [ ] Routine tracker
+
+Phase 5: Advanced
+  [ ] Real-time updates (Supabase subscriptions)
+  [ ] Export/Import functionality
+  [ ] Dark mode toggle
+  [ ] User settings
+  [ ] Notifications system
+
+===================================
+FILE STATISTICS
+===================================
+
+Total Files Created:        26
+Configuration Files:         5
+Development Config:          3
+Environment Files:           2
+Documentation:               4
+TypeScript/TSX Files:       10
+CSS Files:                   1
+Other:                       1
+
+Total Lines (Excluding Comments):  ~1,300+
+
+===================================
+Created: March 15, 2026

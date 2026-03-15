@@ -1,0 +1,232 @@
+/* Tailwind CSS imports */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Variabili CSS personalizzate per il tema scuro */
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    /* Colori di base */
+    --color-background: 250 5% 7%;
+    --color-card: 250 5% 10%;
+    --color-input: 250 5% 8%;
+    --color-border: 250 8% 18%;
+    --color-foreground: 0 0% 100%;
+    --color-muted: 250 5% 65%;
+    --color-primary: 271 100% 50%;
+    --color-success: 142 71% 45%;
+    --color-danger: 0 84% 60%;
+    --color-warning: 45 93% 47%;
+    --color-info: 188 100% 50%;
+
+    /* Smooth scrollbar */
+    --scrollbar-width: 8px;
+    --scrollbar-thumb: #7f00ff;
+    --scrollbar-track: #12121a;
+  }
+
+  * {
+    @apply border-border-dark;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background-dark text-text-primary antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+    border: 2px solid var(--scrollbar-track);
+    transition: background 0.2s;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9e00ff;
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+  }
+}
+
+/* Focus ring personalizzato */
+@layer components {
+  .focus-ring {
+    @apply outline-none ring-2 ring-primary-700 ring-offset-2 ring-offset-background-dark;
+  }
+
+  .focus-ring-inset {
+    @apply outline-none ring-2 ring-inset ring-primary-700;
+  }
+
+  /* Transizioni fluide */
+  .transition-smooth {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Card di base */
+  .card {
+    @apply rounded-lg border border-border-dark bg-background-card p-4 shadow-base;
+  }
+
+  .card-hover {
+    @apply card cursor-pointer transition-smooth hover:border-border-light hover:shadow-md;
+  }
+
+  /* Pulsanti base */
+  .btn-base {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-smooth focus-ring disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn-base bg-primary-700 text-white hover:bg-primary-800 active:bg-primary-900;
+  }
+
+  .btn-secondary {
+    @apply btn-base border border-border-light bg-background-card text-text-primary hover:bg-background-hover;
+  }
+
+  .btn-ghost {
+    @apply btn-base text-text-primary hover:bg-background-hover;
+  }
+
+  .btn-danger {
+    @apply btn-base bg-danger text-white hover:bg-red-600;
+  }
+
+  .btn-success {
+    @apply btn-base bg-success text-white hover:bg-green-500;
+  }
+
+  /* Input base */
+  .input-base {
+    @apply rounded-lg border border-border-dark bg-background-card px-3 py-2 text-text-primary placeholder-text-muted transition-smooth focus-ring;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-1 text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply badge bg-primary-700/20 text-primary-300;
+  }
+
+  .badge-success {
+    @apply badge bg-success/20 text-green-300;
+  }
+
+  .badge-danger {
+    @apply badge bg-danger/20 text-red-300;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning/20 text-yellow-300;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply animate-pulse rounded bg-background-hover;
+  }
+
+  /* Testo tronco */
+  .truncate-line {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  .truncate-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Overlay scuro */
+  .overlay-dark {
+    @apply absolute inset-0 bg-black/40 backdrop-blur-sm;
+  }
+
+  /* Gradiente glitter purple */
+  .gradient-purple {
+    @apply bg-gradient-to-r from-primary-700 via-primary-600 to-primary-700;
+  }
+
+  /* Glow effect */
+  .glow-purple {
+    @apply shadow-purple-glow;
+  }
+
+  .glow-purple-lg {
+    @apply shadow-purple-glow-lg;
+  }
+
+  /* Sezione principale */
+  .main-section {
+    @apply space-y-6;
+  }
+
+  /* Griglia di layout */
+  .grid-auto {
+    @apply grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3;
+  }
+}
+
+/* Responsive text */
+@layer components {
+  .text-page-title {
+    @apply text-3xl font-bold tracking-tight md:text-4xl;
+  }
+
+  .text-section-title {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  .text-card-title {
+    @apply text-lg font-semibold;
+  }
+}
+
+/* Animazioni */
+@layer utilities {
+  .animate-in {
+    @apply animate-fade-in;
+  }
+
+  .animate-slide-up {
+    @apply animate-slide-up;
+  }
+
+  .animate-slide-down {
+    @apply animate-slide-down;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
+
+  .no-print {
+    @apply hidden;
+  }
+}
