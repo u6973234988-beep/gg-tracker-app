@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -23,8 +24,6 @@ const strategiaSchema = z.object({
   colore: z.string().default('#7F00FF'),
   rischio_max_importo: z.number().optional().nullable(),
   rischio_max_percentuale: z.number().optional().nullable(),
-  tipo: z.string().default('CUSTOM'),
-  asset_class: z.string().default('CRYPTO'),
 });
 
 type StrategiaFormData = z.infer<typeof strategiaSchema>;
@@ -96,8 +95,6 @@ export function DialogStrategia({
           nome: data.nome,
           descrizione: data.descrizione,
           colore: data.colore,
-          tipo: data.tipo,
-          asset_class: data.asset_class,
         });
       }
       handleOpenChange(false);
@@ -113,11 +110,14 @@ export function DialogStrategia({
           <DialogTitle>
             {strategiaEdit ? 'Modifica Strategia' : 'Crea Nuova Strategia'}
           </DialogTitle>
+          <DialogDescription>
+            {strategiaEdit ? 'Modifica i dettagli della strategia esistente.' : 'Compila i campi per creare una nuova strategia di trading.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="nome" className="text-white">
+            <Label htmlFor="nome">
               Nome Strategia *
             </Label>
             <Input
@@ -125,13 +125,13 @@ export function DialogStrategia({
               placeholder="Es. Mean Reversion Breakout"
               {...register('nome')}
               disabled={isLoading}
-              className="bg-[#12121a] border-[#2a2a3e] text-white"
+              className=""
             />
             {errors.nome && <p className="text-sm text-[#FF4757]">{errors.nome.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="descrizione" className="text-white">
+            <Label htmlFor="descrizione">
               Descrizione Breve
             </Label>
             <Input
@@ -139,12 +139,12 @@ export function DialogStrategia({
               placeholder="Una breve descrizione della strategia"
               {...register('descrizione')}
               disabled={isLoading}
-              className="bg-[#12121a] border-[#2a2a3e] text-white"
+              className=""
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="colore" className="text-white">
+            <Label htmlFor="colore">
               Colore Strategia
             </Label>
             <div className="flex items-center gap-3">
@@ -153,21 +153,21 @@ export function DialogStrategia({
                 type="color"
                 {...register('colore')}
                 disabled={isLoading}
-                className="h-12 w-20 rounded cursor-pointer border border-[#2a2a3e]"
+                className="h-12 w-20 rounded cursor-pointer border border-gray-300 dark:border-[#2a2a3e]"
               />
               <div className="flex-1 flex items-center gap-2">
                 <div
-                  className="h-10 w-10 rounded border border-[#2a2a3e]"
+                  className="h-10 w-10 rounded border border-gray-300 dark:border-[#2a2a3e]"
                   style={{ backgroundColor: colorPreview }}
                 />
-                <span className="text-sm text-gray-400">{colorPreview}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{colorPreview}</span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="rischio_max_importo" className="text-white">
+              <Label htmlFor="rischio_max_importo">
                 Rischio Max (€)
               </Label>
               <Input
@@ -176,13 +176,13 @@ export function DialogStrategia({
                 placeholder="Opzionale"
                 {...register('rischio_max_importo', { valueAsNumber: true })}
                 disabled={isLoading}
-                className="bg-[#12121a] border-[#2a2a3e] text-white"
+                className=""
                 step="0.01"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="rischio_max_percentuale" className="text-white">
+              <Label htmlFor="rischio_max_percentuale">
                 Rischio Max (%)
               </Label>
               <Input
@@ -191,7 +191,7 @@ export function DialogStrategia({
                 placeholder="Opzionale"
                 {...register('rischio_max_percentuale', { valueAsNumber: true })}
                 disabled={isLoading}
-                className="bg-[#12121a] border-[#2a2a3e] text-white"
+                className=""
                 step="0.01"
               />
             </div>

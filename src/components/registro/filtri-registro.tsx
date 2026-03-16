@@ -15,7 +15,7 @@ import { X } from 'lucide-react';
 import type { Database } from '@/types/database';
 import type { FiltriOperazioni } from '@/hooks/useOperazioni';
 
-type Strategia = Database['public']['Tables']['strategia']['Row'];
+type Strategia = Database['public']['Tables']['strategie']['Row'];
 
 interface FiltriRegistroProps {
   filtri: FiltriOperazioni;
@@ -39,10 +39,10 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
       if (session) {
         const { data } = await supabase
-          .from('strategia')
+          .from('strategie')
           .select('*')
-          .eq('profilo_id', session.user.id)
-          .eq('is_active', true);
+          .eq('utente_id', session.user.id)
+          .eq('attiva', true);
 
         setStrategie(data || []);
       }
@@ -60,7 +60,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Ticker Search */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Ticker</label>
+          <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Ticker</label>
           <Input
             type="text"
             placeholder="es. AAPL"
@@ -76,7 +76,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
         {/* Data Inizio */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Da</label>
+          <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Da</label>
           <Input
             type="date"
             value={filtri.dataInizio || ''}
@@ -91,7 +91,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
         {/* Data Fine */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">A</label>
+          <label className="text-sm font-medium text-gray-600 dark:text-gray-300">A</label>
           <Input
             type="date"
             value={filtri.dataFine || ''}
@@ -106,13 +106,13 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
         {/* Direzione */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Direzione</label>
+          <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Direzione</label>
           <Select
-            value={filtri.direzione || ''}
+            value={filtri.direzione || 'all'}
             onValueChange={(value) =>
               onFiltriChange({
                 ...filtri,
-                direzione: (value as 'LONG' | 'SHORT') || undefined,
+                direzione: (value === 'all' ? undefined : value as 'LONG' | 'SHORT') || undefined,
               })
             }
           >
@@ -120,7 +120,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
               <SelectValue placeholder="Tutte" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tutte</SelectItem>
+              <SelectItem value="all">Tutte</SelectItem>
               <SelectItem value="LONG">LONG</SelectItem>
               <SelectItem value="SHORT">SHORT</SelectItem>
             </SelectContent>
@@ -129,13 +129,13 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
         {/* Strategia */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Strategia</label>
+          <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Strategia</label>
           <Select
-            value={filtri.strategiaId || ''}
+            value={filtri.strategiaId || 'all'}
             onValueChange={(value) =>
               onFiltriChange({
                 ...filtri,
-                strategiaId: value || undefined,
+                strategiaId: value === 'all' ? undefined : value,
               })
             }
           >
@@ -143,7 +143,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
               <SelectValue placeholder="Tutte" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tutte</SelectItem>
+              <SelectItem value="all">Tutte</SelectItem>
               {strategie.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   {s.nome}

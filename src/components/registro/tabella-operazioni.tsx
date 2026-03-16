@@ -50,7 +50,7 @@ export function TabellaOperazioni({
       <Card>
         <div className="p-6 space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-gray-800 rounded animate-pulse" />
+            <div key={i} className="h-12 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
           ))}
         </div>
       </Card>
@@ -61,7 +61,7 @@ export function TabellaOperazioni({
     return (
       <Card>
         <div className="p-12 text-center">
-          <p className="text-gray-400 mb-4">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
             Nessuna operazione trovata. Aggiungi la tua prima operazione!
           </p>
         </div>
@@ -108,12 +108,12 @@ export function TabellaOperazioni({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="border-b border-[#1e1e2e] hover:bg-[#1e1e2e]/50"
+                      className="border-b border-gray-100 dark:border-[#1e1e2e] hover:bg-gray-50 dark:hover:bg-[#1e1e2e]/50"
                     >
                       <TableCell>
                         <button
                           onClick={() => toggleExpand(op.id)}
-                          className="p-1 hover:bg-[#2a2a3e] rounded"
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-[#2a2a3e] rounded"
                         >
                           {isExpanded ? (
                             <ChevronUp className="w-4 h-4" />
@@ -123,10 +123,10 @@ export function TabellaOperazioni({
                         </button>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {formatData(op.data_apertura)}
+                        {formatData(op.data)}
                       </TableCell>
                       <TableCell className="font-mono font-semibold">
-                        {op.simbolo}
+                        {op.ticker}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -218,20 +218,20 @@ export function TabellaOperazioni({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="border-b border-[#1e1e2e] bg-[#0a0a12]"
+                    className="border-b border-gray-100 dark:border-[#1e1e2e] bg-gray-50 dark:bg-[#0a0a12]"
                   >
                     <TableCell colSpan={10}>
                       <div className="p-4 space-y-3">
                         {op.note && (
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">Note</p>
-                            <p className="text-sm text-white">{op.note}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Note</p>
+                            <p className="text-sm text-gray-800 dark:text-white">{op.note}</p>
                           </div>
                         )}
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">P&L %</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">P&L %</p>
                             <p className={cn(
                               'font-semibold',
                               (op.pnl_percentuale || 0) >= 0
@@ -243,20 +243,20 @@ export function TabellaOperazioni({
                           </div>
 
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">Commissione</p>
-                            <p className="text-white">{formatValuta(op.commissione)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Commissione</p>
+                            <p className="text-gray-800 dark:text-white">{formatValuta(op.commissione)}</p>
                           </div>
 
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">Stato</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Stato</p>
                             <Badge variant="secondary" className="w-fit">
                               {op.stato}
                             </Badge>
                           </div>
 
                           <div>
-                            <p className="text-xs text-gray-400 mb-1">Tipo Ordine</p>
-                            <p className="text-white">{op.tipo_ordine}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Broker</p>
+                            <p className="text-gray-800 dark:text-white">{op.broker || 'N/A'}</p>
                           </div>
                         </div>
 
@@ -285,7 +285,7 @@ export function TabellaOperazioni({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Mostrando {startIndex + 1} a {Math.min(endIndex, operazioni.length)} di{' '}
             {operazioni.length} operazioni
           </p>
@@ -298,7 +298,7 @@ export function TabellaOperazioni({
             >
               Precedente
             </Button>
-            <div className="px-3 py-1 rounded bg-[#1e1e2e] text-sm flex items-center">
+            <div className="px-3 py-1 rounded bg-gray-100 dark:bg-[#1e1e2e] text-sm flex items-center text-gray-700 dark:text-white">
               {currentPage} / {totalPages}
             </div>
             <Button

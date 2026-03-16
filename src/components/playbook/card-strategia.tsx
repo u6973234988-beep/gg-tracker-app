@@ -83,7 +83,7 @@ export function CardStrategia({ strategia, onClick, onEdit, onDelete }: CardStra
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute right-0 mt-2 w-48 bg-[#1e1e2e] border border-[#2a2a3e] rounded-md shadow-lg z-50"
+                className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1e1e2e] border border-gray-200 dark:border-[#2a2a3e] rounded-md shadow-lg z-50"
               >
                 <button
                   onClick={(e) => {
@@ -91,7 +91,7 @@ export function CardStrategia({ strategia, onClick, onEdit, onDelete }: CardStra
                     onEdit(strategia);
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-[#2a2a3e] flex items-center gap-2 transition-colors"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2a3e] flex items-center gap-2 transition-colors"
                 >
                   <Edit2 className="h-4 w-4" />
                   Modifica
@@ -102,7 +102,7 @@ export function CardStrategia({ strategia, onClick, onEdit, onDelete }: CardStra
                     onDelete(strategia);
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-[#FF4757] hover:bg-[#2a2a3e] flex items-center gap-2 transition-colors border-t border-[#2a2a3e]"
+                  className="w-full px-4 py-2 text-left text-sm text-[#FF4757] hover:bg-red-50 dark:hover:bg-[#2a2a3e] flex items-center gap-2 transition-colors border-t border-gray-200 dark:border-[#2a2a3e]"
                 >
                   <Trash2 className="h-4 w-4" />
                   Elimina
@@ -114,38 +114,36 @@ export function CardStrategia({ strategia, onClick, onEdit, onDelete }: CardStra
 
         <CardContent className="p-6">
           <div className="mb-4">
-            <h3 className="text-xl font-bold text-white mb-1">{strategia.nome}</h3>
-            <p className="text-sm text-gray-400 line-clamp-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{strategia.nome}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
               {strategia.descrizione || 'Nessuna descrizione'}
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-[#1e1e2e] p-3 rounded">
+              <div className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded">
                 <div className="text-gray-500 text-xs mb-1">Operazioni</div>
-                <div className="text-white font-semibold">{strategia.operazioniCount || 0}</div>
+                <div className="text-gray-900 dark:text-white font-semibold">{strategia.operazioniCount || 0}</div>
               </div>
-              <div className="bg-[#1e1e2e] p-3 rounded">
+              <div className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded">
                 <div className="text-gray-500 text-xs mb-1">Win Rate</div>
-                <div className="text-white font-semibold">
+                <div className="text-gray-900 dark:text-white font-semibold">
                   {formatPercentuale((strategia.winRate || 0) / 100)}
                 </div>
               </div>
-              <div className="bg-[#1e1e2e] p-3 rounded">
+              <div className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded">
                 <div className="text-gray-500 text-xs mb-1">Profit Factor</div>
-                <div className="text-white font-semibold">
+                <div className="text-gray-900 dark:text-white font-semibold">
                   {(strategia.profitFactor || 0).toFixed(2)}
                 </div>
               </div>
               <div
-                className="bg-[#1e1e2e] p-3 rounded"
-                style={{
-                  backgroundColor: strategia.regole && strategia.regole.length > 0 ? '#1e1e2e' : '#1e1e2e',
-                }}
+                className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded"
+                style={{}}
               >
                 <div className="text-gray-500 text-xs mb-1">Regole</div>
-                <div className="text-white font-semibold">{(strategia.regole || []).length}</div>
+                <div className="text-gray-900 dark:text-white font-semibold">{(strategia.regole || []).length}</div>
               </div>
             </div>
 

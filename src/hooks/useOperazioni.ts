@@ -5,8 +5,8 @@ import { createClient } from '@/utils/supabase/client';
 import type { Database } from '@/types/database';
 import { toast } from 'sonner';
 
-type Operazione = Database['public']['Tables']['operazione']['Row'];
-type Strategia = Database['public']['Tables']['strategia']['Row'];
+type Operazione = Database['public']['Tables']['operazioni']['Row'];
+type Strategia = Database['public']['Tables']['strategie']['Row'];
 
 export interface OperazioneConDettagli extends Operazione {
   strategia?: Strategia | null;
@@ -28,8 +28,8 @@ export interface UseOperazioniReturn {
   filtri: FiltriOperazioni;
   setFiltri: (filtri: FiltriOperazioni) => void;
   resetFiltri: () => void;
-  aggiungiOperazione: (operazione: Database['public']['Tables']['operazione']['Insert']) => Promise<void>;
-  modificaOperazione: (id: string, updates: Database['public']['Tables']['operazione']['Update']) => Promise<void>;
+  aggiungiOperazione: (operazione: Database['public']['Tables']['operazioni']['Insert']) => Promise<void>;
+  modificaOperazione: (id: string, updates: Database['public']['Tables']['operazioni']['Update']) => Promise<void>;
   eliminaOperazione: (id: string) => Promise<void>;
 }
 
@@ -62,20 +62,20 @@ export function useOperazioni(): UseOperazioniReturn {
 
       // Build query
       let query = (supabase as any)
-        .from('operazione')
+        .from('operazioni')
         .select(
           `
           *,
           strategia:strategia_id(id, nome, colore),
-          operazione_tag(tag_id, tag:tag_id(id, nome, colore))
+          operazioni_tag(tag_id, tag:tag_id(id, nome, colore))
         `
         )
-        .eq('profilo_id', userId)
-        .order('data_apertura', { ascending: false });
+        .eq('utente_id', userId)
+        .order('data', { ascending: false });
 
       // Apply filters
       if (filtri.ticker) {
-        query = query.ilike('simbolo', `%${filtri.ticker.toUpperCase()}%`);
+        query = query.ilike('ticker', `%${filtri.ticker.toUpperCase()}%`);
       }
 
       if (filtri.strategiaId) {
@@ -87,11 +87,11 @@ export function useOperazioni(): UseOperazioniReturn {
       }
 
       if (filtri.dataInizio) {
-        query = query.gte('data_apertura', filtri.dataInizio);
+        query = query.gte('data', filtri.dataInizio);
       }
 
       if (filtri.dataFine) {
-        query = query.lte('data_apertura', filtri.dataFine);
+        query = query.lte('data', filtri.dataFine);
       }
 
       const { data, error } = await query;
@@ -104,7 +104,7 @@ export function useOperazioni(): UseOperazioniReturn {
         const operazioniConDettagli = (data || []).map((op: any) => ({
           ...op,
           strategia: op.strategia || null,
-          tags: op.operazione_tag ? op.operazione_tag.map((ot: any) => ot.tag) : [],
+          tags: op.operazioni_tag ? op.operazioni_tag.map((ot: any) => ot.tag) : [],
         }));
         setOperazioni(operazioniConDettagli);
       }
@@ -121,7 +121,7 @@ export function useOperazioni(): UseOperazioniReturn {
   }, [fetchOperazioni]);
 
   const aggiungiOperazione = useCallback(
-    async (operazione: Database['public']['Tables']['operazione']['Insert']) => {
+    async (operazione: Database['public']['Tables']['operazioni']['Insert']) => {
       try {
         const supabase = createClient();
 
@@ -137,15 +137,15 @@ export function useOperazioni(): UseOperazioniReturn {
         }
 
         const { error } = await (supabase as any)
-          .from('operazione')
+          .from('operazioni')
           .insert({
             ...operazione,
-            profilo_id: session.user.id,
+            utente_id: session.user.id,
           });
 
         if (error) {
           toast.error('Errore nell\'aggiunta dell\'operazione');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Operazione aggiunta con successo');
           await fetchOperazioni();
@@ -159,18 +159,18 @@ export function useOperazioni(): UseOperazioniReturn {
   );
 
   const modificaOperazione = useCallback(
-    async (id: string, updates: Database['public']['Tables']['operazione']['Update']) => {
+    async (id: string, updates: Database['public']['Tables']['operazioni']['Update']) => {
       try {
         const supabase = createClient();
 
         const { error } = await (supabase as any)
-          .from('operazione')
+          .from('operazioni')
           .update(updates)
           .eq('id', id);
 
         if (error) {
           toast.error('Errore nella modifica dell\'operazione');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Operazione modificata con successo');
           await fetchOperazioni();
@@ -189,13 +189,13 @@ export function useOperazioni(): UseOperazioniReturn {
         const supabase = createClient();
 
         const { error } = await (supabase as any)
-          .from('operazione')
+          .from('operazioni')
           .delete()
           .eq('id', id);
 
         if (error) {
           toast.error('Errore nell\'eliminazione dell\'operazione');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Operazione eliminata con successo');
           await fetchOperazioni();

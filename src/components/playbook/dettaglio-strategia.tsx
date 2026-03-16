@@ -58,10 +58,10 @@ export function DettaglioStrategia({
     if (!strategia) return {};
     const grouped: Record<string, typeof strategia.regole> = {};
     (strategia.regole || []).forEach((rule) => {
-      if (!grouped[rule.tipo]) {
-        grouped[rule.tipo] = [];
+      if (!grouped[rule.gruppo]) {
+        grouped[rule.gruppo] = [];
       }
-      grouped[rule.tipo]!.push(rule);
+      grouped[rule.gruppo]!.push(rule);
     });
     return grouped;
   }, [strategia]);
@@ -119,10 +119,10 @@ export function DettaglioStrategia({
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-white">{strategia.nome}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{strategia.nome}</h1>
             <Badge variant={status.variant}>{status.label}</Badge>
           </div>
-          <p className="text-gray-400">{strategia.descrizione || 'Nessuna descrizione'}</p>
+          <p className="text-gray-500 dark:text-gray-400">{strategia.descrizione || 'Nessuna descrizione'}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={() => onEdit(strategia)}>
@@ -157,25 +157,25 @@ export function DettaglioStrategia({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-400 mb-1">Colore</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Colore</p>
                   <div className="flex items-center gap-2">
                     <div
-                      className="h-8 w-8 rounded border border-[#2a2a3e]"
+                      className="h-8 w-8 rounded border border-gray-300 dark:border-[#2a2a3e]"
                       style={{ backgroundColor: borderColor }}
                     />
-                    <span className="text-white font-mono text-sm">{borderColor}</span>
+                    <span className="text-gray-800 dark:text-white font-mono text-sm">{borderColor}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400 mb-1">Numero Regole</p>
-                  <p className="text-white font-semibold text-lg">{(strategia.regole || []).length}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Numero Regole</p>
+                  <p className="text-gray-900 dark:text-white font-semibold text-lg">{(strategia.regole || []).length}</p>
                 </div>
               </div>
 
               {strategia.descrizione && (
                 <div>
-                  <p className="text-sm text-gray-400 mb-2">Descrizione</p>
-                  <p className="text-white bg-[#1e1e2e] p-3 rounded">{strategia.descrizione}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Descrizione</p>
+                  <p className="text-gray-800 dark:text-white bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded">{strategia.descrizione}</p>
                 </div>
               )}
             </CardContent>
@@ -204,9 +204,9 @@ export function DettaglioStrategia({
                           className={`flex items-center justify-between p-3 rounded border ${config.color}`}
                         >
                           <div>
-                            <p className="text-white font-medium">{rule.nome}</p>
-                            {rule.descrizione && (
-                              <p className="text-sm text-gray-400 mt-1">{rule.descrizione}</p>
+                            <p className="text-gray-800 dark:text-white font-medium">{rule.descrizione}</p>
+                            {rule.note && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{rule.note}</p>
                             )}
                           </div>
                           <Button
@@ -222,7 +222,7 @@ export function DettaglioStrategia({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-400 text-sm py-2">Nessuna regola aggiunta</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm py-2">Nessuna regola aggiunta</p>
                   )}
                 </CardContent>
               </Card>
@@ -235,12 +235,12 @@ export function DettaglioStrategia({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Tipo Regola</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Tipo Regola</label>
                 <select
                   value={newRuleType}
                   onChange={(e) => setNewRuleType(e.target.value as 'ENTRY' | 'EXIT' | 'STOP')}
                   disabled={addingRule}
-                  className="w-full px-3 py-2 bg-[#12121a] border border-[#2a2a3e] text-white rounded focus:border-[#7F00FF] focus:ring-2 focus:ring-[#7F00FF]/20 outline-none"
+                  className="w-full px-3 py-2 bg-white dark:bg-[#12121a] border border-gray-300 dark:border-[#2a2a3e] text-gray-900 dark:text-white rounded focus:border-[#7F00FF] focus:ring-2 focus:ring-[#7F00FF]/20 outline-none"
                 >
                   {Object.entries(gruppiRegole).map(([tipo, config]) => (
                     <option key={tipo} value={tipo}>
@@ -251,7 +251,7 @@ export function DettaglioStrategia({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Descrizione Regola</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Descrizione Regola</label>
                 <Input
                   placeholder="Descrivi la regola..."
                   value={newRuleName}
@@ -262,7 +262,7 @@ export function DettaglioStrategia({
                       handleAddRule();
                     }
                   }}
-                  className="bg-[#12121a] border-[#2a2a3e] text-white"
+                  className=""
                 />
               </div>
 
@@ -287,8 +287,8 @@ export function DettaglioStrategia({
             >
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-gray-400 mb-2">Operazioni</p>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Operazioni</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
                     {strategia.operazioniCount || 0}
                   </p>
                 </CardContent>
@@ -302,8 +302,8 @@ export function DettaglioStrategia({
             >
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-gray-400 mb-2">Win Rate</p>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Win Rate</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
                     {formatPercentuale((strategia.winRate || 0) / 100)}
                   </p>
                 </CardContent>
@@ -317,8 +317,8 @@ export function DettaglioStrategia({
             >
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-gray-400 mb-2">Profit Factor</p>
-                  <p className="text-3xl font-bold text-white">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Profit Factor</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
                     {(strategia.profitFactor || 0).toFixed(2)}
                   </p>
                 </CardContent>
@@ -332,7 +332,7 @@ export function DettaglioStrategia({
             >
               <Card>
                 <CardContent className="pt-6">
-                  <p className="text-sm text-gray-400 mb-2">Stato</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Stato</p>
                   <Badge variant={status.variant} className="text-base py-1 px-2">
                     {status.label}
                   </Badge>
@@ -350,15 +350,15 @@ export function DettaglioStrategia({
                   key={op.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="p-4 bg-[#1e1e2e] rounded border border-[#2a2a3e] hover:border-[#7F00FF]/30 transition-colors"
+                  className="p-4 bg-gray-50 dark:bg-[#1e1e2e] rounded border border-gray-200 dark:border-[#2a2a3e] hover:border-[#7F00FF]/30 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-white">{op.simbolo}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{op.ticker}</span>
                     <Badge variant={op.direzione === 'LONG' ? 'success' : 'destructive'}>
                       {op.direzione}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 mb-2">
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 dark:text-gray-400 mb-2">
                     <div>
                       <p>Entrata: {op.prezzo_entrata.toFixed(4)}</p>
                       <p>Uscita: {op.prezzo_uscita?.toFixed(4) || 'Aperta'}</p>
@@ -375,7 +375,7 @@ export function DettaglioStrategia({
                     </div>
                   </div>
                   <p className="text-xs text-gray-500">
-                    {new Date(op.data_apertura).toLocaleDateString('it-IT')}
+                    {new Date(op.data).toLocaleDateString('it-IT')}
                   </p>
                 </motion.div>
               ))}

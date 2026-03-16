@@ -18,7 +18,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#7F00FF" />
       </head>
-      <body className="antialiased bg-[#0a0a0f] text-white">
+      <body className="antialiased bg-gray-50 dark:bg-[#0a0a0f] text-gray-800 dark:text-white">
         <Providers>{children}</Providers>
       </body>
     </html>

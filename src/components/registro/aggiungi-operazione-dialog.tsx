@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import type { Database } from '@/types/database';
 
-type Strategia = Database['public']['Tables']['strategia']['Row'];
+type Strategia = Database['public']['Tables']['strategie']['Row'];
 
 interface AggiungiOperazioneDialogProps {
   open: boolean;
@@ -45,8 +46,8 @@ export function AggiungiOperazioneDialog({
   const [strategie, setStrategie] = useState<Strategia[]>([]);
   const isEditMode = operazioneModifica !== null;
   const [formData, setFormData] = useState({
-    data_apertura: new Date().toISOString().split('T')[0],
-    simbolo: '',
+    data: new Date().toISOString().split('T')[0],
+    ticker: '',
     direzione: 'LONG' as string,
     quantita: '',
     prezzo_entrata: '',
@@ -62,8 +63,8 @@ export function AggiungiOperazioneDialog({
       fetchStrategie();
       if (isEditMode && operazioneModifica) {
         setFormData({
-          data_apertura: operazioneModifica.data_apertura,
-          simbolo: operazioneModifica.simbolo,
+          data: operazioneModifica.data,
+          ticker: operazioneModifica.ticker,
           direzione: operazioneModifica.direzione as string,
           quantita: operazioneModifica.quantita.toString(),
           prezzo_entrata: operazioneModifica.prezzo_entrata.toString(),
@@ -74,8 +75,8 @@ export function AggiungiOperazioneDialog({
         });
       } else {
         setFormData({
-          data_apertura: new Date().toISOString().split('T')[0],
-          simbolo: '',
+          data: new Date().toISOString().split('T')[0],
+          ticker: '',
           direzione: 'LONG',
           quantita: '',
           prezzo_entrata: '',
@@ -97,10 +98,10 @@ export function AggiungiOperazioneDialog({
 
       if (session) {
         const { data } = await supabase
-          .from('strategia')
+          .from('strategie')
           .select('*')
-          .eq('profilo_id', session.user.id)
-          .eq('is_active', true);
+          .eq('utente_id', session.user.id)
+          .eq('attiva', true);
 
         setStrategie(data || []);
       }
@@ -152,13 +153,13 @@ export function AggiungiOperazioneDialog({
 
     try {
       // Validazione manuale
-      if (!formData.data_apertura || !formData.simbolo || !formData.prezzo_entrata || !formData.quantita) {
+      if (!formData.data || !formData.ticker || !formData.prezzo_entrata || !formData.quantita) {
         toast.error('Compila tutti i campi obbligatori');
         return;
       }
       const validated = {
-        data_apertura: formData.data_apertura,
-        simbolo: formData.simbolo.toUpperCase(),
+        data: formData.data,
+        ticker: formData.ticker.toUpperCase(),
         direzione: formData.direzione,
         quantita: parseFloat(formData.quantita),
         prezzo_entrata: parseFloat(formData.prezzo_entrata),
@@ -183,13 +184,12 @@ export function AggiungiOperazioneDialog({
       if (isEditMode && operazioneModifica && onModifica) {
         // Update existing operation
         await onModifica(operazioneModifica.id, {
-          data_apertura: validated.data_apertura,
-          simbolo: validated.simbolo,
+          data: validated.data,
+          ticker: validated.ticker,
           direzione: validated.direzione,
           quantita: validated.quantita,
           prezzo_entrata: validated.prezzo_entrata,
           prezzo_uscita: validated.prezzo_uscita,
-          quantita_uscita: validated.quantita,
           commissione: validated.commissione,
           note: validated.note || null,
           strategia_id: validated.strategia_id || null,
@@ -199,18 +199,16 @@ export function AggiungiOperazioneDialog({
       } else {
         // Create new operation
         await onAggiungi({
-          data_apertura: validated.data_apertura,
-          simbolo: validated.simbolo,
+          data: validated.data,
+          ticker: validated.ticker,
           direzione: validated.direzione,
-          tipo_ordine: 'MARKET',
           quantita: validated.quantita,
           prezzo_entrata: validated.prezzo_entrata,
           prezzo_uscita: validated.prezzo_uscita,
-          quantita_uscita: validated.quantita,
           commissione: validated.commissione,
           note: validated.note || null,
           strategia_id: validated.strategia_id || null,
-          stato: 'CHIUSA',
+          stato: 'chiusa',
           pnl: pnlNetto,
           pnl_percentuale: pnlPercentuale,
         });
@@ -218,8 +216,8 @@ export function AggiungiOperazioneDialog({
 
       // Reset form
       setFormData({
-        data_apertura: new Date().toISOString().split('T')[0],
-        simbolo: '',
+        data: new Date().toISOString().split('T')[0],
+        ticker: '',
         direzione: 'LONG',
         quantita: '',
         prezzo_entrata: '',
@@ -245,31 +243,34 @@ export function AggiungiOperazioneDialog({
           <DialogTitle>
             {isEditMode ? 'Modifica Operazione' : 'Nuova Operazione'}
           </DialogTitle>
+          <DialogDescription>
+            {isEditMode ? 'Modifica i dettagli dell&apos;operazione selezionata.' : 'Inserisci i dettagli della nuova operazione di trading.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Data e Ora */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="data_apertura">Data Operazione</Label>
+              <Label htmlFor="data">Data Operazione</Label>
               <Input
-                id="data_apertura"
+                id="data"
                 type="date"
-                value={formData.data_apertura}
-                onChange={(e) => handleChange('data_apertura', e.target.value)}
+                value={formData.data}
+                onChange={(e) => handleChange('data', e.target.value)}
                 required
               />
             </div>
 
             {/* Ticker */}
             <div className="space-y-2">
-              <Label htmlFor="simbolo">Ticker</Label>
+              <Label htmlFor="ticker">Ticker</Label>
               <Input
-                id="simbolo"
+                id="ticker"
                 type="text"
                 placeholder="es. AAPL"
-                value={formData.simbolo}
-                onChange={(e) => handleChange('simbolo', e.target.value.toUpperCase())}
+                value={formData.ticker}
+                onChange={(e) => handleChange('ticker', e.target.value.toUpperCase())}
                 required
               />
             </div>
@@ -369,7 +370,7 @@ export function AggiungiOperazioneDialog({
             <Label htmlFor="note">Note</Label>
             <textarea
               id="note"
-              className="flex h-24 w-full rounded-md border border-[#1e1e2e] bg-[#12121a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-[#7F00FF] focus:outline-none focus:ring-2 focus:ring-[#7F00FF] focus:ring-opacity-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-24 w-full rounded-md border border-gray-300 dark:border-[#1e1e2e] bg-white dark:bg-[#12121a] px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#7F00FF] focus:outline-none focus:ring-2 focus:ring-[#7F00FF] focus:ring-opacity-50 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Commenti sull'operazione..."
               value={formData.note}
               onChange={(e) => handleChange('note', e.target.value)}

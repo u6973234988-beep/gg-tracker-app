@@ -5,8 +5,8 @@ import { createClient } from '@/utils/supabase/client';
 import type { Database } from '@/types/database';
 import { toast } from 'sonner';
 
-type Strategia = Database['public']['Tables']['strategia']['Row'];
-type RegolaStrategia = Database['public']['Tables']['regola_strategia']['Row'];
+type Strategia = Database['public']['Tables']['strategie']['Row'];
+type RegolaStrategia = Database['public']['Tables']['regole_strategia']['Row'];
 
 export interface StrategiaConDettagli extends Strategia {
   regole?: RegolaStrategia[];
@@ -20,16 +20,16 @@ export interface UsePlaybookReturn {
   isLoading: boolean;
   errore: string | null;
   creaStrategia: (
-    strategia: Database['public']['Tables']['strategia']['Insert']
+    strategia: Database['public']['Tables']['strategie']['Insert']
   ) => Promise<void>;
   modificaStrategia: (
     id: string,
-    updates: Database['public']['Tables']['strategia']['Update']
+    updates: Database['public']['Tables']['strategie']['Update']
   ) => Promise<void>;
   eliminaStrategia: (id: string) => Promise<void>;
   aggiungiRegola: (
     strategiaId: string,
-    regola: Database['public']['Tables']['regola_strategia']['Insert']
+    regola: Database['public']['Tables']['regole_strategia']['Insert']
   ) => Promise<void>;
   eliminaRegola: (regolaId: string) => Promise<void>;
 }
@@ -62,15 +62,15 @@ export function usePlaybook(): UsePlaybookReturn {
 
       // Fetch strategies with rules
       const { data: strategieData, error: strategieError } = await (supabase as any)
-        .from('strategia')
+        .from('strategie')
         .select(
           `
           *,
-          regole_strategia:regola_strategia(*)
+          regole_strategia:regole_strategia(*)
         `
         )
-        .eq('profilo_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('utente_id', userId)
+        .order('creato_il', { ascending: false });
 
       if (strategieError) {
         console.error('Errore nel caricamento strategie:', strategieError);
@@ -81,10 +81,10 @@ export function usePlaybook(): UsePlaybookReturn {
         const strategieConDettagli = await Promise.all(
           (strategieData || []).map(async (strat: any) => {
             const { data: operazioni } = await (supabase as any)
-              .from('operazione')
+              .from('operazioni')
               .select('pnl, stato')
               .eq('strategia_id', strat.id)
-              .eq('stato', 'CHIUSA');
+              .eq('stato', 'chiusa');
 
             const opCount = operazioni?.length || 0;
             const winningOps = operazioni?.filter((op: any) => (op.pnl || 0) > 0).length || 0;
@@ -103,7 +103,7 @@ export function usePlaybook(): UsePlaybookReturn {
               winRate: opCount > 0 ? (winningOps / opCount) * 100 : 0,
               profitFactor:
                 totalPnlLosses > 0 ? totalPnlWins / totalPnlLosses : totalPnlWins > 0 ? 999 : 0,
-              regole: strat.regola_strategia || [],
+              regole: strat.regole_strategia || [],
             };
           })
         );
@@ -123,7 +123,7 @@ export function usePlaybook(): UsePlaybookReturn {
   }, [fetchStrategie]);
 
   const creaStrategia = useCallback(
-    async (strategia: Database['public']['Tables']['strategia']['Insert']) => {
+    async (strategia: Database['public']['Tables']['strategie']['Insert']) => {
       try {
         const supabase = createClient();
 
@@ -138,14 +138,14 @@ export function usePlaybook(): UsePlaybookReturn {
           return;
         }
 
-        const { error } = await (supabase as any).from('strategia').insert({
+        const { error } = await (supabase as any).from('strategie').insert({
           ...strategia,
-          profilo_id: session.user.id,
+          utente_id: session.user.id,
         });
 
         if (error) {
           toast.error('Errore nella creazione della strategia');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Strategia creata con successo');
           await fetchStrategie();
@@ -159,18 +159,18 @@ export function usePlaybook(): UsePlaybookReturn {
   );
 
   const modificaStrategia = useCallback(
-    async (id: string, updates: Database['public']['Tables']['strategia']['Update']) => {
+    async (id: string, updates: Database['public']['Tables']['strategie']['Update']) => {
       try {
         const supabase = createClient();
 
         const { error } = await (supabase as any)
-          .from('strategia')
+          .from('strategie')
           .update(updates)
           .eq('id', id);
 
         if (error) {
           toast.error('Errore nella modifica della strategia');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Strategia modificata con successo');
           await fetchStrategie();
@@ -189,13 +189,13 @@ export function usePlaybook(): UsePlaybookReturn {
         const supabase = createClient();
 
         const { error } = await (supabase as any)
-          .from('strategia')
+          .from('strategie')
           .delete()
           .eq('id', id);
 
         if (error) {
           toast.error('Errore nell\'eliminazione della strategia');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Strategia eliminata con successo');
           await fetchStrategie();
@@ -209,18 +209,18 @@ export function usePlaybook(): UsePlaybookReturn {
   );
 
   const aggiungiRegola = useCallback(
-    async (strategiaId: string, regola: Database['public']['Tables']['regola_strategia']['Insert']) => {
+    async (strategiaId: string, regola: Database['public']['Tables']['regole_strategia']['Insert']) => {
       try {
         const supabase = createClient();
 
-        const { error } = await (supabase as any).from('regola_strategia').insert({
+        const { error } = await (supabase as any).from('regole_strategia').insert({
           ...regola,
           strategia_id: strategiaId,
         });
 
         if (error) {
           toast.error('Errore nell\'aggiunta della regola');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Regola aggiunta con successo');
           await fetchStrategie();
@@ -239,13 +239,13 @@ export function usePlaybook(): UsePlaybookReturn {
         const supabase = createClient();
 
         const { error } = await (supabase as any)
-          .from('regola_strategia')
+          .from('regole_strategia')
           .delete()
           .eq('id', regolaId);
 
         if (error) {
           toast.error('Errore nell\'eliminazione della regola');
-          console.error(error);
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
           toast.success('Regola eliminata con successo');
           await fetchStrategie();

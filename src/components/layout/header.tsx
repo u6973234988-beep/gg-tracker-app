@@ -31,31 +31,32 @@ export function Header() {
   const pageTitle = pageLabels[pathname] || 'GG Tracker';
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border-dark bg-background-card/40 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 w-full border-b border-gray-200/80 dark:border-[#1e1e2e] bg-white/80 dark:bg-[#0e0e16]/80 backdrop-blur-md">
       <div className="flex items-center justify-between gap-4 px-4 md:px-6 py-3 md:py-4">
         <div className="flex-1 flex items-center gap-4">
-          <h1 className="hidden md:block text-lg md:text-xl font-semibold text-text-primary">
+          <h1 className="hidden md:block text-lg md:text-xl font-semibold text-gray-800 dark:text-white">
             {pageTitle}
           </h1>
 
           <div className="hidden md:flex flex-1 max-w-sm">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
               <Input
                 placeholder="Ricerca..."
-                className="pl-10"
+                className="pl-10 bg-gray-50 dark:bg-[#12121a] border-gray-200 dark:border-[#1e1e2e] text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-600"
                 type="search"
               />
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title={theme === 'dark' ? 'Passa a tema chiaro' : 'Passa a tema scuro'}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a24] rounded-lg"
           >
             {theme === 'dark' ? (
               <Sun className="h-5 w-5" />
@@ -69,6 +70,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               title="Notifiche"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a24] rounded-lg"
             >
               <Bell className="h-5 w-5" />
             </Button>
@@ -85,28 +87,28 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 border-2 border-gray-200 dark:border-[#2a2a3e]">
                   <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>GG</AvatarFallback>
+                  <AvatarFallback className="bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-semibold">GG</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#161622] border-gray-200 dark:border-[#2a2a3e]">
               <div className="flex items-center gap-2 p-2">
                 <Avatar className="h-9 w-9">
                   <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>GG</AvatarFallback>
+                  <AvatarFallback className="bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">GG</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none text-text-primary">Utente</p>
-                  <p className="text-xs leading-none text-text-muted">user@example.com</p>
+                  <p className="text-sm font-medium leading-none text-gray-800 dark:text-white">Utente</p>
+                  <p className="text-xs leading-none text-gray-500 dark:text-gray-500">user@example.com</p>
                 </div>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Profilo</DropdownMenuItem>
-              <DropdownMenuItem>Impostazioni</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Esci</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-gray-100 dark:bg-[#1e1e2e]" />
+              <DropdownMenuItem className="text-gray-700 dark:text-gray-300 focus:bg-gray-50 dark:focus:bg-[#1a1a24]">Profilo</DropdownMenuItem>
+              <DropdownMenuItem className="text-gray-700 dark:text-gray-300 focus:bg-gray-50 dark:focus:bg-[#1a1a24]">Impostazioni</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-gray-100 dark:bg-[#1e1e2e]" />
+              <DropdownMenuItem className="text-gray-700 dark:text-gray-300 focus:bg-gray-50 dark:focus:bg-[#1a1a24]">Esci</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -41,9 +41,9 @@ export type OrderType = typeof ORDER_TYPES[keyof typeof ORDER_TYPES];
 
 // Stati delle operazioni
 export const OPERATION_STATUSES = {
-  APERTA: 'APERTA',
-  CHIUSA: 'CHIUSA',
-  ANNULLATA: 'ANNULLATA',
+  APERTA: 'aperta',
+  CHIUSA: 'chiusa',
+  ANNULLATA: 'annullata',
 } as const;
 
 export type OperationStatus = typeof OPERATION_STATUSES[keyof typeof OPERATION_STATUSES];

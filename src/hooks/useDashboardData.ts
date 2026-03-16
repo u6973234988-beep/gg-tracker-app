@@ -7,8 +7,8 @@ import type { Database } from '@/types/database';
 type VistaMetricheUtente = Database['public']['Views']['vista_metriche_utente']['Row'];
 type VistaPerformanceStrategia = Database['public']['Views']['vista_performance_strategia']['Row'];
 type VistaEquityGiornaliera = Database['public']['Views']['vista_equity_giornaliera']['Row'];
-type Operazione = Database['public']['Tables']['operazione']['Row'];
-type Strategia = Database['public']['Tables']['strategia']['Row'];
+type Operazione = Database['public']['Tables']['operazioni']['Row'];
+type Strategia = Database['public']['Tables']['strategie']['Row'];
 
 export interface OperazioneRecente {
   operazione: Operazione;
@@ -58,10 +58,10 @@ export function useDashboardData(): DashboardData {
         const { data: metricheData, error: metricheError } = await (supabase as any)
           .from('vista_metriche_utente')
           .select('*')
-          .eq('profilo_id', userId)
-          .single();
+          .eq('utente_id', userId)
+          .maybeSingle();
 
-        if (metricheError && metricheError.code !== 'PGRST116') {
+        if (metricheError) {
           console.error('Errore nel caricamento metriche:', metricheError);
         }
 
@@ -71,17 +71,17 @@ export function useDashboardData(): DashboardData {
         const { data: performanceData, error: performanceError } = await (supabase as any)
           .from('vista_performance_strategia')
           .select('*')
-          .eq('strategia_id', userId)
-          .order('net_pnl', { ascending: false });
+          .eq('utente_id', userId)
+          .order('pnl_totale', { ascending: false });
 
         if (performanceError) {
           console.error('Errore nel caricamento performance strategia:', performanceError);
         } else {
           // Filter to only strategies belonging to this user
           const { data: strategieData } = await (supabase as any)
-            .from('strategia')
+            .from('strategie')
             .select('id')
-            .eq('profilo_id', userId);
+            .eq('utente_id', userId);
 
           const strategieIds = strategieData?.map((s: any) => s.id) || [];
           const filteredPerformance = (performanceData || []).filter((p: any) =>
@@ -94,7 +94,7 @@ export function useDashboardData(): DashboardData {
         const { data: equityDataFetch, error: equityError } = await (supabase as any)
           .from('vista_equity_giornaliera')
           .select('*')
-          .eq('profilo_id', userId)
+          .eq('utente_id', userId)
           .order('data', { ascending: true });
 
         if (equityError) {
@@ -105,10 +105,10 @@ export function useDashboardData(): DashboardData {
 
         // Fetch recent operazioni (last 10) with strategia info
         const { data: operazioniData, error: operazioniError } = await (supabase as any)
-          .from('operazione')
+          .from('operazioni')
           .select('*')
-          .eq('profilo_id', userId)
-          .order('data_apertura', { ascending: false })
+          .eq('utente_id', userId)
+          .order('data', { ascending: false })
           .limit(10);
 
         if (operazioniError) {
@@ -123,7 +123,7 @@ export function useDashboardData(): DashboardData {
 
             if ((op as any).strategia_id) {
               const { data: stratData } = await (supabase as any)
-                .from('strategia')
+                .from('strategie')
                 .select('*')
                 .eq('id', (op as any).strategia_id)
                 .single();

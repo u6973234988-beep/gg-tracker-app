@@ -40,10 +40,10 @@ export function AuthProtectedLayout({
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background-dark">
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-[#0a0a0f]">
         <div className="space-y-4 text-center">
           <div className="h-12 w-12 rounded-full bg-primary-700 mx-auto animate-pulse" />
-          <p className="text-text-secondary">Caricamento...</p>
+          <p className="text-gray-500 dark:text-gray-400">Caricamento...</p>
         </div>
       </div>
     );

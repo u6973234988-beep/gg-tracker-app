@@ -15,11 +15,11 @@ const badgeVariants = cva(
         default:
           'border border-transparent bg-[#7F00FF] text-white hover:bg-[#6B00D4] dark:bg-[#7F00FF] dark:text-white dark:hover:bg-[#6B00D4]',
         secondary:
-          'border border-transparent bg-[#1e1e2e] text-gray-300 hover:bg-[#2a2a3e] dark:bg-[#1e1e2e] dark:text-gray-300 dark:hover:bg-[#2a2a3e]',
+          'border border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-[#1e1e2e] dark:text-gray-300 dark:hover:bg-[#2a2a3e]',
         destructive:
           'border border-transparent bg-[#FF4757] text-white hover:bg-[#E63946] dark:bg-[#FF4757] dark:text-white dark:hover:bg-[#E63946]',
         outline:
-          'border border-[#7F00FF] text-[#7F00FF] dark:border-[#7F00FF] dark:text-[#7F00FF]',
+          'border border-primary-600 text-primary-700 dark:border-[#7F00FF] dark:text-[#7F00FF]',
         success:
           'border border-transparent bg-[#2ecc71] text-white hover:bg-[#27ae60] dark:bg-[#2ecc71] dark:text-white dark:hover:bg-[#27ae60]',
         warning:

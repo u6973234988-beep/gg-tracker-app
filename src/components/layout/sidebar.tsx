@@ -67,13 +67,15 @@ export function Sidebar() {
 
   return (
     <>
+      {/* Mobile toggle */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="fixed left-4 top-4 z-50 lg:hidden flex items-center justify-center h-10 w-10 rounded-lg bg-primary-700 text-white hover:bg-primary-800 transition-colors"
+        className="fixed left-4 top-4 z-50 lg:hidden flex items-center justify-center h-10 w-10 rounded-lg bg-primary-700 text-white hover:bg-primary-800 transition-colors shadow-lg shadow-primary-700/25"
       >
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
+      {/* Mobile backdrop */}
       {isMobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
@@ -81,28 +83,32 @@ export function Sidebar() {
         />
       )}
 
+      {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-full bg-background-card border-r border-border-dark z-40 transition-all duration-300 flex flex-col',
+          'fixed left-0 top-0 h-full z-40 transition-all duration-300 flex flex-col',
+          'bg-white dark:bg-[#0e0e16] border-r border-gray-200/80 dark:border-[#1e1e2e]',
           isCollapsed ? 'w-[70px] lg:w-[70px]' : 'w-[260px] lg:w-[260px]',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-border-dark h-16">
+        {/* Logo header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200/80 dark:border-[#1e1e2e] h-16">
           {!isCollapsed && (
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary-500 to-primary-700 bg-clip-text text-transparent">
-              GG
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 dark:from-primary-400 dark:to-primary-600 bg-clip-text text-transparent">
+              GG Tracker
             </h1>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center h-8 w-8 rounded-lg bg-background-hover hover:bg-background-card text-text-secondary transition-colors"
+            className="hidden lg:flex items-center justify-center h-8 w-8 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1a1a24] hover:text-gray-700 dark:hover:text-white transition-colors"
           >
             <Menu className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -112,32 +118,38 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
                   active
-                    ? 'bg-primary-700 text-white shadow-lg shadow-primary-700/50'
-                    : 'text-text-secondary hover:bg-background-hover hover:text-text-primary'
+                    ? 'bg-gradient-to-r from-primary-700 to-primary-800 text-white shadow-lg shadow-primary-700/30'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1a1a24] hover:text-gray-900 dark:hover:text-white'
                 )}
                 title={isCollapsed ? item.label : undefined}
               >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                <Icon className={cn(
+                  'h-5 w-5 flex-shrink-0 transition-colors',
+                  active ? 'text-white' : 'text-gray-400 dark:text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400'
+                )} />
+                {!isCollapsed && (
+                  <span className="text-sm font-medium">{item.label}</span>
+                )}
               </Link>
             );
           })}
         </nav>
 
+        {/* Footer - Clock & Date */}
         <div
           className={cn(
-            'border-t border-border-dark p-4 space-y-2',
+            'border-t border-gray-200/80 dark:border-[#1e1e2e] p-4 space-y-1.5',
             isCollapsed && 'flex flex-col items-center justify-center'
           )}
         >
-          <div className="flex items-center gap-2 text-text-secondary">
-            <Clock className="h-4 w-4 flex-shrink-0" />
-            {!isCollapsed && <span className="text-xs font-mono">{currentTime}</span>}
+          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+            <Clock className="h-4 w-4 flex-shrink-0 text-primary-500/60 dark:text-primary-500/40" />
+            {!isCollapsed && <span className="text-xs font-mono tabular-nums">{currentTime}</span>}
           </div>
           {!isCollapsed && (
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-gray-400 dark:text-gray-600 pl-6">
               {new Date().toLocaleDateString('it-IT', {
                 weekday: 'short',
                 day: 'numeric',
@@ -148,6 +160,7 @@ export function Sidebar() {
         </div>
       </aside>
 
+      {/* Spacer for content offset */}
       <div
         className={cn(
           'transition-all duration-300',

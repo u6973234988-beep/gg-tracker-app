@@ -4,19 +4,21 @@
  */
 
 export interface OperazioneCSV {
-  simbolo: string;
+  ticker: string;
   direzione: 'LONG' | 'SHORT';
   quantita: number;
   prezzo_entrata: number;
   prezzo_uscita: number | null;
   commissione: number;
-  strategia?: string;
   note?: string;
-  data_apertura: string;
-  data_chiusura?: string | null;
-  tipo_ordine?: 'MARKET' | 'LIMIT' | 'STOP';
+  data: string;
   pnl?: number | null;
   pnl_percentuale?: number | null;
+  ora_entrata?: string;
+  ora_uscita?: string;
+  durata?: string;
+  timestamp?: number;
+  esecuzioni?: { ora: string; prezzo: number; quantita: number; lato: string; pnl: number }[];
 }
 
 /**
@@ -75,12 +77,47 @@ function parseDirection(direction: string): 'LONG' | 'SHORT' {
   return 'LONG';
 }
 
+
+/**
+ * Calcola la durata tra due ore nel formato HH:MM
+ */
+function calculateTradeDuration(entryTime: string, exitTime: string): string {
+  try {
+    const [entryHours, entryMinutes] = entryTime.split(':').map(Number);
+    const [exitHours, exitMinutes] = exitTime.split(':').map(Number);
+
+    // Converti in minuti totali
+    const entryTotalMinutes = entryHours * 60 + entryMinutes;
+    const exitTotalMinutes = exitHours * 60 + exitMinutes;
+
+    // Calcola la differenza in minuti
+    let diffMinutes = exitTotalMinutes - entryTotalMinutes;
+
+    // Gestisci il caso in cui l'uscita sia il giorno successivo
+    if (diffMinutes < 0) {
+      diffMinutes += 24 * 60; // Aggiungi 24 ore in minuti
+    }
+
+    // Converti in ore e minuti
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  } catch (e) {
+    console.error('Errore nel calcolo della durata dell\'operazione:', e);
+    return '00:00';
+  }
+}
+
 /**
  * Effettua il parsing di un CSV nel formato standard
  * Headers attesi: data, ticker, direzione, quantita, prezzo_entrata, prezzo_uscita, commissione, strategia, note
  */
 function parseDefaultFormat(rows: string[][]): OperazioneCSV[] {
-  const header = rows[0].map((h) => h.toLowerCase().trim());
+  // Normalizza gli header: minuscolo, trim, e sostituisci spazi con underscore
+  const header = rows[0].map((h) =>
+    h.toLowerCase().trim().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+  );
 
   const dataIdx = header.findIndex((h) =>
     ['data', 'data_apertura', 'date', 'entry_date'].includes(h),
@@ -103,43 +140,59 @@ function parseDefaultFormat(rows: string[][]): OperazioneCSV[] {
   const commissioneIdx = header.findIndex((h) =>
     ['commissione', 'commission', 'fee', 'fees'].includes(h),
   );
-  const strategiaIdx = header.findIndex((h) =>
-    ['strategia', 'strategy', 'sistema'].includes(h),
-  );
   const noteIdx = header.findIndex((h) =>
     ['note', 'notes', 'commento', 'comment'].includes(h),
   );
-  const dataChiusuraIdx = header.findIndex((h) =>
-    ['data_chiusura', 'exit_date', 'data_uscita'].includes(h),
-  );
+
+  // Log per debug: mostra gli header trovati
+  console.log('CSV Parser - Header normalizzati:', header);
+  console.log('CSV Parser - Indici trovati:', { dataIdx, tickerIdx, direzioneIdx, quantitaIdx, prezzoEntrata, prezzoUscita, commissioneIdx, noteIdx });
+
+  // Verifica che almeno ticker e prezzo_entrata siano trovati
+  if (tickerIdx === -1) {
+    throw new Error('Colonna Ticker non trovata. Header trovati: ' + header.join(', '));
+  }
+  if (prezzoEntrata === -1) {
+    throw new Error('Colonna Prezzo Entrata non trovata. Header trovati: ' + header.join(', '));
+  }
 
   const operazioni: OperazioneCSV[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length === 0 || !row[tickerIdx]) continue;
+    if (!row || row.length === 0) continue;
+    // Se l'indice ticker è valido ma il valore è vuoto, salta la riga
+    if (tickerIdx >= 0 && !row[tickerIdx]?.trim()) continue;
 
-    const entryPrice = parseFloat(row[prezzoEntrata]?.replace(',', '.') || '0');
-    const exitPrice = prezzoUscita >= 0
-      ? parseFloat(row[prezzoUscita]?.replace(',', '.') || '')
-      : null;
-    const quantity = parseFloat(row[quantitaIdx]?.replace(',', '.') || '0');
-    const commission = parseFloat(
-      row[commissioneIdx]?.replace(',', '.') || '0',
-    );
+    const entryPrice = parseFloat(row[prezzoEntrata]?.replace(',', '.') || '0') || 0;
+    const rawExit = prezzoUscita >= 0 ? row[prezzoUscita]?.replace(',', '.').trim() : '';
+    const exitPrice = rawExit && !isNaN(parseFloat(rawExit)) ? parseFloat(rawExit) : null;
+    const quantity = parseFloat(row[quantitaIdx]?.replace(',', '.') || '0') || 0;
+    const commission = parseFloat(row[commissioneIdx]?.replace(',', '.') || '0') || 0;
+
+    // Calcola PnL se abbiamo prezzo di uscita
+    let pnl: number | null = null;
+    let pnlPercentuale: number | null = null;
+    const dir = parseDirection(row[direzioneIdx] || 'LONG');
+    if (exitPrice !== null && !isNaN(exitPrice) && exitPrice > 0) {
+      const pnlLordo = dir === 'LONG'
+        ? (exitPrice - entryPrice) * quantity
+        : (entryPrice - exitPrice) * quantity;
+      pnl = pnlLordo - commission;
+      pnlPercentuale = entryPrice > 0 ? (pnl / (entryPrice * quantity)) * 100 : 0;
+    }
 
     operazioni.push({
-      data_apertura: parseDate(row[dataIdx] || ''),
-      simbolo: row[tickerIdx].toUpperCase().trim(),
-      direzione: parseDirection(row[direzioneIdx] || 'LONG'),
+      data: parseDate(row[dataIdx] || ''),
+      ticker: row[tickerIdx].toUpperCase().trim(),
+      direzione: dir,
       quantita: quantity,
       prezzo_entrata: entryPrice,
       prezzo_uscita: exitPrice,
       commissione: commission,
-      strategia: row[strategiaIdx]?.trim() || undefined,
       note: row[noteIdx]?.trim() || undefined,
-      data_chiusura: dataChiusuraIdx >= 0 ? parseDate(row[dataChiusuraIdx]) : null,
-      tipo_ordine: 'MARKET',
+      pnl,
+      pnl_percentuale: pnlPercentuale,
     });
   }
 
@@ -147,32 +200,276 @@ function parseDefaultFormat(rows: string[][]): OperazioneCSV[] {
 }
 
 /**
- * Effettua il parsing di un CSV nel formato TradeZero
+ * Converte il tempo da formato 12h AM/PM a formato 24h
+ */
+function convertTo24HourFormat(timeString: string, ampm: string): string {
+  try {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    let hour24 = hours;
+
+    // Converti AM/PM in formato 24 ore
+    if (ampm && ampm.toUpperCase() === 'PM' && hours < 12) {
+      hour24 = hours + 12;
+    } else if (ampm && ampm.toUpperCase() === 'AM' && hours === 12) {
+      hour24 = 0;
+    }
+
+    return `${hour24.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  } catch (e) {
+    console.error(`Errore nella conversione dell'ora: ${timeString} ${ampm}`, e);
+    return '00:00';
+  }
+}
+
+/**
+ * Effettua il parsing di un CSV nel formato TradeZero con supporto completo
+ * Richiede header: T/D, Side, Symbol, Qty, Price, Exec Time, Comm, Net Proceeds
  */
 function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
-  // TradeZero format: [DATE],[SYMBOL],[SIDE],[SHARES],[ENTRY PRICE],[EXIT PRICE],[COMMISSION]
-  const operazioni: OperazioneCSV[] = [];
+  if (rows.length < 2) {
+    console.warn('File TradeZero vuoto o malformato');
+    return [];
+  }
+
+  // Estrai le intestazioni
+  const headers = rows[0].map((h) => h.trim());
+  console.log('TradeZero Headers:', headers);
+
+  // Mappa le intestazioni ai loro indici
+  const headerIndexMap: Record<string, number> = {};
+  headers.forEach((header, index) => {
+    headerIndexMap[header] = index;
+  });
+
+  // Verifica che le intestazioni necessarie siano presenti
+  const requiredHeaders = ['T/D', 'Side', 'Symbol', 'Qty', 'Price', 'Exec Time', 'Comm', 'Net Proceeds'];
+  const missingHeaders = requiredHeaders.filter((header) => !(header in headerIndexMap));
+
+  if (missingHeaders.length > 0) {
+    console.error(`Intestazioni mancanti nel file TradeZero: ${missingHeaders.join(', ')}`);
+    throw new Error(`Formato TradeZero non valido. Intestazioni mancanti: ${missingHeaders.join(', ')}`);
+  }
+
+  // Raccogli tutti i trades individuali prima del consolidamento
+  const allTrades: Array<{
+    data: string;
+    ticker: string;
+    direzione: 'LONG' | 'SHORT';
+    quantita: number;
+    prezzo: number;
+    ora: string;
+    commissione: number;
+    pnl: number;
+    timestamp: number;
+  }> = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length < 7) continue;
+    if (!row || row.length === 0) continue;
 
-    const quantity = parseFloat(row[3]?.replace(',', '.') || '0');
-    const entryPrice = parseFloat(row[4]?.replace(',', '.') || '0');
-    const exitPrice = row[5] ? parseFloat(row[5].replace(',', '.')) : null;
-    const commission = parseFloat(row[6]?.replace(',', '.') || '0');
+    // Le righe sono già pre-parsate dalla funzione parseCSV principale
+    // Non serve ri-unire e ri-parsare (causerebbe errori di conteggio colonne)
+    const values = row;
 
-    operazioni.push({
-      data_apertura: parseDate(row[0] || ''),
-      simbolo: row[1].toUpperCase().trim(),
-      direzione: parseDirection(row[2] || 'LONG'),
-      quantita: quantity,
-      prezzo_entrata: entryPrice,
-      prezzo_uscita: exitPrice,
-      commissione: commission,
-      tipo_ordine: 'MARKET',
+    if (values.length !== headers.length) {
+      // Tolleranza: se la riga ha meno valori, riempi con stringhe vuote
+      if (values.length < headers.length) {
+        while (values.length < headers.length) {
+          values.push('');
+        }
+      } else {
+        console.warn(
+          `Riga ${i + 1} ha più valori (${values.length}) delle intestazioni (${headers.length}). Saltata.`,
+        );
+        continue;
+      }
+    }
+
+    // Estrai i valori rilevanti
+    const tradeDate = values[headerIndexMap['T/D']]?.trim() || '';
+    const side = values[headerIndexMap['Side']]?.trim() || '';
+    const symbol = values[headerIndexMap['Symbol']]?.trim() || '';
+    const quantity = values[headerIndexMap['Qty']]?.trim() || '0';
+    const price = values[headerIndexMap['Price']]?.trim() || '0';
+    const execTime = values[headerIndexMap['Exec Time']]?.trim() || '';
+    const commission = values[headerIndexMap['Comm']]?.trim() || '0';
+    const netProceeds = values[headerIndexMap['Net Proceeds']]?.trim() || '0';
+
+    // Normalizza la data (formato MM/DD/YYYY in TradeZero)
+    let formattedDate = tradeDate;
+    try {
+      const dateParts = tradeDate.split('/');
+      if (dateParts.length === 3) {
+        const month = dateParts[0].padStart(2, '0');
+        const day = dateParts[1].padStart(2, '0');
+        const year = dateParts[2];
+        formattedDate = `${year}-${month}-${day}`;
+      }
+    } catch (e) {
+      console.error(`Errore nel parsing della data: ${tradeDate}`, e);
+    }
+
+    // Normalizza la direzione (BC=LONG, SS=SHORT)
+    const direction = side.toUpperCase() === 'BC' ? 'LONG' : 'SHORT';
+
+    // Normalizza la quantità
+    const parsedQuantity = Math.abs(parseFloat(quantity.replace(/[^\d.-]/g, '')) || 0);
+
+    // Normalizza il prezzo
+    const parsedPrice = parseFloat(price.replace(/[^\d.-]/g, '')) || 0;
+
+    // Normalizza la commissione
+    const parsedCommission = Math.abs(parseFloat(commission.replace(/[^\d.-]/g, '')) || 0);
+
+    // Estrai l'ora dall'Exec Time (formato HH:MM:SS AM/PM o MM/DD/YYYY HH:MM:SS AM/PM)
+    let time = '00:00';
+    let timestamp = 0;
+    try {
+      const timeParts = execTime.split(' ');
+      let timeString = '';
+      let ampm = '';
+
+      if (timeParts[0].includes('/')) {
+        // Formato con data: MM/DD/YYYY HH:MM:SS AM/PM
+        timeString = timeParts[1] || '';
+        ampm = timeParts[2] || '';
+      } else {
+        // Formato solo ora: HH:MM:SS AM/PM
+        timeString = timeParts[0] || '';
+        ampm = timeParts[1] || '';
+      }
+
+      // Converti in formato 24 ore se necessario
+      if (timeString && timeString.includes(':')) {
+        const [hours, minutes] = timeString.split(':').map((part) => Number.parseInt(part, 10));
+        time = convertTo24HourFormat(`${hours}:${minutes}`, ampm);
+
+        // Crea un timestamp per ordinare le operazioni cronologicamente
+        const dateObj = new Date(`${formattedDate}T${time}:00`);
+        timestamp = dateObj.getTime();
+      }
+    } catch (e) {
+      console.error(`Errore nel parsing dell'ora: ${execTime}`, e);
+    }
+
+    // Calcolo P&L da Net Proceeds
+    const pnl = parseFloat(netProceeds.replace(/[^\d.-]/g, '')) || 0;
+
+    allTrades.push({
+      data: formattedDate,
+      ticker: symbol.toUpperCase(),
+      direzione: direction,
+      quantita: parsedQuantity,
+      prezzo: parsedPrice,
+      ora: time,
+      commissione: parsedCommission,
+      pnl: pnl,
+      timestamp: timestamp,
     });
   }
+
+  // Raggruppa le operazioni per ticker e data per consolidare le operazioni multi-gamba
+  const tradesByTickerAndDate: Record<string, typeof allTrades> = {};
+
+  allTrades.forEach((trade) => {
+    const key = `${trade.data}_${trade.ticker}`;
+    if (!tradesByTickerAndDate[key]) {
+      tradesByTickerAndDate[key] = [];
+    }
+    tradesByTickerAndDate[key].push(trade);
+  });
+
+  // Elabora le operazioni raggruppate
+  const operazioni: OperazioneCSV[] = [];
+
+  Object.values(tradesByTickerAndDate).forEach((tickerTrades) => {
+    // Ordina per timestamp o ora
+    tickerTrades.sort((a, b) => {
+      if (a.timestamp && b.timestamp) {
+        return a.timestamp - b.timestamp;
+      }
+      return a.ora.localeCompare(b.ora);
+    });
+
+    // Se ci sono più operazioni per lo stesso ticker nella stessa data, consolidale
+    if (tickerTrades.length > 1) {
+      const firstTrade = tickerTrades[0];
+      const lastTrade = tickerTrades[tickerTrades.length - 1];
+
+      // Calcola i totali
+      let totalQuantity = 0;
+      let totalPnL = 0;
+      let totalCommission = 0;
+
+      tickerTrades.forEach((trade) => {
+        totalQuantity += trade.quantita;
+        totalPnL += trade.pnl;
+        totalCommission += trade.commissione;
+      });
+
+      // Crea l'operazione consolidata
+      const consolidatedOp: OperazioneCSV = {
+        data: firstTrade.data,
+        ticker: firstTrade.ticker,
+        direzione: firstTrade.direzione,
+        quantita: totalQuantity,
+        prezzo_entrata: firstTrade.prezzo,
+        prezzo_uscita: lastTrade.prezzo,
+        commissione: totalCommission,
+        pnl: totalPnL,
+        pnl_percentuale:
+          firstTrade.prezzo > 0
+            ? (totalPnL / (firstTrade.prezzo * totalQuantity)) * 100
+            : 0,
+        ora_entrata: firstTrade.ora,
+        ora_uscita: lastTrade.ora,
+        durata: calculateTradeDuration(firstTrade.ora, lastTrade.ora),
+        timestamp: firstTrade.timestamp,
+        esecuzioni: tickerTrades.map((trade) => ({
+          ora: trade.ora,
+          prezzo: trade.prezzo,
+          quantita: trade.quantita,
+          lato: trade.direzione,
+          pnl: trade.pnl,
+        })),
+      };
+
+      operazioni.push(consolidatedOp);
+    } else {
+      // Se c'è solo un'operazione
+      const trade = tickerTrades[0];
+
+      const op: OperazioneCSV = {
+        data: trade.data,
+        ticker: trade.ticker,
+        direzione: trade.direzione,
+        quantita: trade.quantita,
+        prezzo_entrata: trade.prezzo,
+        prezzo_uscita: trade.prezzo,
+        commissione: trade.commissione,
+        pnl: trade.pnl,
+        pnl_percentuale:
+          trade.prezzo > 0
+            ? (trade.pnl / (trade.prezzo * trade.quantita)) * 100
+            : 0,
+        ora_entrata: trade.ora,
+        ora_uscita: trade.ora,
+        durata: '00:00',
+        timestamp: trade.timestamp,
+        esecuzioni: [
+          {
+            ora: trade.ora,
+            prezzo: trade.prezzo,
+            quantita: trade.quantita,
+            lato: trade.direzione,
+            pnl: trade.pnl,
+          },
+        ],
+      };
+
+      operazioni.push(op);
+    }
+  });
 
   return operazioni;
 }
@@ -200,14 +497,13 @@ function parseInteractiveBrokersFormat(rows: string[][]): OperazioneCSV[] {
     const commission = Math.abs(parseFloat(row[commissionIdx]?.replace(',', '.') || '0'));
 
     operazioni.push({
-      data_apertura: parseDate(row[tradeIdTimeIdx] || ''),
-      simbolo: row[symbolIdx].toUpperCase().trim(),
+      data: parseDate(row[tradeIdTimeIdx] || ''),
+      ticker: row[symbolIdx].toUpperCase().trim(),
       direzione: quantity > 0 ? 'LONG' : 'SHORT',
       quantita: quantity,
       prezzo_entrata: price,
       prezzo_uscita: null,
       commissione: commission,
-      tipo_ordine: 'MARKET',
     });
   }
 
@@ -246,8 +542,8 @@ function parseDirectaFormat(rows: string[][]): OperazioneCSV[] {
     if (!row || !row[simboloIdx]) continue;
 
     operazioni.push({
-      data_apertura: parseDate(row[dataIdx] || ''),
-      simbolo: row[simboloIdx].toUpperCase().trim(),
+      data: parseDate(row[dataIdx] || ''),
+      ticker: row[simboloIdx].toUpperCase().trim(),
       direzione: parseDirection(row[operazioneIdx] || 'LONG'),
       quantita: parseFloat(row[quantitaIdx]?.replace(',', '.') || '0'),
       prezzo_entrata: parseFloat(row[prezzoIdx]?.replace(',', '.') || '0'),
@@ -255,7 +551,6 @@ function parseDirectaFormat(rows: string[][]): OperazioneCSV[] {
       commissione: parseFloat(
         row[commissioneIdx]?.replace(',', '.') || '0',
       ),
-      tipo_ordine: 'MARKET',
     });
   }
 
@@ -275,7 +570,13 @@ export function parseCSV(
   // Rimuovi BOM e spazi bianchi
   const cleanContent = content.replace(/^\uFEFF/, '').trim();
 
-  // Usa un parser più semplice
+  // Auto-detecta il separatore (virgola o punto e virgola)
+  const firstLine = cleanContent.split('\n')[0] || '';
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const semicolonCount = (firstLine.match(/;/g) || []).length;
+  const separator = semicolonCount > commaCount ? ';' : ',';
+
+  // Parser CSV con supporto per quote e separatore dinamico
   const csvRows = cleanContent.split('\n').map((line) => {
     const cells: string[] = [];
     let current = '';
@@ -291,7 +592,7 @@ export function parseCSV(
         } else {
           inQuotes = !inQuotes;
         }
-      } else if (char === ',' && !inQuotes) {
+      } else if (char === separator && !inQuotes) {
         cells.push(current.trim());
         current = '';
       } else {
@@ -339,10 +640,10 @@ export function parseCSV(
   // Valida e pulisci le operazioni
   return operazioni.filter((op) => {
     return (
-      op.simbolo &&
+      op.ticker &&
       op.quantita > 0 &&
       op.prezzo_entrata > 0 &&
-      op.data_apertura
+      op.data
     );
   });
 }
@@ -355,11 +656,10 @@ export function generateExampleCSV(): string {
     'Data',
     'Ticker',
     'Direzione',
-    'Quantità',
+    'Quantita',
     'Prezzo Entrata',
     'Prezzo Uscita',
     'Commissione',
-    'Strategia',
     'Note',
   ];
 
@@ -372,7 +672,6 @@ export function generateExampleCSV(): string {
       '150.25',
       '152.50',
       '1.99',
-      'Trend Following',
       'Breakout ribassista',
     ],
     [
@@ -383,7 +682,6 @@ export function generateExampleCSV(): string {
       '420.00',
       '415.00',
       '1.99',
-      'Mean Reversion',
       'Correzione dopo impulso',
     ],
     [
@@ -394,7 +692,6 @@ export function generateExampleCSV(): string {
       '200.00',
       '',
       '0.00',
-      'Swing Trading',
       'Posizione aperta',
     ],
   ];
@@ -414,11 +711,10 @@ export function exportToCSV(
   operazioni: any[],
 ): string {
   const header = [
-    'Data Apertura',
-    'Data Chiusura',
+    'Data',
     'Ticker',
     'Direzione',
-    'Quantità',
+    'Quantita',
     'Prezzo Entrata',
     'Prezzo Uscita',
     'Commissione',
@@ -430,9 +726,8 @@ export function exportToCSV(
   ];
 
   const rows = operazioni.map((op) => [
-    op.data_apertura || '',
-    op.data_chiusura || '',
-    op.simbolo || '',
+    op.data || '',
+    op.ticker || '',
     op.direzione || '',
     op.quantita || '',
     op.prezzo_entrata || '',

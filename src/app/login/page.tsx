@@ -45,17 +45,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background-dark via-background-darker to-background-dark flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 dark:from-[#0a0a0f] dark:via-[#0e0e16] dark:to-[#0a0a0f] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center h-12 w-12 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 mb-4">
             <span className="text-xl font-bold text-white">GG</span>
           </div>
-          <h1 className="text-3xl font-bold text-text-primary">GG Tracker</h1>
-          <p className="text-text-secondary text-sm mt-2">Il tuo diario di trading personale</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">GG Tracker</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Il tuo diario di trading personale</p>
         </div>
 
-        <Card className="border-border-light/20">
+        <Card className="border-gray-200 dark:border-[#1e1e2e]/20">
           <CardHeader>
             <CardTitle>Accedi</CardTitle>
             <CardDescription>Accedi al tuo account GG Tracker</CardDescription>
@@ -98,7 +98,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-4 text-center text-sm">
-              <span className="text-text-secondary">Non hai un account? </span>
+              <span className="text-gray-500 dark:text-gray-400">Non hai un account? </span>
               <Link
                 href="/registrati"
                 className="text-primary-500 hover:text-primary-400 font-medium transition-colors"

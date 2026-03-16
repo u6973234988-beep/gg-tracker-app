@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
  * Definisce le varianti dello stile della Label
  */
 const labelVariants = cva(
-  'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white dark:text-white',
+  'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-800 dark:text-white',
 );
 
 /**
