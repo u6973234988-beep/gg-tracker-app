@@ -34,7 +34,7 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 ore
 
 // ─── Rate Limiting (conservativo per sviluppo) ───────────────────────
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 10_000; // 10 secondi tra richieste (ben sotto 8/min)
+const MIN_REQUEST_INTERVAL = 8_000; // 8 secondi tra richieste (max 7/min, sotto il limite di 8/min)
 let dailyRequestCount = 0;
 let dailyResetDate = new Date().toDateString();
 const MAX_DAILY_REQUESTS = 600; // Margine sicuro sotto 800
@@ -89,9 +89,9 @@ function getDateRange(tradeDate: string | undefined, timeframe: Timeframe): { st
   const target = tradeDate ? new Date(tradeDate + 'T12:00:00') : new Date();
 
   if (timeframe === '1day') {
-    // Per daily: ±60 giorni dalla data dell'operazione
+    // Per daily: ±90 giorni dalla data dell'operazione per avere contesto sufficiente
     const start = new Date(target);
-    start.setDate(start.getDate() - 60);
+    start.setDate(start.getDate() - 90);
     const end = new Date(target);
     end.setDate(end.getDate() + 30);
     // Non andare oltre oggi
@@ -102,11 +102,12 @@ function getDateRange(tradeDate: string | undefined, timeframe: Timeframe): { st
       end: formatDate(end),
     };
   } else {
-    // Per intraday: giorno esatto dell'operazione
-    // start = inizio giornata, end = fine giornata
+    // Per intraday (1min): giorno esatto dell'operazione
+    // Usiamo orari di mercato ampi per catturare pre/after-market se disponibili
+    const dateStr = tradeDate || formatDate(target);
     return {
-      start: `${tradeDate || formatDate(target)} 00:00:00`,
-      end: `${tradeDate || formatDate(target)} 23:59:59`,
+      start: `${dateStr} 00:00:00`,
+      end: `${dateStr} 23:59:59`,
     };
   }
 }
@@ -222,10 +223,10 @@ export async function getOHLCData(
 
     if (timeframe !== '1day') {
       throw new Error(
-        `Nessun dato intraday (${timeframe}) trovato per "${cleanTicker}" nella data ${tradeDate || 'selezionata'}. ` +
-        `Possibili cause: mercato chiuso in quella data, ticker non supporta intraday, ` +
-        `o dati non disponibili (il piano gratuito ha dati 1min dal 10 Feb 2020). ` +
-        `Prova con il timeframe "1D" (giornaliero).`
+        `Nessun dato al minuto trovato per "${cleanTicker}" nella data ${tradeDate || 'selezionata'}. ` +
+        `Possibili cause: mercato chiuso (weekend/festivo), ticker non disponibile in intraday, ` +
+        `o dati storici non coperti dal piano gratuito (disponibile dal 10 Feb 2020). ` +
+        `Prova con la vista Giornaliera per verificare che il ticker esista.`
       );
     }
 
