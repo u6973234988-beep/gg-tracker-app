@@ -14,7 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatValuta, formatData, cn } from '@/lib/utils';
-import { Edit2, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit2, Trash2, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import type { OperazioneConDettagli } from '@/hooks/useOperazioni';
 
 interface TabellaOperazioniProps {
@@ -30,6 +31,7 @@ export function TabellaOperazioni({
   onDelete,
   isLoading = false,
 }: TabellaOperazioniProps) {
+  const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -168,6 +170,15 @@ export function TabellaOperazioni({
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => router.push(`/analisi/${op.id}`)}
+                            className="text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300"
+                            title="Analisi"
+                          >
+                            <BarChart2 className="w-4 h-4" />
+                          </Button>
                           {onEdit && (
                             <Button
                               size="icon"

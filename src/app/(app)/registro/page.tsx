@@ -26,6 +26,7 @@ import {
   BarChart2,
   Tag,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { formatValuta, formatPercentuale, stessoGiorno, cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale/it';
@@ -67,6 +68,7 @@ export default function RegistroPage() {
     modificaOperazione,
     eliminaOperazione,
   } = useOperazioni();
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('tabella');
   const [operazioneInModifica, setOperazioneInModifica] = useState<
@@ -678,11 +680,11 @@ export default function RegistroPage() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-6 text-xs px-1.5 flex-shrink-0"
+                                          className="h-6 text-xs px-1.5 flex-shrink-0 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300"
+                                          title="Analisi"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setOperazioneInModifica(op);
-                                            setDialogOpen(true);
+                                            router.push(`/analisi/${op.id}`);
                                           }}
                                         >
                                           <BarChart2 className="h-3 w-3" />
@@ -810,9 +812,21 @@ export default function RegistroPage() {
                             <p className={`text-xs font-bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                               {formatValuta(cell.pnl)}
                             </p>
-                            <p className="text-[10px] text-violet-600/60 dark:text-gray-500">
-                              {cell.ops} {cell.ops === 1 ? 'op' : 'ops'} · {cell.wins}W
-                            </p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] text-violet-600/60 dark:text-gray-500">
+                                {cell.ops} {cell.ops === 1 ? 'op' : 'ops'} · {cell.wins}W
+                              </p>
+                              <button
+                                onClick={() => {
+                                  const dayOp = filteredOperazioni.find((op) => op.data === cell.dateStr);
+                                  if (dayOp) router.push(`/analisi/${dayOp.id}`);
+                                }}
+                                className="p-0.5 rounded hover:bg-violet-200/50 dark:hover:bg-violet-500/20 transition-colors"
+                                title="Analisi"
+                              >
+                                <BarChart2 className="h-3 w-3 text-violet-500 dark:text-violet-400" />
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
