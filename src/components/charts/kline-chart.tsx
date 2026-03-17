@@ -475,6 +475,7 @@ export function KlineChartComponent({
   }, []);
 
   const isPositive = (trade.pnl ?? 0) >= 0;
+  const isLong = trade.direction === 'LONG';
 
   return (
     <div
