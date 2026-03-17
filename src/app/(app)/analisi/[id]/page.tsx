@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { KlineChartComponent } from '@/components/charts/kline-chart';
+import { KlineChartComponent } from '@/components/charts/trade-chart';
 import { useOperazioni } from '@/hooks/useOperazioni';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
