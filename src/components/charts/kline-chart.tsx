@@ -1,21 +1,22 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { init, dispose } from 'klinecharts';
+import { init, dispose, registerOverlay } from 'klinecharts';
 import type { Chart } from 'klinecharts';
 import { getOHLCData, getApiUsageInfo } from '@/lib/twelve-data-service';
-import type { Timeframe } from '@/lib/twelve-data-service';
+import type { Timeframe, OHLCData } from '@/lib/twelve-data-service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, ZoomIn, ZoomOut, AlertTriangle, BarChart2, Clock } from 'lucide-react';
+import { Loader2, RefreshCw, AlertTriangle, BarChart2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface TradeMarker {
   entryPrice: number;
   exitPrice: number | null;
-  entryTime?: string | null;
+  entryTime?: string | null;  // e.g. "09:32:00" or full ISO
   exitTime?: string | null;
-  direction: string;
+  direction: string;           // 'LONG' | 'SHORT'
   stopLoss?: number | null;
   takeProfit?: number | null;
   pnl?: number | null;
@@ -24,18 +25,140 @@ interface TradeMarker {
 
 interface KlineChartProps {
   ticker: string;
-  tradeDate: string;
+  tradeDate: string;           // 'YYYY-MM-DD'
   trade: TradeMarker;
   height?: string;
   className?: string;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
 const TIMEFRAMES: { label: string; value: Timeframe }[] = [
   { label: 'Giornaliero', value: '1day' },
-  { label: '1 Minuto', value: '1min' },
+  { label: '1 Minuto',    value: '1min' },
 ];
 
-// Inner chart that re-mounts fresh on every key change
+// ─── Register custom arrow overlay (once, globally) ───────────────────────────
+let overlayRegistered = false;
+
+function ensureOverlayRegistered() {
+  if (overlayRegistered) return;
+  overlayRegistered = true;
+
+  try {
+    registerOverlay({
+      name: 'tradeArrow',
+      totalStep: 1,
+      needDefaultPointFigure: false,
+      needDefaultXAxisFigure: false,
+      needDefaultYAxisFigure: false,
+      createPointFigures({ overlay, coordinates }) {
+        if (!coordinates || coordinates.length === 0) return [];
+        const { x, y } = coordinates[0];
+        // extendData carries { direction: 'up'|'down', color: string, label: string }
+        const ext = (overlay.extendData as { direction: 'up' | 'down'; color: string; label: string }) ?? {
+          direction: 'up',
+          color: '#22c55e',
+          label: 'E',
+        };
+        const isUp = ext.direction === 'up';
+        const color = ext.color;
+        const arrowH = 12;
+        const arrowW = 8;
+        // Arrow tip points at the candle; tail extends away
+        const tipY = isUp ? y - 2 : y + 2;
+        const tailY = isUp ? tipY - arrowH : tipY + arrowH;
+
+        return [
+          // Triangle arrow
+          {
+            type: 'polygon',
+            attrs: {
+              coordinates: isUp
+                ? [
+                    { x, y: tipY },
+                    { x: x - arrowW / 2, y: tailY },
+                    { x: x + arrowW / 2, y: tailY },
+                  ]
+                : [
+                    { x, y: tipY },
+                    { x: x - arrowW / 2, y: tailY },
+                    { x: x + arrowW / 2, y: tailY },
+                  ],
+            },
+            styles: {
+              style: 'fill',
+              color,
+            },
+          },
+          // Label text above/below the arrow
+          {
+            type: 'text',
+            attrs: {
+              x,
+              y: isUp ? tailY - 3 : tailY + 3,
+              text: ext.label,
+              align: 'center',
+              baseline: isUp ? 'bottom' : 'top',
+            },
+            styles: {
+              color,
+              size: 9,
+              weight: 'bold',
+              family: 'Helvetica Neue',
+            },
+          },
+        ];
+      },
+    });
+  } catch (_) {
+    // already registered or error — ignore
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Given a time string like "09:32:00" or "2024-01-15T09:32:00" and a date string "YYYY-MM-DD",
+ * return the unix timestamp (ms) for that candle.
+ */
+function resolveTimestamp(timeStr: string | null | undefined, dateStr: string): number | null {
+  if (!timeStr) return null;
+  try {
+    // If it's a full ISO / datetime string
+    if (timeStr.includes('T') || timeStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+      const ms = new Date(timeStr).getTime();
+      return isNaN(ms) ? null : ms;
+    }
+    // HH:MM:SS or HH:MM — combine with dateStr (assume ET → UTC offset -4 or -5)
+    // We keep it simple: just combine date + time and parse as local; KlineCharts works with the
+    // same timezone as the data from Twelve Data (which returns in exchange timezone)
+    const combined = `${dateStr}T${timeStr}`;
+    const ms = new Date(combined).getTime();
+    return isNaN(ms) ? null : ms;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find the candle in ohlcData whose timestamp is closest to targetMs.
+ * Returns the candle or null if list is empty or target is null.
+ */
+function findNearestCandle(ohlcData: OHLCData[], targetMs: number | null): OHLCData | null {
+  if (!targetMs || ohlcData.length === 0) return null;
+  let best = ohlcData[0];
+  let bestDiff = Math.abs(ohlcData[0].timestamp - targetMs);
+  for (const c of ohlcData) {
+    const diff = Math.abs(c.timestamp - targetMs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = c;
+    }
+  }
+  return best;
+}
+
+// ─── Inner chart component (re-mounted via key) ───────────────────────────────
 function ChartInner({
   ticker,
   tradeDate,
@@ -54,9 +177,10 @@ function ChartInner({
   onError: (msg: string, remaining: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<Chart | null>(null);
 
   useEffect(() => {
+    ensureOverlayRegistered();
+
     let cancelled = false;
     const el = containerRef.current;
     if (!el) return;
@@ -74,13 +198,13 @@ function ChartInner({
           return;
         }
 
-        // Theme
-        const bgColor = isDark ? '#161622' : '#ffffff';
-        const gridColor = isDark ? 'rgba(139,92,246,0.06)' : 'rgba(0,0,0,0.04)';
-        const textColor = isDark ? '#9ca3af' : '#6b7280';
+        // ── Theme colours ─────────────────────────────────────────────────
+        const bgColor       = isDark ? '#161622' : '#ffffff';
+        const gridColor     = isDark ? 'rgba(139,92,246,0.06)' : 'rgba(0,0,0,0.04)';
+        const textColor     = isDark ? '#9ca3af' : '#6b7280';
         const crosshairColor = isDark ? 'rgba(139,92,246,0.4)' : 'rgba(0,0,0,0.15)';
-        const axisColor = isDark ? 'rgba(139,92,246,0.18)' : 'rgba(0,0,0,0.08)';
-        const crosshairBg = isDark ? '#7c3aed' : '#6b7280';
+        const axisColor     = isDark ? 'rgba(139,92,246,0.18)' : 'rgba(0,0,0,0.08)';
+        const crosshairBg   = isDark ? '#7c3aed' : '#6b7280';
 
         const chart = init(el, {
           styles: {
@@ -102,7 +226,7 @@ function ChartInner({
               priceMark: {
                 show: true,
                 high: { show: true, color: textColor, textSize: 10 },
-                low: { show: true, color: textColor, textSize: 10 },
+                low:  { show: true, color: textColor, textSize: 10 },
                 last: {
                   show: true,
                   upColor: '#22c55e',
@@ -110,12 +234,9 @@ function ChartInner({
                   noChangeColor: textColor,
                   line: { show: true, style: 'dash' as any, size: 1 },
                   text: {
-                    show: true,
-                    size: 11,
-                    paddingLeft: 4,
-                    paddingRight: 4,
-                    paddingTop: 2,
-                    paddingBottom: 2,
+                    show: true, size: 11,
+                    paddingLeft: 4, paddingRight: 4,
+                    paddingTop: 2, paddingBottom: 2,
                     borderRadius: 2,
                   },
                 },
@@ -139,14 +260,10 @@ function ChartInner({
                 show: true,
                 line: { show: true, style: 'dash' as any, size: 1, color: crosshairColor },
                 text: {
-                  show: true,
-                  size: 10,
-                  color: '#ffffff',
+                  show: true, size: 10, color: '#ffffff',
                   borderRadius: 2,
-                  paddingLeft: 4,
-                  paddingRight: 4,
-                  paddingTop: 2,
-                  paddingBottom: 2,
+                  paddingLeft: 4, paddingRight: 4,
+                  paddingTop: 2, paddingBottom: 2,
                   backgroundColor: crosshairBg,
                 },
               },
@@ -154,14 +271,10 @@ function ChartInner({
                 show: true,
                 line: { show: true, style: 'dash' as any, size: 1, color: crosshairColor },
                 text: {
-                  show: true,
-                  size: 10,
-                  color: '#ffffff',
+                  show: true, size: 10, color: '#ffffff',
                   borderRadius: 2,
-                  paddingLeft: 4,
-                  paddingRight: 4,
-                  paddingTop: 2,
-                  paddingBottom: 2,
+                  paddingLeft: 4, paddingRight: 4,
+                  paddingTop: 2, paddingBottom: 2,
                   backgroundColor: crosshairBg,
                 },
               },
@@ -173,28 +286,23 @@ function ChartInner({
           onError('Impossibile inizializzare il grafico.', usage.remaining);
           return;
         }
+        if (cancelled) { try { dispose(el); } catch (_) {} return; }
 
-        if (cancelled) {
-          try { dispose(el); } catch (_) {}
-          return;
-        }
-
-        chartRef.current = chart;
         el.style.backgroundColor = bgColor;
 
-        // Apply data
+        // ── Load data ─────────────────────────────────────────────────────
         chart.applyNewData(ohlcData);
 
-        // Volume indicator
+        // Volume sub-pane
         try { chart.createIndicator('VOL', false); } catch (_) {}
 
-        // Overlays
+        // ── Horizontal price lines ────────────────────────────────────────
         const firstTs = ohlcData[0].timestamp;
-        const lastTs = ohlcData[ohlcData.length - 1].timestamp;
-        const isLong = trade.direction === 'LONG';
-        const isProfitable = (trade.pnl || 0) >= 0;
+        const lastTs  = ohlcData[ohlcData.length - 1].timestamp;
+        const isLong  = trade.direction === 'LONG';
+        const isProfitable = (trade.pnl ?? 0) >= 0;
 
-        const addLine = (price: number, color: string, dash: number[]) => {
+        const addPriceLine = (price: number, color: string, dash: number[]) => {
           try {
             chart.createOverlay({
               name: 'straightLine',
@@ -203,26 +311,97 @@ function ChartInner({
                 { value: price, timestamp: lastTs },
               ],
               styles: {
-                line: {
-                  style: 'dashed' as any,
-                  size: 2,
-                  color,
-                  dashedValue: dash,
-                },
+                line: { style: 'dashed' as any, size: 1, color, dashedValue: dash },
               },
               lock: true,
             });
           } catch (_) {}
         };
 
-        if (trade.entryPrice) addLine(trade.entryPrice, isLong ? '#22c55e' : '#ef4444', [6, 4]);
-        if (trade.exitPrice) addLine(trade.exitPrice, isProfitable ? '#22c55e' : '#ef4444', [2, 4]);
-        if (trade.stopLoss) addLine(trade.stopLoss, '#f97316', [8, 4]);
-        if (trade.takeProfit) addLine(trade.takeProfit, '#3b82f6', [8, 4]);
+        if (trade.entryPrice) addPriceLine(trade.entryPrice, isLong ? '#22c55e' : '#ef4444', [6, 4]);
+        if (trade.exitPrice)  addPriceLine(trade.exitPrice,  isProfitable ? '#22c55e' : '#ef4444', [2, 4]);
+        if (trade.stopLoss)   addPriceLine(trade.stopLoss,   '#f97316', [8, 4]);
+        if (trade.takeProfit) addPriceLine(trade.takeProfit, '#3b82f6', [8, 4]);
+
+        // ── Arrow markers on entry / exit candles ────────────────────────
+        const entryMs = resolveTimestamp(trade.entryTime, tradeDate);
+        const exitMs  = resolveTimestamp(trade.exitTime,  tradeDate);
+
+        // For daily timeframe: pin to the trade date candle directly
+        let entryCandle: OHLCData | null = null;
+        let exitCandle:  OHLCData | null = null;
+
+        if (timeframe === '1day') {
+          // Use date-only match: find the candle whose date == tradeDate
+          const targetDay = new Date(tradeDate + 'T00:00:00').toDateString();
+          entryCandle = ohlcData.find(c => new Date(c.timestamp).toDateString() === targetDay) ?? ohlcData[Math.floor(ohlcData.length / 2)];
+          exitCandle  = entryCandle; // same day for daily — both on the trade candle
+        } else {
+          // 1min: find nearest candle to entry/exit time
+          entryCandle = findNearestCandle(ohlcData, entryMs);
+          exitCandle  = findNearestCandle(ohlcData, exitMs);
+        }
+
+        // Entry arrow: points toward price (up arrow below for LONG, down above for SHORT)
+        if (entryCandle) {
+          const entryDir: 'up' | 'down' = isLong ? 'up' : 'down';
+          // Place the arrow value slightly beyond the candle wick
+          const arrowOffset = (entryCandle.high - entryCandle.low) * 0.3 || trade.entryPrice * 0.003;
+          const arrowValue = isLong
+            ? entryCandle.low  - arrowOffset
+            : entryCandle.high + arrowOffset;
+
+          try {
+            chart.createOverlay({
+              name: 'tradeArrow',
+              points: [{ timestamp: entryCandle.timestamp, value: arrowValue }],
+              extendData: {
+                direction: entryDir,
+                color: isLong ? '#22c55e' : '#ef4444',
+                label: 'E',
+              },
+              lock: true,
+              zLevel: 10,
+            });
+          } catch (_) {}
+        }
+
+        // Exit arrow: inverse direction (closing the trade)
+        if (exitCandle && trade.exitPrice) {
+          const exitDir: 'up' | 'down' = isLong ? 'down' : 'up';
+          const arrowOffset = (exitCandle.high - exitCandle.low) * 0.3 || trade.exitPrice * 0.003;
+          const arrowValue = isLong
+            ? exitCandle.high + arrowOffset
+            : exitCandle.low  - arrowOffset;
+
+          try {
+            chart.createOverlay({
+              name: 'tradeArrow',
+              points: [{ timestamp: exitCandle.timestamp, value: arrowValue }],
+              extendData: {
+                direction: exitDir,
+                color: isProfitable ? '#22c55e' : '#ef4444',
+                label: 'X',
+              },
+              lock: true,
+              zLevel: 10,
+            });
+          } catch (_) {}
+        }
+
+        // ── Scroll to entry candle ────────────────────────────────────────
+        // scrollToTimestamp scrolls the RIGHT EDGE of the chart to the timestamp.
+        // To center the entry candle, we scroll a bit further past it.
+        const scrollTarget = entryCandle?.timestamp ?? (exitCandle?.timestamp ?? lastTs);
+        try {
+          // Small delay to let the chart render before scrolling
+          setTimeout(() => {
+            try { (chart as any).scrollToTimestamp(scrollTarget, 300); } catch (_) {}
+          }, 50);
+        } catch (_) {}
 
         onLoaded(usage.remaining);
       } catch (err: any) {
-        console.log('[v0] Chart load error:', err?.message);
         const usage = getApiUsageInfo();
         onError(err?.message || 'Errore nel caricamento del grafico', usage.remaining);
       }
@@ -232,13 +411,10 @@ function ChartInner({
 
     return () => {
       cancelled = true;
-      try {
-        if (el) dispose(el);
-      } catch (_) {}
-      chartRef.current = null;
+      try { if (el) dispose(el); } catch (_) {}
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // runs once per mount — re-key from parent triggers full remount
+  }, []); // runs once per mount
 
   return (
     <div
@@ -249,6 +425,7 @@ function ChartInner({
   );
 }
 
+// ─── Main exported component ──────────────────────────────────────────────────
 export function KlineChartComponent({
   ticker,
   tradeDate,
@@ -256,11 +433,11 @@ export function KlineChartComponent({
   height = '500px',
   className,
 }: KlineChartProps) {
-  const [timeframe, setTimeframe] = useState<Timeframe>('1day');
-  const [mountKey, setMountKey] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState(false);
+  const [timeframe, setTimeframe]     = useState<Timeframe>('1day');
+  const [mountKey, setMountKey]       = useState(0);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [isDark, setIsDark]           = useState(false);
   const [apiRemaining, setApiRemaining] = useState<number | null>(null);
 
   // Detect dark mode
@@ -272,7 +449,6 @@ export function KlineChartComponent({
     return () => observer.disconnect();
   }, []);
 
-  // Reset + remount when timeframe changes
   const handleTimeframeChange = (tf: Timeframe) => {
     if (tf === timeframe || loading) return;
     setTimeframe(tf);
@@ -298,7 +474,7 @@ export function KlineChartComponent({
     setApiRemaining(remaining);
   }, []);
 
-  const isPositive = (trade.pnl || 0) >= 0;
+  const isPositive = (trade.pnl ?? 0) >= 0;
 
   return (
     <div
@@ -307,7 +483,7 @@ export function KlineChartComponent({
         className
       )}
     >
-      {/* Toolbar */}
+      {/* ── Toolbar ── */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-violet-500/20 bg-gray-50 dark:bg-[#1e1e30]">
         {/* Left: ticker + date + pnl */}
         <div className="flex items-center gap-2.5">
@@ -327,13 +503,12 @@ export function KlineChartComponent({
                 isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
               )}
             >
-              {isPositive ? '+' : ''}
-              {trade.pnl.toFixed(2)}$
+              {isPositive ? '+' : ''}{trade.pnl.toFixed(2)}$
             </span>
           )}
         </div>
 
-        {/* Right: timeframe switcher + controls */}
+        {/* Right: timeframe switcher + refresh */}
         <div className="flex items-center gap-1">
           <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-[#161622] rounded-lg p-0.5 mr-2">
             {TIMEFRAMES.map((tf) => (
@@ -371,7 +546,7 @@ export function KlineChartComponent({
         </div>
       </div>
 
-      {/* Chart area */}
+      {/* ── Chart area ── */}
       <div className="relative" style={{ height }}>
         {/* Loading overlay */}
         {loading && (
@@ -382,7 +557,7 @@ export function KlineChartComponent({
                 {timeframe === '1min' ? 'Caricamento dati al minuto...' : 'Caricamento dati giornalieri...'}
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Rispetto del rate limit API...
+                Attendere il rate limit API...
               </p>
             </div>
           </div>
@@ -424,34 +599,32 @@ export function KlineChartComponent({
         </div>
       </div>
 
-      {/* Legend bar */}
+      {/* ── Legend bar ── */}
       <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-violet-500/20 bg-gray-50 dark:bg-[#1e1e30]">
         <div className="flex items-center gap-4 flex-wrap">
-          <LegendItem
-            color={trade.direction === 'LONG' ? '#22c55e' : '#ef4444'}
-            label={`Entrata ${trade.entryPrice?.toFixed(2) ?? ''}`}
-            dashStyle="6,4"
-          />
+          {/* Arrow legend items */}
+          <div className="flex items-center gap-1.5">
+            <ArrowLegend direction="up" color={isLong ? '#22c55e' : '#ef4444'} />
+            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
+              E {trade.entryPrice?.toFixed(2)}
+              {trade.entryTime ? ` · ${trade.entryTime}` : ''}
+            </span>
+          </div>
           {trade.exitPrice && (
-            <LegendItem
-              color={isPositive ? '#22c55e' : '#ef4444'}
-              label={`Uscita ${trade.exitPrice.toFixed(2)}`}
-              dashStyle="2,4"
-            />
+            <div className="flex items-center gap-1.5">
+              <ArrowLegend direction="down" color={isPositive ? '#22c55e' : '#ef4444'} />
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
+                X {trade.exitPrice.toFixed(2)}
+                {trade.exitTime ? ` · ${trade.exitTime}` : ''}
+              </span>
+            </div>
           )}
+          {/* Price line legend items */}
           {trade.stopLoss && (
-            <LegendItem
-              color="#f97316"
-              label={`SL ${trade.stopLoss.toFixed(2)}`}
-              dashStyle="8,4"
-            />
+            <LegendItem color="#f97316" label={`SL ${trade.stopLoss.toFixed(2)}`} dashStyle="8,4" />
           )}
           {trade.takeProfit && (
-            <LegendItem
-              color="#3b82f6"
-              label={`TP ${trade.takeProfit.toFixed(2)}`}
-              dashStyle="8,4"
-            />
+            <LegendItem color="#3b82f6" label={`TP ${trade.takeProfit.toFixed(2)}`} dashStyle="8,4" />
           )}
         </div>
         {apiRemaining !== null && (
@@ -461,6 +634,20 @@ export function KlineChartComponent({
         )}
       </div>
     </div>
+  );
+}
+
+// ─── Small UI helpers ─────────────────────────────────────────────────────────
+function ArrowLegend({ direction, color }: { direction: 'up' | 'down'; color: string }) {
+  const isUp = direction === 'up';
+  return (
+    <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+      {isUp ? (
+        <polygon points="5,0 0,8 10,8" fill={color} />
+      ) : (
+        <polygon points="5,12 0,4 10,4" fill={color} />
+      )}
+    </svg>
   );
 }
 
