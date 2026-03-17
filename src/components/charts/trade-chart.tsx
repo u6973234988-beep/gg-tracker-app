@@ -282,48 +282,57 @@ function ChartCore({
         } else {
           const entryMs = resolveMs(trade.entryTime, tradeDate);
           const exitMs  = resolveMs(trade.exitTime,  tradeDate);
+          console.log('[v0] 1min markers — entryTime:', trade.entryTime, '→ entryMs:', entryMs, '| exitTime:', trade.exitTime, '→ exitMs:', exitMs);
           if (entryMs != null) entryC = nearestCandle(data, entryMs);
           if (exitMs  != null) exitC  = nearestCandle(data, exitMs);
+          console.log('[v0] nearest entry candle ts:', entryC?.timestamp, new Date(entryC?.timestamp ?? 0).toISOString(), '| nearest exit candle ts:', exitC?.timestamp, new Date(exitC?.timestamp ?? 0).toISOString());
           if (!entryC) entryC = data[0];
         }
 
-        // ── Draw arrows ───────────────────────────────────────────────────
-        const pad = (c: OHLCData, price: number) =>
-          Math.max((c.high - c.low) * 0.3, price * 0.003);
-
-        if (entryC) {
-          const p = pad(entryC, trade.entryPrice);
-          try {
-            chart.createOverlay({
-              name:       isLong ? 'tradeArrowUp' : 'tradeArrowDown',
-              points:     [{ timestamp: entryC.timestamp, value: isLong ? entryC.low - p : entryC.high + p }],
-              extendData: { color: isLong ? '#22c55e' : '#ef4444', label: 'E' },
-              lock: true,
-              zLevel: 10,
-            });
-          } catch (_) {}
-        }
-
-        if (exitC && trade.exitPrice != null) {
-          const p = pad(exitC, trade.exitPrice);
-          const col = isPnlOk ? '#22c55e' : '#ef4444';
-          try {
-            chart.createOverlay({
-              name:       isLong ? 'tradeArrowDown' : 'tradeArrowUp',
-              points:     [{ timestamp: exitC.timestamp, value: isLong ? exitC.high + p : exitC.low - p }],
-              extendData: { color: col, label: 'X' },
-              lock: true,
-              zLevel: 10,
-            });
-          } catch (_) {}
-        }
-
-        // ── Scroll to entry ───────────────────────────────────────────────
+        // ── Draw arrows after chart has rendered (wait for scale calibration) ──
         const scrollTs =
           entryC?.timestamp ?? exitC?.timestamp ?? data[data.length - 1].timestamp;
+
         setTimeout(() => {
+          if (dead || !chart) return;
+
+          const pad = (c: OHLCData, price: number) =>
+            Math.max((c.high - c.low) * 0.4, price * 0.004);
+
+          if (entryC) {
+            const p = pad(entryC, trade.entryPrice);
+            const value = isLong ? entryC.low - p : entryC.high + p;
+            console.log('[v0] entry overlay — ts:', entryC.timestamp, 'value:', value, 'low:', entryC.low, 'high:', entryC.high);
+            try {
+              chart.createOverlay({
+                name:       isLong ? 'tradeArrowUp' : 'tradeArrowDown',
+                points:     [{ timestamp: entryC.timestamp, value }],
+                extendData: { color: isLong ? '#22c55e' : '#ef4444', label: 'E' },
+                lock: true,
+                zLevel: 10,
+              });
+            } catch (e) { console.log('[v0] entry overlay error:', e); }
+          }
+
+          if (exitC && trade.exitPrice != null) {
+            const p = pad(exitC, trade.exitPrice);
+            const col = isPnlOk ? '#22c55e' : '#ef4444';
+            const value = isLong ? exitC.high + p : exitC.low - p;
+            console.log('[v0] exit overlay — ts:', exitC.timestamp, 'value:', value);
+            try {
+              chart.createOverlay({
+                name:       isLong ? 'tradeArrowDown' : 'tradeArrowUp',
+                points:     [{ timestamp: exitC.timestamp, value }],
+                extendData: { color: col, label: 'X' },
+                lock: true,
+                zLevel: 10,
+              });
+            } catch (e) { console.log('[v0] exit overlay error:', e); }
+          }
+
+          // scroll to entry candle
           try { (chart as any)?.scrollToTimestamp(scrollTs, 300); } catch (_) {}
-        }, 80);
+        }, 300);
 
         onLoaded(usage.remaining);
       } catch (err: any) {
