@@ -45,10 +45,6 @@
     --scrollbar-track: rgba(18, 18, 26, 1);
   }
 
-  html {
-    @apply scroll-smooth;
-  }
-
   body {
     @apply antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
