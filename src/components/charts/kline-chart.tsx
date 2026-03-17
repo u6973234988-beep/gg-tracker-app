@@ -10,11 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, AlertTriangle, BarChart2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types (v2) ───────────────────────────────────────────────────────────────
 interface TradeMarker {
   entryPrice: number;
   exitPrice: number | null;
-  entryTime?: string | null;  // e.g. "09:32:00" or full ISO
+  entryTime?: string | null;
   exitTime?: string | null;
   direction: string;           // 'LONG' | 'SHORT'
   stopLoss?: number | null;
@@ -32,133 +32,160 @@ interface KlineChartProps {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TIMEFRAMES: { label: string; value: Timeframe }[] = [
-  { label: 'Giornaliero', value: '1day' },
-  { label: '1 Minuto',    value: '1min' },
+const TIMEFRAMES: { label: string; value: Timeframe; icon: React.ReactNode }[] = [
+  { label: 'Giornaliero', value: '1day',  icon: <BarChart2 className="h-3 w-3" /> },
+  { label: '1 Minuto',    value: '1min',  icon: <Clock className="h-3 w-3" /> },
 ];
 
-// ─── Register custom arrow overlay (once, globally) ───────────────────────────
-let overlayRegistered = false;
+// ─── Register custom downward-arrow overlay (once, globally) ──────────────────
+let arrowDownRegistered = false;
 
-function ensureOverlayRegistered() {
-  if (overlayRegistered) return;
-  overlayRegistered = true;
+function ensureOverlaysRegistered() {
+  if (arrowDownRegistered) return;
+  arrowDownRegistered = true;
 
+  // "arrowDown": tip points downward toward the candle high (SHORT entry or LONG exit)
+  // The overlay point sits ABOVE the candle; the tip of the triangle points DOWN.
   try {
     registerOverlay({
-      name: 'tradeArrow',
-      totalStep: 1,
+      name: 'arrowDown',
+      totalStep: 2,
       needDefaultPointFigure: false,
       needDefaultXAxisFigure: false,
       needDefaultYAxisFigure: false,
       createPointFigures({ overlay, coordinates }) {
         if (!coordinates || coordinates.length === 0) return [];
         const { x, y } = coordinates[0];
-        // extendData carries { direction: 'up'|'down', color: string, label: string }
-        const ext = (overlay.extendData as { direction: 'up' | 'down'; color: string; label: string }) ?? {
-          direction: 'up',
-          color: '#22c55e',
-          label: 'E',
+        const ext = (overlay.extendData as { color: string; label: string }) ?? {
+          color: '#ef4444', label: 'X',
         };
-        const isUp = ext.direction === 'up';
         const color = ext.color;
-        const arrowH = 12;
-        const arrowW = 8;
-        // Arrow tip points at the candle; tail extends away
-        const tipY = isUp ? y - 2 : y + 2;
-        const tailY = isUp ? tipY - arrowH : tipY + arrowH;
+        const W = 9;   // half-width of triangle base
+        const H = 13;  // height of triangle
+        const tipY  = y + 2;        // tip pointing down, slightly past the value
+        const baseY = tipY - H;     // base of triangle (above)
 
         return [
-          // Triangle arrow
           {
             type: 'polygon',
             attrs: {
-              coordinates: isUp
-                ? [
-                    { x, y: tipY },
-                    { x: x - arrowW / 2, y: tailY },
-                    { x: x + arrowW / 2, y: tailY },
-                  ]
-                : [
-                    { x, y: tipY },
-                    { x: x - arrowW / 2, y: tailY },
-                    { x: x + arrowW / 2, y: tailY },
-                  ],
+              coordinates: [
+                { x: x,     y: tipY  },   // bottom tip
+                { x: x - W, y: baseY },   // top-left
+                { x: x + W, y: baseY },   // top-right
+              ],
             },
-            styles: {
-              style: 'fill',
-              color,
-            },
+            styles: { style: 'fill', color },
+            ignoreEvent: true,
           },
-          // Label text above/below the arrow
           {
             type: 'text',
             attrs: {
               x,
-              y: isUp ? tailY - 3 : tailY + 3,
+              y: baseY - 3,
               text: ext.label,
-              align: 'center',
-              baseline: isUp ? 'bottom' : 'top',
+              align: 'center' as CanvasTextAlign,
+              baseline: 'bottom' as CanvasTextBaseline,
             },
-            styles: {
-              color,
-              size: 9,
-              weight: 'bold',
-              family: 'Helvetica Neue',
-            },
+            styles: { color, size: 10, weight: 'bold', family: 'system-ui' },
+            ignoreEvent: true,
           },
         ];
       },
     });
-  } catch (_) {
-    // already registered or error — ignore
-  }
+  } catch (_) { /* already registered */ }
+
+  // "arrowUp": tip points upward toward the candle low (LONG entry or SHORT exit)
+  // The overlay point sits BELOW the candle; the tip of the triangle points UP.
+  try {
+    registerOverlay({
+      name: 'arrowUp',
+      totalStep: 2,
+      needDefaultPointFigure: false,
+      needDefaultXAxisFigure: false,
+      needDefaultYAxisFigure: false,
+      createPointFigures({ overlay, coordinates }) {
+        if (!coordinates || coordinates.length === 0) return [];
+        const { x, y } = coordinates[0];
+        const ext = (overlay.extendData as { color: string; label: string }) ?? {
+          color: '#22c55e', label: 'E',
+        };
+        const color = ext.color;
+        const W = 9;
+        const H = 13;
+        const tipY  = y - 2;      // tip pointing up
+        const baseY = tipY + H;   // base of triangle (below)
+
+        return [
+          {
+            type: 'polygon',
+            attrs: {
+              coordinates: [
+                { x: x,     y: tipY  },   // top tip
+                { x: x - W, y: baseY },   // bottom-left
+                { x: x + W, y: baseY },   // bottom-right
+              ],
+            },
+            styles: { style: 'fill', color },
+            ignoreEvent: true,
+          },
+          {
+            type: 'text',
+            attrs: {
+              x,
+              y: baseY + 3,
+              text: ext.label,
+              align: 'center' as CanvasTextAlign,
+              baseline: 'top' as CanvasTextBaseline,
+            },
+            styles: { color, size: 10, weight: 'bold', family: 'system-ui' },
+            ignoreEvent: true,
+          },
+        ];
+      },
+    });
+  } catch (_) { /* already registered */ }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Given a time string like "09:32:00" or "2024-01-15T09:32:00" and a date string "YYYY-MM-DD",
- * return the unix timestamp (ms) for that candle.
+ * Parse "HH:MM:SS", "HH:MM", or full ISO/datetime string into ms timestamp.
+ * Combines with dateStr (YYYY-MM-DD) when time-only.
  */
-function resolveTimestamp(timeStr: string | null | undefined, dateStr: string): number | null {
+function resolveTimestampMs(timeStr: string | null | undefined, dateStr: string): number | null {
   if (!timeStr) return null;
   try {
-    // If it's a full ISO / datetime string
-    if (timeStr.includes('T') || timeStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    if (timeStr.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(timeStr)) {
       const ms = new Date(timeStr).getTime();
       return isNaN(ms) ? null : ms;
     }
-    // HH:MM:SS or HH:MM — combine with dateStr (assume ET → UTC offset -4 or -5)
-    // We keep it simple: just combine date + time and parse as local; KlineCharts works with the
-    // same timezone as the data from Twelve Data (which returns in exchange timezone)
-    const combined = `${dateStr}T${timeStr}`;
-    const ms = new Date(combined).getTime();
+    // HH:MM:SS or HH:MM — treat as local time on tradeDate
+    const ms = new Date(`${dateStr}T${timeStr}`).getTime();
     return isNaN(ms) ? null : ms;
   } catch {
     return null;
   }
 }
 
-/**
- * Find the candle in ohlcData whose timestamp is closest to targetMs.
- * Returns the candle or null if list is empty or target is null.
- */
-function findNearestCandle(ohlcData: OHLCData[], targetMs: number | null): OHLCData | null {
-  if (!targetMs || ohlcData.length === 0) return null;
-  let best = ohlcData[0];
-  let bestDiff = Math.abs(ohlcData[0].timestamp - targetMs);
-  for (const c of ohlcData) {
-    const diff = Math.abs(c.timestamp - targetMs);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = c;
-    }
+/** Find the candle whose timestamp is closest to targetMs. */
+function nearestCandle(data: OHLCData[], targetMs: number): OHLCData {
+  let best = data[0];
+  let bestDiff = Math.abs(data[0].timestamp - targetMs);
+  for (const c of data) {
+    const d = Math.abs(c.timestamp - targetMs);
+    if (d < bestDiff) { bestDiff = d; best = c; }
   }
   return best;
 }
 
-// ─── Inner chart component (re-mounted via key) ───────────────────────────────
+/** Find a candle by calendar date (YYYY-MM-DD). */
+function candleByDate(data: OHLCData[], dateStr: string): OHLCData | null {
+  const target = new Date(dateStr + 'T12:00:00').toDateString();
+  return data.find(c => new Date(c.timestamp).toDateString() === target) ?? null;
+}
+
+// ─── ChartInner: one per mount, destroyed and recreated when key changes ──────
 function ChartInner({
   ticker,
   tradeDate,
@@ -179,11 +206,12 @@ function ChartInner({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    ensureOverlayRegistered();
+    ensureOverlaysRegistered();
 
-    let cancelled = false;
     const el = containerRef.current;
     if (!el) return;
+    let cancelled = false;
+    let chart: Chart | null = null;
 
     async function load() {
       try {
@@ -191,37 +219,37 @@ function ChartInner({
         const usage = getApiUsageInfo();
 
         if (cancelled) return;
-        if (!el) return;
 
         if (!ohlcData || ohlcData.length === 0) {
-          onError('Nessun dato disponibile per questo ticker e periodo.', usage.remaining);
+          onError('Nessun dato disponibile per questo ticker/periodo.', usage.remaining);
           return;
         }
 
-        // ── Theme colours ─────────────────────────────────────────────────
-        const bgColor       = isDark ? '#161622' : '#ffffff';
-        const gridColor     = isDark ? 'rgba(139,92,246,0.06)' : 'rgba(0,0,0,0.04)';
-        const textColor     = isDark ? '#9ca3af' : '#6b7280';
-        const crosshairColor = isDark ? 'rgba(139,92,246,0.4)' : 'rgba(0,0,0,0.15)';
-        const axisColor     = isDark ? 'rgba(139,92,246,0.18)' : 'rgba(0,0,0,0.08)';
-        const crosshairBg   = isDark ? '#7c3aed' : '#6b7280';
+        // ── Theme ──────────────────────────────────────────────────────────
+        const bg            = isDark ? '#0f0f1a' : '#ffffff';
+        const gridColor     = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+        const textColor     = isDark ? '#6b7280' : '#9ca3af';
+        const axisColor     = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+        const crossColor    = isDark ? 'rgba(139,92,246,0.5)' : 'rgba(0,0,0,0.18)';
+        const crossBg       = isDark ? '#7c3aed' : '#374151';
 
-        const chart = init(el, {
+        // ── Init chart ────────────────────────────────────────────────────
+        chart = init(el, {
           styles: {
             grid: {
               show: true,
               horizontal: { show: true, color: gridColor, size: 1, style: 'dashed' as any },
-              vertical: { show: false },
+              vertical:   { show: false },
             },
             candle: {
               type: 'candle_solid' as any,
               bar: {
-                upColor: '#22c55e',
-                downColor: '#ef4444',
-                upBorderColor: '#22c55e',
-                downBorderColor: '#ef4444',
-                upWickColor: '#22c55e',
-                downWickColor: '#ef4444',
+                upColor:          '#22c55e',
+                downColor:        '#ef4444',
+                upBorderColor:    '#22c55e',
+                downBorderColor:  '#ef4444',
+                upWickColor:      '#4ade80',
+                downWickColor:    '#f87171',
               },
               priceMark: {
                 show: true,
@@ -258,152 +286,172 @@ function ChartInner({
               show: true,
               horizontal: {
                 show: true,
-                line: { show: true, style: 'dash' as any, size: 1, color: crosshairColor },
+                line: { show: true, style: 'dash' as any, size: 1, color: crossColor },
                 text: {
-                  show: true, size: 10, color: '#ffffff',
+                  show: true, size: 10, color: '#fff',
                   borderRadius: 2,
                   paddingLeft: 4, paddingRight: 4,
                   paddingTop: 2, paddingBottom: 2,
-                  backgroundColor: crosshairBg,
+                  backgroundColor: crossBg,
                 },
               },
               vertical: {
                 show: true,
-                line: { show: true, style: 'dash' as any, size: 1, color: crosshairColor },
+                line: { show: true, style: 'dash' as any, size: 1, color: crossColor },
                 text: {
-                  show: true, size: 10, color: '#ffffff',
+                  show: true, size: 10, color: '#fff',
                   borderRadius: 2,
                   paddingLeft: 4, paddingRight: 4,
                   paddingTop: 2, paddingBottom: 2,
-                  backgroundColor: crosshairBg,
+                  backgroundColor: crossBg,
                 },
               },
+            },
+            overlay: {
+              point:    { color: 'transparent', borderColor: 'transparent', borderSize: 0, radius: 0 },
+              line:     { color: 'transparent', size: 0 },
+              text:     { color: '#fff', size: 11, weight: 'normal', family: 'system-ui', paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0, borderRadius: 0, borderSize: 0, borderColor: 'transparent', backgroundColor: 'transparent' },
+              rectText: { color: '#fff', size: 11, weight: 'normal', family: 'system-ui', paddingLeft: 0, paddingRight: 0, paddingTop: 0, paddingBottom: 0, borderRadius: 0, borderSize: 0, borderColor: 'transparent', backgroundColor: 'transparent' },
             },
           },
         });
 
-        if (!chart) {
-          onError('Impossibile inizializzare il grafico.', usage.remaining);
+        if (!chart || cancelled) {
+          try { if (el) dispose(el); } catch (_) {}
           return;
         }
-        if (cancelled) { try { dispose(el); } catch (_) {} return; }
 
-        el.style.backgroundColor = bgColor;
+        el.style.backgroundColor = bg;
 
-        // ── Load data ─────────────────────────────────────────────────────
+        // ── Data ───────────────────────────────────────────────────────────
         chart.applyNewData(ohlcData);
 
-        // Volume sub-pane
+        // Volume indicator in sub-pane
         try { chart.createIndicator('VOL', false); } catch (_) {}
 
-        // ── Horizontal price lines ────────────────────────────────────────
-        const firstTs = ohlcData[0].timestamp;
-        const lastTs  = ohlcData[ohlcData.length - 1].timestamp;
-        const isLong  = trade.direction === 'LONG';
+        // ── Resolve candles for markers ───────────────────────────────────
+        const isLong       = trade.direction === 'LONG';
         const isProfitable = (trade.pnl ?? 0) >= 0;
 
-        const addPriceLine = (price: number, color: string, dash: number[]) => {
-          try {
-            chart.createOverlay({
-              name: 'straightLine',
-              points: [
-                { value: price, timestamp: firstTs },
-                { value: price, timestamp: lastTs },
-              ],
-              styles: {
-                line: { style: 'dashed' as any, size: 1, color, dashedValue: dash },
-              },
-              lock: true,
-            });
-          } catch (_) {}
-        };
-
-        if (trade.entryPrice) addPriceLine(trade.entryPrice, isLong ? '#22c55e' : '#ef4444', [6, 4]);
-        if (trade.exitPrice)  addPriceLine(trade.exitPrice,  isProfitable ? '#22c55e' : '#ef4444', [2, 4]);
-        if (trade.stopLoss)   addPriceLine(trade.stopLoss,   '#f97316', [8, 4]);
-        if (trade.takeProfit) addPriceLine(trade.takeProfit, '#3b82f6', [8, 4]);
-
-        // ── Arrow markers on entry / exit candles ────────────────────────
-        const entryMs = resolveTimestamp(trade.entryTime, tradeDate);
-        const exitMs  = resolveTimestamp(trade.exitTime,  tradeDate);
-
-        // For daily timeframe: pin to the trade date candle directly
         let entryCandle: OHLCData | null = null;
         let exitCandle:  OHLCData | null = null;
 
         if (timeframe === '1day') {
-          // Use date-only match: find the candle whose date == tradeDate
-          const targetDay = new Date(tradeDate + 'T00:00:00').toDateString();
-          entryCandle = ohlcData.find(c => new Date(c.timestamp).toDateString() === targetDay) ?? ohlcData[Math.floor(ohlcData.length / 2)];
-          exitCandle  = entryCandle; // same day for daily — both on the trade candle
+          // Daily: pin both arrows to the trade date candle
+          entryCandle = candleByDate(ohlcData, tradeDate) ?? ohlcData[Math.floor(ohlcData.length / 2)];
+          exitCandle  = entryCandle;
         } else {
           // 1min: find nearest candle to entry/exit time
-          entryCandle = findNearestCandle(ohlcData, entryMs);
-          exitCandle  = findNearestCandle(ohlcData, exitMs);
+          const entryMs = resolveTimestampMs(trade.entryTime, tradeDate);
+          const exitMs  = resolveTimestampMs(trade.exitTime,  tradeDate);
+          if (entryMs != null) entryCandle = nearestCandle(ohlcData, entryMs);
+          if (exitMs  != null) exitCandle  = nearestCandle(ohlcData, exitMs);
+          // Fallback: if no entryTime, use first candle
+          if (!entryCandle) entryCandle = ohlcData[0];
         }
 
-        // Entry arrow: points toward price (up arrow below for LONG, down above for SHORT)
+        // ── Horizontal price lines using priceLine overlay ────────────────
+        // priceLine: totalStep=2, 1 point with { timestamp, value }
+        // It draws from that x coordinate to the right edge of the chart.
+        // We place it at the leftmost candle so it spans the whole chart.
+        const leftTs = ohlcData[0].timestamp;
+
+        const addPriceLine = (price: number, color: string, dash: number[], label?: string) => {
+          try {
+            chart!.createOverlay({
+              name: 'priceLine',
+              points: [{ timestamp: leftTs, value: price }],
+              styles: {
+                line: { style: 'dashed' as any, size: 1, color, dashedValue: dash },
+                text: { color, size: 10, family: 'system-ui', weight: 'normal', paddingLeft: 2, paddingRight: 4, paddingTop: 1, paddingBottom: 1, borderRadius: 2, borderSize: 0, borderColor: 'transparent', backgroundColor: isDark ? 'rgba(15,15,26,0.7)' : 'rgba(255,255,255,0.8)' },
+              },
+              lock: true,
+              mode: 'weak_magnet' as any,
+            });
+          } catch (_) {}
+        };
+
+        if (trade.entryPrice)   addPriceLine(trade.entryPrice, isLong ? '#22c55e' : '#ef4444', [6, 4]);
+        if (trade.exitPrice)    addPriceLine(trade.exitPrice,  isProfitable ? '#22c55e' : '#ef4444', [3, 4]);
+        if (trade.stopLoss)     addPriceLine(trade.stopLoss,   '#f97316', [8, 5]);
+        if (trade.takeProfit)   addPriceLine(trade.takeProfit, '#3b82f6', [8, 5]);
+
+        // ── Arrow markers ─────────────────────────────────────────────────
+        // Arrow semantics:
+        //   LONG entry  → arrowUp below low   (green, "E")
+        //   LONG exit   → arrowDown above high (green if profit, red if loss, "X")
+        //   SHORT entry → arrowDown above high (red, "E")
+        //   SHORT exit  → arrowUp below low   (green if profit, red if loss, "X")
+
         if (entryCandle) {
-          const entryDir: 'up' | 'down' = isLong ? 'up' : 'down';
-          // Place the arrow value slightly beyond the candle wick
-          const arrowOffset = (entryCandle.high - entryCandle.low) * 0.3 || trade.entryPrice * 0.003;
-          const arrowValue = isLong
-            ? entryCandle.low  - arrowOffset
-            : entryCandle.high + arrowOffset;
+          const wickSpan = Math.max(entryCandle.high - entryCandle.low, trade.entryPrice * 0.002);
+          const offset   = wickSpan * 0.4;
 
-          try {
-            chart.createOverlay({
-              name: 'tradeArrow',
-              points: [{ timestamp: entryCandle.timestamp, value: arrowValue }],
-              extendData: {
-                direction: entryDir,
-                color: isLong ? '#22c55e' : '#ef4444',
-                label: 'E',
-              },
-              lock: true,
-              zLevel: 10,
-            });
-          } catch (_) {}
+          if (isLong) {
+            // LONG entry: up arrow below candle low
+            try {
+              chart!.createOverlay({
+                name: 'arrowUp',
+                points: [{ timestamp: entryCandle.timestamp, value: entryCandle.low - offset }],
+                extendData: { color: '#22c55e', label: 'E' },
+                lock: true,
+                zLevel: 10,
+              });
+            } catch (_) {}
+          } else {
+            // SHORT entry: down arrow above candle high
+            try {
+              chart!.createOverlay({
+                name: 'arrowDown',
+                points: [{ timestamp: entryCandle.timestamp, value: entryCandle.high + offset }],
+                extendData: { color: '#ef4444', label: 'E' },
+                lock: true,
+                zLevel: 10,
+              });
+            } catch (_) {}
+          }
         }
 
-        // Exit arrow: inverse direction (closing the trade)
         if (exitCandle && trade.exitPrice) {
-          const exitDir: 'up' | 'down' = isLong ? 'down' : 'up';
-          const arrowOffset = (exitCandle.high - exitCandle.low) * 0.3 || trade.exitPrice * 0.003;
-          const arrowValue = isLong
-            ? exitCandle.high + arrowOffset
-            : exitCandle.low  - arrowOffset;
+          const wickSpan = Math.max(exitCandle.high - exitCandle.low, trade.exitPrice * 0.002);
+          const offset   = wickSpan * 0.4;
+          const exitColor = isProfitable ? '#22c55e' : '#ef4444';
 
-          try {
-            chart.createOverlay({
-              name: 'tradeArrow',
-              points: [{ timestamp: exitCandle.timestamp, value: arrowValue }],
-              extendData: {
-                direction: exitDir,
-                color: isProfitable ? '#22c55e' : '#ef4444',
-                label: 'X',
-              },
-              lock: true,
-              zLevel: 10,
-            });
-          } catch (_) {}
+          if (isLong) {
+            // LONG exit: down arrow above candle high
+            try {
+              chart!.createOverlay({
+                name: 'arrowDown',
+                points: [{ timestamp: exitCandle.timestamp, value: exitCandle.high + offset }],
+                extendData: { color: exitColor, label: 'X' },
+                lock: true,
+                zLevel: 10,
+              });
+            } catch (_) {}
+          } else {
+            // SHORT exit: up arrow below candle low
+            try {
+              chart!.createOverlay({
+                name: 'arrowUp',
+                points: [{ timestamp: exitCandle.timestamp, value: exitCandle.low - offset }],
+                extendData: { color: exitColor, label: 'X' },
+                lock: true,
+                zLevel: 10,
+              });
+            } catch (_) {}
+          }
         }
 
         // ── Scroll to entry candle ────────────────────────────────────────
-        // scrollToTimestamp scrolls the RIGHT EDGE of the chart to the timestamp.
-        // To center the entry candle, we scroll a bit further past it.
-        const scrollTarget = entryCandle?.timestamp ?? (exitCandle?.timestamp ?? lastTs);
-        try {
-          // Small delay to let the chart render before scrolling
-          setTimeout(() => {
-            try { (chart as any).scrollToTimestamp(scrollTarget, 300); } catch (_) {}
-          }, 50);
-        } catch (_) {}
+        const scrollTs = entryCandle?.timestamp ?? exitCandle?.timestamp ?? ohlcData[ohlcData.length - 1].timestamp;
+        setTimeout(() => {
+          try { (chart as any)?.scrollToTimestamp(scrollTs, 200); } catch (_) {}
+        }, 80);
 
         onLoaded(usage.remaining);
       } catch (err: any) {
         const usage = getApiUsageInfo();
-        onError(err?.message || 'Errore nel caricamento del grafico', usage.remaining);
+        onError(err?.message ?? 'Errore nel caricamento dati', usage.remaining);
       }
     }
 
@@ -414,14 +462,34 @@ function ChartInner({
       try { if (el) dispose(el); } catch (_) {}
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // runs once per mount
+  }, []); // runs exactly once per mount
 
   return (
     <div
       ref={containerRef}
-      className="w-full"
-      style={{ height: '100%', minHeight: 300 }}
+      style={{ width: '100%', height: '100%' }}
     />
+  );
+}
+
+// ─── Tiny legend pieces ───────────────────────────────────────────────────────
+function ArrowIcon({ direction, color }: { direction: 'up' | 'down'; color: string }) {
+  return direction === 'up' ? (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+      <polygon points="5,0 0,10 10,10" fill={color} />
+    </svg>
+  ) : (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+      <polygon points="5,10 0,0 10,0" fill={color} />
+    </svg>
+  );
+}
+
+function DashLine({ color }: { color: string }) {
+  return (
+    <svg width="20" height="2" viewBox="0 0 20 2" fill="none" aria-hidden>
+      <line x1="0" y1="1" x2="20" y2="1" stroke={color} strokeWidth="2" strokeDasharray="6 3" />
+    </svg>
   );
 }
 
@@ -430,23 +498,23 @@ export function KlineChartComponent({
   ticker,
   tradeDate,
   trade,
-  height = '500px',
+  height = '520px',
   className,
 }: KlineChartProps) {
-  const [timeframe, setTimeframe]     = useState<Timeframe>('1day');
-  const [mountKey, setMountKey]       = useState(0);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
-  const [isDark, setIsDark]           = useState(false);
-  const [apiRemaining, setApiRemaining] = useState<number | null>(null);
+  const [timeframe, setTimeframe]         = useState<Timeframe>('1day');
+  const [mountKey, setMountKey]           = useState(0);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
+  const [isDark, setIsDark]               = useState(false);
+  const [apiRemaining, setApiRemaining]   = useState<number | null>(null);
 
   // Detect dark mode
   useEffect(() => {
-    const checkDark = () => setIsDark(document.documentElement.classList.contains('dark'));
-    checkDark();
-    const observer = new MutationObserver(checkDark);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
   }, []);
 
   const handleTimeframeChange = (tf: Timeframe) => {
@@ -454,13 +522,13 @@ export function KlineChartComponent({
     setTimeframe(tf);
     setLoading(true);
     setError(null);
-    setMountKey((k) => k + 1);
+    setMountKey(k => k + 1);
   };
 
   const handleRefresh = () => {
     setLoading(true);
     setError(null);
-    setMountKey((k) => k + 1);
+    setMountKey(k => k + 1);
   };
 
   const handleLoaded = useCallback((remaining: number) => {
@@ -474,111 +542,114 @@ export function KlineChartComponent({
     setApiRemaining(remaining);
   }, []);
 
-  const isPositive = (trade.pnl ?? 0) >= 0;
-  const isLong = trade.direction === 'LONG';
+  const isLong      = trade.direction === 'LONG';
+  const isProfitable = (trade.pnl ?? 0) >= 0;
 
   return (
     <div
       className={cn(
-        'rounded-xl overflow-hidden border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] flex flex-col',
-        className
+        'flex flex-col rounded-xl overflow-hidden',
+        'border border-gray-200 dark:border-white/10',
+        'bg-white dark:bg-[#0f0f1a]',
+        className,
       )}
     >
-      {/* ── Toolbar ── */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-violet-500/20 bg-gray-50 dark:bg-[#1e1e30]">
-        {/* Left: ticker + date + pnl */}
-        <div className="flex items-center gap-2.5">
-          <span className="font-mono font-bold text-base text-gray-900 dark:text-white tracking-tight">
+      {/* ── Toolbar ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-white/10 bg-gray-50/80 dark:bg-white/[0.03]">
+        {/* Left: ticker + date + P&L */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="font-mono font-bold text-[15px] text-gray-900 dark:text-white tracking-tight shrink-0">
             {ticker}
           </span>
           <Badge
             variant="outline"
-            className="text-xs font-mono border-gray-200 dark:border-violet-500/30 text-gray-500 dark:text-gray-400"
+            className="text-[11px] font-mono border-gray-200 dark:border-white/15 text-gray-500 dark:text-gray-400 px-1.5 py-0 h-5"
           >
             {tradeDate}
           </Badge>
           {trade.pnl != null && (
             <span
               className={cn(
-                'text-xs font-bold font-mono',
-                isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                'text-[12px] font-bold font-mono shrink-0',
+                isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
               )}
             >
-              {isPositive ? '+' : ''}{trade.pnl.toFixed(2)}$
+              {isProfitable ? '+' : ''}{trade.pnl.toFixed(2)}$
+            </span>
+          )}
+          {trade.direction && (
+            <span
+              className={cn(
+                'text-[10px] font-bold font-mono px-1.5 py-0.5 rounded',
+                isLong
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+              )}
+            >
+              {trade.direction}
             </span>
           )}
         </div>
 
         {/* Right: timeframe switcher + refresh */}
-        <div className="flex items-center gap-1">
-          <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-[#161622] rounded-lg p-0.5 mr-2">
-            {TIMEFRAMES.map((tf) => (
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center rounded-lg border border-gray-200 dark:border-white/10 overflow-hidden">
+            {TIMEFRAMES.map((tf, i) => (
               <button
                 key={tf.value}
                 disabled={loading}
                 onClick={() => handleTimeframeChange(tf.value)}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150',
+                  'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                  i > 0 && 'border-l border-gray-200 dark:border-white/10',
                   timeframe === tf.value
-                    ? 'bg-violet-600 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-[#252535]',
-                  loading && 'opacity-50 cursor-not-allowed'
+                    ? 'bg-gray-900 dark:bg-violet-600 text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5',
+                  loading && 'opacity-50 cursor-not-allowed',
                 )}
               >
-                {tf.value === '1day'
-                  ? <BarChart2 className="h-3.5 w-3.5" />
-                  : <Clock className="h-3.5 w-3.5" />
-                }
+                {tf.icon}
                 {tf.label}
               </button>
             ))}
           </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          <button
             onClick={handleRefresh}
             disabled={loading}
-            title="Ricarica"
+            title="Aggiorna"
+            className={cn(
+              'p-1.5 rounded-lg border border-gray-200 dark:border-white/10',
+              'text-gray-400 hover:text-gray-700 dark:hover:text-white',
+              'hover:bg-gray-100 dark:hover:bg-white/5 transition-colors',
+              loading && 'opacity-40 cursor-not-allowed',
+            )}
           >
             <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* ── Chart area ── */}
+      {/* ── Chart area ──────────────────────────────────────────────────── */}
       <div className="relative" style={{ height }}>
         {/* Loading overlay */}
         {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-[#161622]/90 z-10 gap-3 pointer-events-none">
-            <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {timeframe === '1min' ? 'Caricamento dati al minuto...' : 'Caricamento dati giornalieri...'}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Attendere il rate limit API...
-              </p>
-            </div>
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 dark:bg-[#0f0f1a]/80 backdrop-blur-[2px]">
+            <Loader2 className="h-8 w-8 animate-spin text-violet-500 mb-2" />
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Caricamento dati...</p>
           </div>
         )}
 
         {/* Error overlay */}
         {error && !loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#161622] z-10 px-8">
-            <div className="max-w-sm text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto">
-                <AlertTriangle className="h-6 w-6 text-amber-500" />
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-8 bg-white dark:bg-[#0f0f1a]">
+            <div className="max-w-xs text-center space-y-3">
+              <div className="w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
-                  Dati non disponibili
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{error}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleRefresh}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Dati non disponibili</p>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400 leading-relaxed">{error}</p>
+              <Button variant="outline" size="sm" onClick={handleRefresh} className="text-xs">
+                <RefreshCw className="h-3 w-3 mr-1.5" />
                 Riprova
               </Button>
             </div>
@@ -586,79 +657,69 @@ export function KlineChartComponent({
         )}
 
         {/* KlineCharts — re-keyed on every load to get a fresh DOM node */}
-        <div style={{ height: '100%', width: '100%' }}>
-          <ChartInner
-            key={mountKey}
-            ticker={ticker}
-            tradeDate={tradeDate}
-            trade={trade}
-            timeframe={timeframe}
-            isDark={isDark}
-            onLoaded={handleLoaded}
-            onError={handleError}
-          />
-        </div>
+        <ChartInner
+          key={mountKey}
+          ticker={ticker}
+          tradeDate={tradeDate}
+          trade={trade}
+          timeframe={timeframe}
+          isDark={isDark}
+          onLoaded={handleLoaded}
+          onError={handleError}
+        />
       </div>
 
-      {/* ── Legend bar ── */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-violet-500/20 bg-gray-50 dark:bg-[#1e1e30]">
+      {/* ── Legend bar ──────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-white/10 bg-gray-50/80 dark:bg-white/[0.02]">
         <div className="flex items-center gap-4 flex-wrap">
-          {/* Arrow legend items */}
+          {/* Entry arrow */}
           <div className="flex items-center gap-1.5">
-            <ArrowLegend direction="up" color={isLong ? '#22c55e' : '#ef4444'} />
-            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
-              E {trade.entryPrice?.toFixed(2)}
-              {trade.entryTime ? ` · ${trade.entryTime}` : ''}
+            <ArrowIcon direction={isLong ? 'up' : 'down'} color={isLong ? '#22c55e' : '#ef4444'} />
+            <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
+              Entrata {trade.entryPrice.toFixed(2)}
+              {trade.entryTime ? ` · ${trade.entryTime.slice(0, 5)}` : ''}
             </span>
           </div>
-          {trade.exitPrice && (
+
+          {/* Exit arrow */}
+          {trade.exitPrice != null && (
             <div className="flex items-center gap-1.5">
-              <ArrowLegend direction="down" color={isPositive ? '#22c55e' : '#ef4444'} />
-              <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
-                X {trade.exitPrice.toFixed(2)}
-                {trade.exitTime ? ` · ${trade.exitTime}` : ''}
+              <ArrowIcon direction={isLong ? 'down' : 'up'} color={isProfitable ? '#22c55e' : '#ef4444'} />
+              <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
+                Uscita {trade.exitPrice.toFixed(2)}
+                {trade.exitTime ? ` · ${trade.exitTime.slice(0, 5)}` : ''}
               </span>
             </div>
           )}
-          {/* Price line legend items */}
-          {trade.stopLoss && (
-            <LegendItem color="#f97316" label={`SL ${trade.stopLoss.toFixed(2)}`} dashStyle="8,4" />
+
+          {/* SL line */}
+          {trade.stopLoss != null && (
+            <div className="flex items-center gap-1.5">
+              <DashLine color="#f97316" />
+              <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
+                SL {trade.stopLoss.toFixed(2)}
+              </span>
+            </div>
           )}
-          {trade.takeProfit && (
-            <LegendItem color="#3b82f6" label={`TP ${trade.takeProfit.toFixed(2)}`} dashStyle="8,4" />
+
+          {/* TP line */}
+          {trade.takeProfit != null && (
+            <div className="flex items-center gap-1.5">
+              <DashLine color="#3b82f6" />
+              <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
+                TP {trade.takeProfit.toFixed(2)}
+              </span>
+            </div>
           )}
         </div>
+
+        {/* API usage */}
         {apiRemaining !== null && (
-          <span className="text-[10px] text-gray-400 dark:text-gray-600 tabular-nums shrink-0">
-            {apiRemaining} API rimaste
+          <span className="text-[10px] tabular-nums text-gray-400 dark:text-gray-600 shrink-0 ml-4">
+            {apiRemaining} req rimaste
           </span>
         )}
       </div>
-    </div>
-  );
-}
-
-// ─── Small UI helpers ─────────────────────────────────────────────────────────
-function ArrowLegend({ direction, color }: { direction: 'up' | 'down'; color: string }) {
-  const isUp = direction === 'up';
-  return (
-    <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
-      {isUp ? (
-        <polygon points="5,0 0,8 10,8" fill={color} />
-      ) : (
-        <polygon points="5,12 0,4 10,4" fill={color} />
-      )}
-    </svg>
-  );
-}
-
-function LegendItem({ color, label, dashStyle }: { color: string; label: string; dashStyle: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <svg width="18" height="2" viewBox="0 0 18 2" fill="none">
-        <line x1="0" y1="1" x2="18" y2="1" stroke={color} strokeWidth="2" strokeDasharray={dashStyle} />
-      </svg>
-      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">{label}</span>
     </div>
   );
 }
