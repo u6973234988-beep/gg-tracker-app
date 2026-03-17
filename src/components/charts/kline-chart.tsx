@@ -30,166 +30,59 @@ interface KlineChartProps {
   className?: string;
 }
 
-// Only 2 timeframes as requested
-const TIMEFRAMES: { label: string; value: Timeframe; icon: React.ReactNode }[] = [
-  { label: 'Giornaliero', value: '1day', icon: <BarChart2 className="h-3.5 w-3.5" /> },
-  { label: '1 Minuto', value: '1min', icon: <Clock className="h-3.5 w-3.5" /> },
+const TIMEFRAMES: { label: string; value: Timeframe }[] = [
+  { label: 'Giornaliero', value: '1day' },
+  { label: '1 Minuto', value: '1min' },
 ];
 
-export function KlineChartComponent({
+// Inner chart that re-mounts fresh on every key change
+function ChartInner({
   ticker,
   tradeDate,
   trade,
-  height = '500px',
-  className,
-}: KlineChartProps) {
+  timeframe,
+  isDark,
+  onLoaded,
+  onError,
+}: {
+  ticker: string;
+  tradeDate: string;
+  trade: TradeMarker;
+  timeframe: Timeframe;
+  isDark: boolean;
+  onLoaded: (remaining: number) => void;
+  onError: (msg: string, remaining: number) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
-  const [timeframe, setTimeframe] = useState<Timeframe>('1day');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState(false);
-  const [apiRemaining, setApiRemaining] = useState<number | null>(null);
-  const loadingRef = useRef(false);
 
-  // Detect dark mode
   useEffect(() => {
-    const checkDark = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDark();
-    const observer = new MutationObserver(checkDark);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
+    let cancelled = false;
+    const el = containerRef.current;
+    if (!el) return;
 
-  const addOverlays = useCallback(
-    (chart: Chart, data: { timestamp: number }[]) => {
-      if (!data.length) return;
-      const firstTs = data[0].timestamp;
-      const lastTs = data[data.length - 1].timestamp;
-      const isLong = trade.direction === 'LONG';
-      const isProfitable = (trade.pnl || 0) >= 0;
-
-      // Entry line
-      if (trade.entryPrice) {
-        chart.createOverlay({
-          name: 'straightLine',
-          points: [
-            { value: trade.entryPrice, timestamp: firstTs },
-            { value: trade.entryPrice, timestamp: lastTs },
-          ],
-          styles: {
-            line: {
-              style: 'dashed' as any,
-              size: 2,
-              color: isLong ? '#22c55e' : '#ef4444',
-              dashedValue: [5, 4],
-            },
-          },
-          lock: true,
-        });
-      }
-
-      // Exit line
-      if (trade.exitPrice) {
-        chart.createOverlay({
-          name: 'straightLine',
-          points: [
-            { value: trade.exitPrice, timestamp: firstTs },
-            { value: trade.exitPrice, timestamp: lastTs },
-          ],
-          styles: {
-            line: {
-              style: 'dashed' as any,
-              size: 2,
-              color: isProfitable ? '#22c55e' : '#ef4444',
-              dashedValue: [2, 4],
-            },
-          },
-          lock: true,
-        });
-      }
-
-      // Stop Loss
-      if (trade.stopLoss) {
-        chart.createOverlay({
-          name: 'straightLine',
-          points: [
-            { value: trade.stopLoss, timestamp: firstTs },
-            { value: trade.stopLoss, timestamp: lastTs },
-          ],
-          styles: {
-            line: {
-              style: 'dashed' as any,
-              size: 1,
-              color: '#f97316',
-              dashedValue: [8, 4],
-            },
-          },
-          lock: true,
-        });
-      }
-
-      // Take Profit
-      if (trade.takeProfit) {
-        chart.createOverlay({
-          name: 'straightLine',
-          points: [
-            { value: trade.takeProfit, timestamp: firstTs },
-            { value: trade.takeProfit, timestamp: lastTs },
-          ],
-          styles: {
-            line: {
-              style: 'dashed' as any,
-              size: 1,
-              color: '#3b82f6',
-              dashedValue: [8, 4],
-            },
-          },
-          lock: true,
-        });
-      }
-    },
-    [trade]
-  );
-
-  const loadChart = useCallback(
-    async (tf: Timeframe) => {
-      if (!containerRef.current || loadingRef.current) return;
-      loadingRef.current = true;
-      setLoading(true);
-      setError(null);
-
-      // Destroy previous chart safely
+    async function load() {
       try {
-        if (chartRef.current) {
-          dispose(containerRef.current);
-          chartRef.current = null;
-        }
-      } catch (_) {}
-
-      try {
-        const ohlcData = await getOHLCData(ticker, tf, tradeDate);
-
+        const ohlcData = await getOHLCData(ticker, timeframe, tradeDate);
         const usage = getApiUsageInfo();
-        setApiRemaining(usage.remaining);
+
+        if (cancelled) return;
+        if (!el) return;
 
         if (!ohlcData || ohlcData.length === 0) {
-          setError('Nessun dato disponibile per questo ticker e periodo.');
+          onError('Nessun dato disponibile per questo ticker e periodo.', usage.remaining);
           return;
         }
 
-        if (!containerRef.current) return;
-
-        // Theme colors
+        // Theme
         const bgColor = isDark ? '#161622' : '#ffffff';
-        const gridColor = isDark ? 'rgba(139, 92, 246, 0.06)' : 'rgba(0,0,0,0.04)';
+        const gridColor = isDark ? 'rgba(139,92,246,0.06)' : 'rgba(0,0,0,0.04)';
         const textColor = isDark ? '#9ca3af' : '#6b7280';
-        const crosshairColor = isDark ? 'rgba(139, 92, 246, 0.4)' : 'rgba(0,0,0,0.15)';
-        const axisColor = isDark ? 'rgba(139, 92, 246, 0.18)' : 'rgba(0,0,0,0.08)';
+        const crosshairColor = isDark ? 'rgba(139,92,246,0.4)' : 'rgba(0,0,0,0.15)';
+        const axisColor = isDark ? 'rgba(139,92,246,0.18)' : 'rgba(0,0,0,0.08)';
+        const crosshairBg = isDark ? '#7c3aed' : '#6b7280';
 
-        const chart = init(containerRef.current, {
+        const chart = init(el, {
           styles: {
             grid: {
               show: true,
@@ -254,7 +147,7 @@ export function KlineChartComponent({
                   paddingRight: 4,
                   paddingTop: 2,
                   paddingBottom: 2,
-                  backgroundColor: isDark ? '#7c3aed' : '#6b7280',
+                  backgroundColor: crosshairBg,
                 },
               },
               vertical: {
@@ -269,7 +162,7 @@ export function KlineChartComponent({
                   paddingRight: 4,
                   paddingTop: 2,
                   paddingBottom: 2,
-                  backgroundColor: isDark ? '#7c3aed' : '#6b7280',
+                  backgroundColor: crosshairBg,
                 },
               },
             },
@@ -277,67 +170,133 @@ export function KlineChartComponent({
         });
 
         if (!chart) {
-          setError('Impossibile inizializzare il grafico.');
+          onError('Impossibile inizializzare il grafico.', usage.remaining);
+          return;
+        }
+
+        if (cancelled) {
+          try { dispose(el); } catch (_) {}
           return;
         }
 
         chartRef.current = chart;
+        el.style.backgroundColor = bgColor;
 
-        // Background
-        if (containerRef.current) {
-          containerRef.current.style.backgroundColor = bgColor;
-        }
-
-        // Load data
+        // Apply data
         chart.applyNewData(ohlcData);
 
         // Volume indicator
-        chart.createIndicator('VOL', false);
+        try { chart.createIndicator('VOL', false); } catch (_) {}
 
-        // Trade overlays
-        addOverlays(chart, ohlcData);
+        // Overlays
+        const firstTs = ohlcData[0].timestamp;
+        const lastTs = ohlcData[ohlcData.length - 1].timestamp;
+        const isLong = trade.direction === 'LONG';
+        const isProfitable = (trade.pnl || 0) >= 0;
 
-        // Scroll to show the trade date area
-        // For 1min: zoom in to show just the trading session
-        if (tf === '1min') {
-          // Show all intraday data (already just one day)
-          chart.zoomAtCoordinate?.(1);
-        }
+        const addLine = (price: number, color: string, dash: number[]) => {
+          try {
+            chart.createOverlay({
+              name: 'straightLine',
+              points: [
+                { value: price, timestamp: firstTs },
+                { value: price, timestamp: lastTs },
+              ],
+              styles: {
+                line: {
+                  style: 'dashed' as any,
+                  size: 2,
+                  color,
+                  dashedValue: dash,
+                },
+              },
+              lock: true,
+            });
+          } catch (_) {}
+        };
+
+        if (trade.entryPrice) addLine(trade.entryPrice, isLong ? '#22c55e' : '#ef4444', [6, 4]);
+        if (trade.exitPrice) addLine(trade.exitPrice, isProfitable ? '#22c55e' : '#ef4444', [2, 4]);
+        if (trade.stopLoss) addLine(trade.stopLoss, '#f97316', [8, 4]);
+        if (trade.takeProfit) addLine(trade.takeProfit, '#3b82f6', [8, 4]);
+
+        onLoaded(usage.remaining);
       } catch (err: any) {
-        console.error('[v0] Chart load error:', err);
-        setError(err.message || 'Errore nel caricamento del grafico');
+        console.log('[v0] Chart load error:', err?.message);
         const usage = getApiUsageInfo();
-        setApiRemaining(usage.remaining);
-      } finally {
-        setLoading(false);
-        loadingRef.current = false;
+        onError(err?.message || 'Errore nel caricamento del grafico', usage.remaining);
       }
-    },
-    [ticker, tradeDate, isDark, addOverlays]
-  );
+    }
 
-  // Load on mount and when timeframe changes
-  useEffect(() => {
-    loadChart(timeframe);
+    load();
+
     return () => {
+      cancelled = true;
       try {
-        if (containerRef.current) {
-          dispose(containerRef.current);
-          chartRef.current = null;
-        }
+        if (el) dispose(el);
       } catch (_) {}
+      chartRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeframe, isDark, ticker, tradeDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // runs once per mount — re-key from parent triggers full remount
 
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-full"
+      style={{ minHeight: '100%' }}
+    />
+  );
+}
+
+export function KlineChartComponent({
+  ticker,
+  tradeDate,
+  trade,
+  height = '500px',
+  className,
+}: KlineChartProps) {
+  const [timeframe, setTimeframe] = useState<Timeframe>('1day');
+  const [mountKey, setMountKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(false);
+  const [apiRemaining, setApiRemaining] = useState<number | null>(null);
+
+  // Detect dark mode
+  useEffect(() => {
+    const checkDark = () => setIsDark(document.documentElement.classList.contains('dark'));
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  // Reset + remount when timeframe changes
   const handleTimeframeChange = (tf: Timeframe) => {
     if (tf === timeframe || loading) return;
     setTimeframe(tf);
+    setLoading(true);
+    setError(null);
+    setMountKey((k) => k + 1);
   };
 
-  const handleZoomIn = () => chartRef.current?.zoomAtCoordinate?.(1.2);
-  const handleZoomOut = () => chartRef.current?.zoomAtCoordinate?.(0.8);
-  const handleRefresh = () => loadChart(timeframe);
+  const handleRefresh = () => {
+    setLoading(true);
+    setError(null);
+    setMountKey((k) => k + 1);
+  };
+
+  const handleLoaded = useCallback((remaining: number) => {
+    setLoading(false);
+    setApiRemaining(remaining);
+  }, []);
+
+  const handleError = useCallback((msg: string, remaining: number) => {
+    setLoading(false);
+    setError(msg);
+    setApiRemaining(remaining);
+  }, []);
 
   const isPositive = (trade.pnl || 0) >= 0;
 
@@ -350,7 +309,7 @@ export function KlineChartComponent({
     >
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-violet-500/20 bg-gray-50 dark:bg-[#1e1e30]">
-        {/* Left: ticker + date */}
+        {/* Left: ticker + date + pnl */}
         <div className="flex items-center gap-2.5">
           <span className="font-mono font-bold text-base text-gray-900 dark:text-white tracking-tight">
             {ticker}
@@ -374,9 +333,8 @@ export function KlineChartComponent({
           )}
         </div>
 
-        {/* Right: timeframe + controls */}
+        {/* Right: timeframe switcher + controls */}
         <div className="flex items-center gap-1">
-          {/* Timeframe switcher */}
           <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-[#161622] rounded-lg p-0.5 mr-2">
             {TIMEFRAMES.map((tf) => (
               <button
@@ -391,44 +349,25 @@ export function KlineChartComponent({
                   loading && 'opacity-50 cursor-not-allowed'
                 )}
               >
-                {tf.icon}
+                {tf.value === '1day'
+                  ? <BarChart2 className="h-3.5 w-3.5" />
+                  : <Clock className="h-3.5 w-3.5" />
+                }
                 {tf.label}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              onClick={handleZoomIn}
-              disabled={loading}
-              title="Zoom in"
-            >
-              <ZoomIn className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              onClick={handleZoomOut}
-              disabled={loading}
-              title="Zoom out"
-            >
-              <ZoomOut className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              onClick={handleRefresh}
-              disabled={loading}
-              title="Ricarica"
-            >
-              <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            onClick={handleRefresh}
+            disabled={loading}
+            title="Ricarica"
+          >
+            <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+          </Button>
         </div>
       </div>
 
@@ -436,17 +375,15 @@ export function KlineChartComponent({
       <div className="relative flex-1" style={{ height }}>
         {/* Loading overlay */}
         {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-[#161622]/90 z-10 gap-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-[#161622]/90 z-10 gap-3 pointer-events-none">
             <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
             <div className="text-center">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Caricamento {timeframe === '1min' ? 'dati 1 minuto' : 'dati giornalieri'}...
+                {timeframe === '1min' ? 'Caricamento dati al minuto...' : 'Caricamento dati giornalieri...'}
               </p>
-              {timeframe === '1min' && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  Prima richiesta: attesa rate limit (10s)
-                </p>
-              )}
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Rispetto del rate limit API...
+              </p>
             </div>
           </div>
         )}
@@ -464,7 +401,7 @@ export function KlineChartComponent({
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{error}</p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleRefresh} className="mt-2">
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                 Riprova
               </Button>
@@ -472,20 +409,27 @@ export function KlineChartComponent({
           </div>
         )}
 
-        {/* KlineCharts container */}
-        <div ref={containerRef} className="w-full h-full" />
+        {/* KlineCharts — re-keyed on every load to get a fresh DOM node */}
+        <ChartInner
+          key={mountKey}
+          ticker={ticker}
+          tradeDate={tradeDate}
+          trade={trade}
+          timeframe={timeframe}
+          isDark={isDark}
+          onLoaded={handleLoaded}
+          onError={handleError}
+        />
       </div>
 
       {/* Legend bar */}
       <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-violet-500/20 bg-gray-50 dark:bg-[#1e1e30]">
         <div className="flex items-center gap-4 flex-wrap">
-          {/* Entry */}
           <LegendItem
             color={trade.direction === 'LONG' ? '#22c55e' : '#ef4444'}
             label={`Entrata ${trade.entryPrice?.toFixed(2) ?? ''}`}
-            dashStyle="5,4"
+            dashStyle="6,4"
           />
-          {/* Exit */}
           {trade.exitPrice && (
             <LegendItem
               color={isPositive ? '#22c55e' : '#ef4444'}
@@ -493,7 +437,6 @@ export function KlineChartComponent({
               dashStyle="2,4"
             />
           )}
-          {/* Stop Loss */}
           {trade.stopLoss && (
             <LegendItem
               color="#f97316"
@@ -501,7 +444,6 @@ export function KlineChartComponent({
               dashStyle="8,4"
             />
           )}
-          {/* Take Profit */}
           {trade.takeProfit && (
             <LegendItem
               color="#3b82f6"
@@ -510,8 +452,6 @@ export function KlineChartComponent({
             />
           )}
         </div>
-
-        {/* API usage */}
         {apiRemaining !== null && (
           <span className="text-[10px] text-gray-400 dark:text-gray-600 tabular-nums shrink-0">
             {apiRemaining} API rimaste
@@ -522,28 +462,11 @@ export function KlineChartComponent({
   );
 }
 
-// Compact legend item with SVG dashed line
-function LegendItem({
-  color,
-  label,
-  dashStyle,
-}: {
-  color: string;
-  label: string;
-  dashStyle: string;
-}) {
+function LegendItem({ color, label, dashStyle }: { color: string; label: string; dashStyle: string }) {
   return (
     <div className="flex items-center gap-1.5">
       <svg width="18" height="2" viewBox="0 0 18 2" fill="none">
-        <line
-          x1="0"
-          y1="1"
-          x2="18"
-          y2="1"
-          stroke={color}
-          strokeWidth="2"
-          strokeDasharray={dashStyle}
-        />
+        <line x1="0" y1="1" x2="18" y2="1" stroke={color} strokeWidth="2" strokeDasharray={dashStyle} />
       </svg>
       <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">{label}</span>
     </div>
