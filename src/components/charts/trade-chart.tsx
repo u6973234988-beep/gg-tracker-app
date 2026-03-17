@@ -44,15 +44,25 @@ const TIMEFRAMES: { label: string; value: Timeframe; icon: 'bar' | 'clock' }[] =
 // Find candle whose raw datetime contains the given time string "HH:MM:SS"
 function candleByTime(data: OHLCData[], timeStr: string): OHLCData | null {
   if (!timeStr) return null;
-  // Normalize to "HH:MM" to be tolerant of second differences
+  console.log('[v0] candleByTime search for:', timeStr);
+  console.log('[v0] sample candle datetimes:', data.slice(0, 5).map(c => c.datetime));
+  
+  // Exact match: datetime ends with " HH:MM:SS"
+  const exact = data.find(c => c.datetime.includes(` ${timeStr}`));
+  if (exact) {
+    console.log('[v0] found exact match:', exact.datetime);
+    return exact;
+  }
+  
+  // Fallback: match HH:MM only
   const targetHHMM = timeStr.slice(0, 5); // "09:34"
-  // Exact match first
-  const exact = data.find(c => c.datetime.endsWith(timeStr));
-  if (exact) return exact;
-  // Fallback: match HH:MM ignoring seconds
-  const approx = data.find(c => c.datetime.slice(-8, -3) === targetHHMM);
-  if (approx) return approx;
-  // Final fallback: nearest candle by index (first candle of the day if nothing matches)
+  const approx = data.find(c => c.datetime.includes(` ${targetHHMM}:`));
+  if (approx) {
+    console.log('[v0] found approx match:', approx.datetime);
+    return approx;
+  }
+  
+  console.log('[v0] no match found, using first candle:', data[0]?.datetime);
   return data[0] ?? null;
 }
 
