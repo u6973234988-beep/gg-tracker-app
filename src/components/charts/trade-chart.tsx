@@ -35,86 +35,30 @@ const TIMEFRAMES: { label: string; value: Timeframe; icon: 'bar' | 'clock' }[] =
   { label: '1 Minuto',    value: '1min', icon: 'clock' },
 ];
 
-// ─── Timezone: ET (America/New_York) offset for a given YYYY-MM-DD ───────────
-// Returns offset in hours to ADD to local ET time to get UTC.
-// EDT = UTC-4 (2nd Sun Mar → 1st Sun Nov), EST = UTC-5 (rest of year).
-function etOffsetHours(dateStr: string): number {
-  const y  = +dateStr.slice(0, 4);
-  const mo = +dateStr.slice(5, 7); // 1-based
-  const d  = +dateStr.slice(8, 10);
+// ─── Candle lookup — no timezone math needed ──────────────────────────────────
+// Twelve Data returns datetime as "YYYY-MM-DD HH:MM:SS".
+// ora_entrata / ora_uscita are stored as "HH:MM:SS".
+// Strategy: match the time part of the candle's raw datetime string directly.
+// This works regardless of timezone because both sides use the same clock.
 
-  // DST starts 2nd Sunday of March
-  const dstStart = (() => {
-    let sun = 0;
-    for (let day = 1; day <= 31; day++) {
-      if (new Date(y, 2, day).getDay() === 0) { sun++; if (sun === 2) return day; }
-    }
-    return 8;
-  })();
-
-  // DST ends 1st Sunday of November
-  const dstEnd = (() => {
-    for (let day = 1; day <= 7; day++) {
-      if (new Date(y, 10, day).getDay() === 0) return day;
-    }
-    return 1;
-  })();
-
-  const inDST =
-    (mo > 3 && mo < 11) ||
-    (mo === 3 && d >= dstStart) ||
-    (mo === 11 && d < dstEnd);
-
-  return inDST ? 4 : 5; // hours to add to ET to get UTC
-}
-
-// Convert "HH:MM:SS" on YYYY-MM-DD (stored in ET) → epoch ms (UTC)
-function etHHMMSStoMs(timeStr: string, dateStr: string): number | null {
-  try {
-    const [h, m, s] = timeStr.split(':').map(Number);
-    const offset = etOffsetHours(dateStr);
-    return Date.UTC(
-      +dateStr.slice(0, 4),
-      +dateStr.slice(5, 7) - 1,
-      +dateStr.slice(8, 10),
-      (h ?? 0) + offset,
-      m ?? 0,
-      s ?? 0,
-    );
-  } catch {
-    return null;
-  }
-}
-
-function resolveMs(timeStr: string | null | undefined, dateStr: string): number | null {
+// Find candle whose raw datetime contains the given time string "HH:MM:SS"
+function candleByTime(data: OHLCData[], timeStr: string): OHLCData | null {
   if (!timeStr) return null;
-  if (timeStr.includes('T') || /^\d{4}-\d{2}-\d{2} /.test(timeStr)) {
-    const ms = new Date(timeStr).getTime();
-    return isNaN(ms) ? null : ms;
-  }
-  return etHHMMSStoMs(timeStr, dateStr);
+  // Normalize to "HH:MM" to be tolerant of second differences
+  const targetHHMM = timeStr.slice(0, 5); // "09:34"
+  // Exact match first
+  const exact = data.find(c => c.datetime.endsWith(timeStr));
+  if (exact) return exact;
+  // Fallback: match HH:MM ignoring seconds
+  const approx = data.find(c => c.datetime.slice(-8, -3) === targetHHMM);
+  if (approx) return approx;
+  // Final fallback: nearest candle by index (first candle of the day if nothing matches)
+  return data[0] ?? null;
 }
 
-function nearestCandle(data: OHLCData[], targetMs: number): OHLCData {
-  return data.reduce((best, c) =>
-    Math.abs(c.timestamp - targetMs) < Math.abs(best.timestamp - targetMs) ? c : best
-  );
-}
-
+// For daily chart: find candle matching the date string "YYYY-MM-DD"
 function candleForDate(data: OHLCData[], dateStr: string): OHLCData | null {
-  const [y, mo, d] = dateStr.split('-').map(Number);
-  for (const c of data) {
-    const dt = new Date(c.timestamp);
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(dt);
-    const cy = +( parts.find(p => p.type === 'year')?.value  ?? 0);
-    const cm = +( parts.find(p => p.type === 'month')?.value ?? 0);
-    const cd = +( parts.find(p => p.type === 'day')?.value   ?? 0);
-    if (cy === y && cm === mo && cd === d) return c;
-  }
-  return null;
+  return data.find(c => c.datetime.startsWith(dateStr)) ?? null;
 }
 
 // ─── Register custom arrow overlays once ─────────────────────────────────────
@@ -299,11 +243,10 @@ function ChartCore({
           entryC = candleForDate(data, tradeDate) ?? data[Math.floor(data.length / 2)];
           exitC  = entryC;
         } else {
-          const entryMs = resolveMs(trade.entryTime, tradeDate);
-          const exitMs  = resolveMs(trade.exitTime,  tradeDate);
-          if (entryMs != null) entryC = nearestCandle(data, entryMs);
-          if (exitMs  != null) exitC  = nearestCandle(data, exitMs);
-          if (!entryC) entryC = data[0];
+          // Direct string match: ora_entrata "09:34:00" vs candle datetime "2024-03-13 09:34:00"
+          // No timezone conversion — both sides use the same clock source
+          entryC = trade.entryTime ? candleByTime(data, trade.entryTime) : data[0];
+          exitC  = trade.exitTime  ? candleByTime(data, trade.exitTime)  : null;
         }
 
         // ── Draw arrows after chart has rendered (wait for scale calibration) ──

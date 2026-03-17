@@ -19,6 +19,7 @@ const BASE_URL = 'https://api.twelvedata.com';
 // ─── Types ───────────────────────────────────────────────────────────
 export interface OHLCData {
   timestamp: number;
+  datetime: string; // raw "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD" from Twelve Data
   open: number;
   high: number;
   low: number;
@@ -270,10 +271,11 @@ export async function getOHLCData(
   // Convertiamo manualmente: appendo 'T' e '-05:00' (EST) o '-04:00' (EDT) secondo DST.
   const ohlcData: OHLCData[] = values.map((v: any) => ({
     timestamp: parseTwelveDataDatetime(v.datetime),
-    open: parseFloat(v.open),
-    high: parseFloat(v.high),
-    low: parseFloat(v.low),
-    close: parseFloat(v.close),
+    datetime:  v.datetime as string,
+    open:   parseFloat(v.open),
+    high:   parseFloat(v.high),
+    low:    parseFloat(v.low),
+    close:  parseFloat(v.close),
     volume: parseInt(v.volume || '0', 10),
   }));
 
