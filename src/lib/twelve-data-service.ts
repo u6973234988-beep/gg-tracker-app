@@ -116,34 +116,32 @@ function formatDate(d: Date): string {
   return d.toISOString().split('T')[0];
 }
 
-// Twelve Data restituisce "YYYY-MM-DD HH:MM:SS" in America/New_York.
-// Questa funzione converte correttamente in epoch ms rispettando DST.
-function parseTwelveDataDatetime(dt: string): number {
-  // dt = "2024-03-13 09:34:00" or "2024-03-13" (daily)
-  if (!dt.includes(' ')) {
-    // Giornaliero: usiamo mezzogiorno ET per evitare shift di giorno
-    dt = dt + ' 12:00:00';
+// ET offset: EDT=4 (2nd Sun Mar – 1st Sun Nov), EST=5 (rest of year)
+function etOffsetForDate(dateStr: string): number {
+  const y  = +dateStr.slice(0, 4);
+  const mo = +dateStr.slice(5, 7);
+  const d  = +dateStr.slice(8, 10);
+  let dstStart = 8;
+  let sun = 0;
+  for (let day = 1; day <= 31; day++) {
+    if (new Date(y, 2, day).getDay() === 0) { sun++; if (sun === 2) { dstStart = day; break; } }
   }
+  let dstEnd = 1;
+  for (let day = 1; day <= 7; day++) {
+    if (new Date(y, 10, day).getDay() === 0) { dstEnd = day; break; }
+  }
+  const inDST = (mo > 3 && mo < 11) || (mo === 3 && d >= dstStart) || (mo === 11 && d < dstEnd);
+  return inDST ? 4 : 5;
+}
+
+// Twelve Data restituisce "YYYY-MM-DD HH:MM:SS" in America/New_York → epoch ms (UTC)
+function parseTwelveDataDatetime(dt: string): number {
+  if (!dt.includes(' ')) dt = dt + ' 12:00:00';
   const [datePart, timePart] = dt.split(' ');
   const [y, mo, d] = datePart.split('-').map(Number);
-  const [h, m, s] = timePart.split(':').map(Number);
-
-  // Costruiamo come UTC naïve
-  const naiveUtc = Date.UTC(y, mo - 1, d, h, m, s);
-
-  // Ricaviamo l'offset ET reale (gestisce EST=-5 / EDT=-4 automaticamente)
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    timeZoneName: 'shortOffset',
-  });
-  const tzName = formatter.formatToParts(new Date(naiveUtc))
-    .find(p => p.type === 'timeZoneName')?.value ?? 'GMT-5';
-  const match = tzName.match(/GMT([+-])(\d+)/);
-  const sign  = match ? (match[1] === '-' ? 1 : -1) : 1;
-  const hours = match ? +match[2] : 5;
-
-  // naiveUtc è "come se fosse UTC" ma è ET → aggiungiamo l'offset per ottenere UTC reale
-  return naiveUtc + sign * hours * 3_600_000;
+  const [h, m, s]  = timePart.split(':').map(Number);
+  const offset = etOffsetForDate(datePart);
+  return Date.UTC(y, mo - 1, d, h + offset, m, s);
 }
 
 // ─── Main fetch function ─────────────────────────────────────────────
