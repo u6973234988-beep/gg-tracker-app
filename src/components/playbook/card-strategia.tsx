@@ -1,12 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreVertical, Trash2, Edit2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { formatPercentuale } from '@/lib/utils';
+import { MoreVertical, Trash2, Edit2, ChevronRight, BarChart2, Activity } from 'lucide-react';
 import type { StrategiaConDettagli } from '@/hooks/usePlaybook';
 
 interface CardStrategiaProps {
@@ -14,9 +12,10 @@ interface CardStrategiaProps {
   onClick: () => void;
   onEdit: (strategia: StrategiaConDettagli) => void;
   onDelete: (strategia: StrategiaConDettagli) => void;
+  viewMode?: 'grid' | 'list';
 }
 
-export function CardStrategia({ strategia, onClick, onEdit, onDelete }: CardStrategiaProps) {
+export function CardStrategia({ strategia, onClick, onEdit, onDelete, viewMode = 'grid' }: CardStrategiaProps) {
   const [showMenu, setShowMenu] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -26,138 +25,111 @@ export function CardStrategia({ strategia, onClick, onEdit, onDelete }: CardStra
         setShowMenu(false);
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getStatusBadge = () => {
-    const operazioni = strategia.operazioniCount || 0;
-    const winRate = strategia.winRate || 0;
-    const profitFactor = strategia.profitFactor || 0;
-
-    if (operazioni === 0) {
-      return { label: 'Nuova', variant: 'secondary' as const };
-    }
-    if (profitFactor >= 2 && winRate >= 60) {
-      return { label: 'Ottima', variant: 'success' as const };
-    }
-    if (profitFactor >= 1.2 && winRate >= 45) {
-      return { label: 'Media', variant: 'warning' as const };
-    }
-    return { label: 'Scarsa', variant: 'destructive' as const };
-  };
-
-  const status = getStatusBadge();
   const borderColor = strategia.colore || '#7F00FF';
+  const operazioni = strategia.operazioniCount || 0;
+  const winRate = strategia.winRate || 0;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
-      onClick={onClick}
-      className="group cursor-pointer"
-    >
-      <Card
-        className="overflow-hidden transition-all duration-300 hover:shadow-xl border-l-4"
-        style={{ borderLeftColor: borderColor }}
+  if (viewMode === 'list') {
+    return (
+      <div
+        onClick={onClick}
+        className="p-4 rounded-xl transition-all duration-200 border border-gray-200 dark:border-violet-500/15 hover:bg-gray-50 dark:hover:bg-violet-900/10 group cursor-pointer bg-white dark:bg-[#161622]/50 hover:shadow-sm"
       >
-        <div className="absolute top-3 right-3 z-20">
-          <div className="relative" ref={menuRef}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMenu(!showMenu);
-              }}
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
+        <div className="flex items-start w-full">
+          <div className="w-1.5 h-full min-h-[60px] rounded-full mr-4 shrink-0" style={{ backgroundColor: borderColor }} />
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-bold text-lg tracking-tight text-gray-900 dark:text-white">{strategia.nome}</div>
+              <ChevronRight className="h-5 w-5 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+              {strategia.descrizione || 'Strategia ' + strategia.nome}
+            </div>
+            <div className="flex flex-wrap gap-3 mt-2">
+              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg">
+                <BarChart2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                <span className="font-bold text-sm text-gray-700 dark:text-gray-300">{operazioni} operazioni</span>
+              </div>
+              {operazioni > 0 && (
+                <div className={'flex items-center gap-2 px-3 py-1.5 rounded-lg ' + (winRate >= 50 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20')}>
+                  <Activity className={'h-4 w-4 ' + (winRate >= 50 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')} />
+                  <span className={'font-bold text-sm ' + (winRate >= 50 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
+                    {winRate.toFixed(0)}% win rate
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="relative ml-2" ref={menuRef}>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600">
               <MoreVertical className="h-4 w-4" />
             </Button>
-
             {showMenu && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1e1e2e] border border-gray-200 dark:border-[#2a2a3e] rounded-md shadow-lg z-50"
-              >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(strategia);
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2a3e] flex items-center gap-2 transition-colors"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  Modifica
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1e1e30] border border-gray-200 dark:border-violet-500/20 rounded-xl shadow-lg z-50 overflow-hidden">
+                <button onClick={(e) => { e.stopPropagation(); onEdit(strategia); setShowMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-violet-900/20 flex items-center gap-2 transition-colors font-medium">
+                  <Edit2 className="h-4 w-4" /> Modifica
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(strategia);
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-[#FF4757] hover:bg-red-50 dark:hover:bg-[#2a2a3e] flex items-center gap-2 transition-colors border-t border-gray-200 dark:border-[#2a2a3e]"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Elimina
+                <button onClick={(e) => { e.stopPropagation(); onDelete(strategia); setShowMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2 transition-colors font-medium border-t border-gray-100 dark:border-violet-500/10">
+                  <Trash2 className="h-4 w-4" /> Elimina
                 </button>
-              </motion.div>
+              </div>
             )}
           </div>
         </div>
+      </div>
+    );
+  }
 
-        <CardContent className="p-6">
-          <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{strategia.nome}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-              {strategia.descrizione || 'Nessuna descrizione'}
-            </p>
+  return (
+    <div onClick={onClick} className="group cursor-pointer">
+      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg border border-gray-200 dark:border-violet-500/15 relative bg-white dark:bg-[#161622] hover:border-violet-300 dark:hover:border-violet-500/30">
+        <div className="h-1 w-full" style={{ background: 'linear-gradient(to right, ' + borderColor + ', ' + borderColor + '88)' }} />
+        <div className="absolute top-3 right-3 z-20">
+          <div className="relative" ref={menuRef}>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1e1e30] border border-gray-200 dark:border-violet-500/20 rounded-xl shadow-lg z-50 overflow-hidden">
+                <button onClick={(e) => { e.stopPropagation(); onEdit(strategia); setShowMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-violet-900/20 flex items-center gap-2 transition-colors font-medium">
+                  <Edit2 className="h-4 w-4" /> Modifica
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(strategia); setShowMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2 transition-colors font-medium border-t border-gray-100 dark:border-violet-500/10">
+                  <Trash2 className="h-4 w-4" /> Elimina
+                </button>
+              </div>
+            )}
           </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded">
-                <div className="text-gray-500 text-xs mb-1">Operazioni</div>
-                <div className="text-gray-900 dark:text-white font-semibold">{strategia.operazioniCount || 0}</div>
-              </div>
-              <div className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded">
-                <div className="text-gray-500 text-xs mb-1">Win Rate</div>
-                <div className="text-gray-900 dark:text-white font-semibold">
-                  {formatPercentuale((strategia.winRate || 0) / 100)}
-                </div>
-              </div>
-              <div className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded">
-                <div className="text-gray-500 text-xs mb-1">Profit Factor</div>
-                <div className="text-gray-900 dark:text-white font-semibold">
-                  {(strategia.profitFactor || 0).toFixed(2)}
-                </div>
-              </div>
-              <div
-                className="bg-gray-50 dark:bg-[#1e1e2e] p-3 rounded"
-                style={{}}
-              >
-                <div className="text-gray-500 text-xs mb-1">Regole</div>
-                <div className="text-gray-900 dark:text-white font-semibold">{(strategia.regole || []).length}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <Badge variant={status.variant}>{status.label}</Badge>
-              <span className="text-xs text-gray-500">
-                {strategia.operazioniCount === 0
-                  ? 'Nessun trade'
-                  : `${strategia.operazioniCount} trade`}
-              </span>
-            </div>
+        </div>
+        <CardHeader className="pb-2 relative">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#161622]" style={{ backgroundColor: borderColor }} />
+            <CardTitle className="text-base font-bold tracking-tight text-gray-900 dark:text-white">{strategia.nome}</CardTitle>
           </div>
+          <ChevronRight className="absolute right-4 top-4 h-4 w-4 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </CardHeader>
+        <CardContent className="pb-2">
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            {strategia.descrizione || 'Strategia ' + strategia.nome}
+          </p>
         </CardContent>
+        <CardFooter className="flex justify-between pt-0 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/20 font-bold text-xs">
+              {operazioni} trades
+            </Badge>
+            {operazioni > 0 && (
+              <Badge variant="outline" className={winRate >= 50 ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20 font-bold text-xs' : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 font-bold text-xs'}>
+                {winRate.toFixed(0)}% win
+              </Badge>
+            )}
+          </div>
+        </CardFooter>
       </Card>
-    </motion.div>
+    </div>
   );
 }

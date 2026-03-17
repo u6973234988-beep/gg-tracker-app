@@ -18,12 +18,15 @@ import {
   TableIcon,
   List,
   TrendingUp,
+  TrendingDown,
   Percent,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  BarChart2,
+  Tag,
 } from 'lucide-react';
-import { formatValuta, formatPercentuale, stessoGiorno } from '@/lib/utils';
+import { formatValuta, formatPercentuale, stessoGiorno, cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale/it';
 
@@ -239,8 +242,24 @@ export default function RegistroPage() {
                 operazioniPerGiorno.map(([date, ops]) => {
                   const dayPnl = ops.reduce((sum, op) => sum + (op.pnl || 0), 0);
                   const dayWins = ops.filter((op) => (op.pnl || 0) > 0).length;
+                  const dayLosses = ops.length - dayWins;
                   const dayWinRate = ops.length > 0 ? (dayWins / ops.length) * 100 : 0;
                   const isExpanded = expandedDays[date] ?? false;
+
+                  // Calculate detailed stats
+                  const winningOps = ops.filter((op) => (op.pnl || 0) > 0);
+                  const losingOps = ops.filter((op) => (op.pnl || 0) <= 0);
+                  const avgWinAmount = winningOps.length > 0 ? winningOps.reduce((sum, op) => sum + (op.pnl || 0), 0) / winningOps.length : 0;
+                  const avgLossAmount = losingOps.length > 0 ? losingOps.reduce((sum, op) => sum + (op.pnl || 0), 0) / losingOps.length : 0;
+                  const totalCommissions = ops.reduce((sum, op) => sum + (op.commissione || 0), 0);
+                  const profitFactor = Math.abs(avgLossAmount) > 0 ? (avgWinAmount * dayWins) / (Math.abs(avgLossAmount) * dayLosses) : dayWins > 0 ? 3 : 0;
+                  const avgTrade = ops.length > 0 ? dayPnl / ops.length : 0;
+                  const bestOp = ops.reduce((best, op) => (op.pnl || 0) > (best.pnl || 0) ? op : best, ops[0]);
+                  const worstOp = ops.reduce((worst, op) => (op.pnl || 0) < (worst.pnl || 0) ? op : worst, ops[0]);
+
+                  // Collect tickers, strategies
+                  const tickers = new Set(ops.map((op) => op.ticker));
+                  const strategies = new Set(ops.map((op) => (op.strategia as any)?.nome).filter(Boolean));
 
                   let formattedDate = date;
                   try {
@@ -256,46 +275,104 @@ export default function RegistroPage() {
                       variants={itemVariants}
                       initial="hidden"
                       animate="visible"
-                      className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 overflow-hidden"
+                      className={cn(
+                        'rounded-lg border overflow-hidden transition-all duration-200',
+                        dayPnl >= 0
+                          ? 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200/30 dark:border-emerald-500/30'
+                          : 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border-red-200/30 dark:border-red-500/30'
+                      )}
                     >
                       {/* Day Header */}
                       <button
                         onClick={() => toggleDay(date)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-colors"
+                        className="w-full flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <motion.div
                             animate={{ rotate: isExpanded ? 180 : 0 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <ChevronDown className="h-4 w-4 text-violet-500 dark:text-violet-400" />
+                            <ChevronDown className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                           </motion.div>
                           <div className="text-left">
                             <p className="font-semibold text-violet-700 dark:text-white text-sm">
                               {formattedDate}
                             </p>
-                            <p className="text-xs text-violet-600/60 dark:text-gray-500">
+                            <p className="text-xs text-violet-600/60 dark:text-gray-400">
                               {ops.length} {ops.length === 1 ? 'operazione' : 'operazioni'}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className={`font-bold text-sm ${dayPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                              {formatValuta(dayPnl)}
+                        <div className="flex items-center gap-3">
+                          {/* Ticker badges - only visible when collapsed */}
+                          {!isExpanded && (
+                            <div className="flex gap-1 max-w-[150px]">
+                              {Array.from(tickers)
+                                .slice(0, 3)
+                                .map((ticker) => (
+                                  <Badge key={ticker} variant="outline" className="text-xs py-0 h-5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30">
+                                    {ticker}
+                                  </Badge>
+                                ))}
+                              {tickers.size > 3 && (
+                                <Badge variant="outline" className="text-xs py-0 h-5 bg-blue-50/50 dark:bg-blue-900/10 text-blue-700/70 dark:text-blue-300/70 border-blue-200/50 dark:border-blue-500/20">
+                                  +{tickers.size - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Win rate gauge */}
+                          <div className="flex items-center gap-1.5 bg-white/40 dark:bg-gray-900/40 px-2 py-1 rounded-full">
+                            <div
+                              className={cn(
+                                'h-2 w-2 rounded-full',
+                                dayWinRate >= 60 ? 'bg-emerald-500' : dayWinRate >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                              )}
+                            />
+                            <span className="text-xs font-medium text-violet-700 dark:text-white">{Math.round(dayWinRate)}%</span>
+                          </div>
+
+                          {/* P&L and count */}
+                          <div className="flex flex-col items-end">
+                            <p className={`font-bold text-sm ${dayPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {dayPnl >= 0 ? '+' : ''}{formatValuta(dayPnl)}
                             </p>
                           </div>
-                          <Badge
-                            variant={dayWinRate >= 50 ? 'success' : 'destructive'}
-                            className="text-xs"
-                          >
-                            {Math.round(dayWinRate)}% WR
-                          </Badge>
                         </div>
                       </button>
 
-                      {/* Expanded trades list */}
+                      {/* Collapsed view - Stats grid */}
+                      <AnimatePresence>
+                        {!isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="border-t border-violet-200/20 dark:border-violet-500/20 grid grid-cols-2 gap-1 px-3 py-2"
+                          >
+                            <div className="flex items-center justify-center bg-white/40 dark:bg-gray-900/40 rounded-md py-1 px-2">
+                              <div className="flex items-center gap-1">
+                                <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                <span className="font-medium text-xs text-emerald-700 dark:text-emerald-300">{dayWins}</span>
+                              </div>
+                              <span className="mx-1 text-violet-600/40 dark:text-gray-500">/</span>
+                              <div className="flex items-center gap-1">
+                                <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />
+                                <span className="font-medium text-xs text-red-700 dark:text-red-300">{dayLosses}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-center bg-white/40 dark:bg-gray-900/40 rounded-md py-1 px-2">
+                              <Tag className="h-3 w-3 mr-1 text-violet-600 dark:text-violet-400" />
+                              <span className="text-xs font-medium text-violet-700 dark:text-violet-300">{strategies.size} {strategies.size === 1 ? 'strategia' : 'strategie'}</span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Expanded detailed view */}
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div
@@ -305,40 +382,316 @@ export default function RegistroPage() {
                             transition={{ duration: 0.25 }}
                             className="overflow-hidden"
                           >
-                            <div className="border-t border-violet-200/20 dark:border-violet-500/20 divide-y divide-violet-200/10 dark:divide-violet-500/10">
-                              {ops.map((op) => (
-                                <div
-                                  key={op.id}
-                                  className="flex items-center justify-between px-4 py-3 hover:bg-violet-50/30 dark:hover:bg-violet-900/5 transition-colors cursor-pointer"
-                                  onClick={() => {
-                                    setOperazioneInModifica(op);
-                                    setDialogOpen(true);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <span className="font-mono font-semibold text-sm text-violet-700 dark:text-white min-w-[60px]">
-                                      {op.ticker}
-                                    </span>
+                            <div className="border-t border-violet-200/20 dark:border-violet-500/20 p-4 space-y-4 bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm">
+                              {/* Metrics Grid - 4 columns */}
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                {/* Win Rate Gauge */}
+                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">Win Rate</h3>
                                     <Badge
-                                      variant={op.direzione === 'LONG' ? 'success' : 'destructive'}
-                                      className="text-[10px] px-1.5 py-0"
+                                      variant={dayWinRate >= 60 ? 'success' : dayWinRate >= 40 ? 'outline' : 'destructive'}
+                                      className="text-xs py-0 h-5"
                                     >
-                                      {op.direzione}
+                                      {Math.round(dayWinRate)}%
                                     </Badge>
-                                    <span className="text-xs text-violet-600/60 dark:text-gray-500 hidden sm:inline">
-                                      {op.quantita} @ {op.prezzo_entrata?.toFixed(2)} → {op.prezzo_uscita?.toFixed(2) || '-'}
-                                    </span>
-                                    {(op.strategia as any)?.nome && (
-                                      <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-300">
-                                        {(op.strategia as any).nome}
+                                  </div>
+                                  <div className="flex items-center justify-center h-16">
+                                    <div className="relative h-14 w-14">
+                                      <svg className="w-full h-full" viewBox="0 0 100 100">
+                                        <circle
+                                          className="text-violet-200 dark:text-violet-900/50 stroke-current"
+                                          strokeWidth="8"
+                                          cx="50"
+                                          cy="50"
+                                          r="40"
+                                          fill="transparent"
+                                        />
+                                        <circle
+                                          className={cn(
+                                            'stroke-current transition-all duration-500 ease-in-out',
+                                            dayWinRate >= 60
+                                              ? 'text-emerald-500'
+                                              : dayWinRate >= 40
+                                                ? 'text-amber-500'
+                                                : 'text-red-500'
+                                          )}
+                                          strokeWidth="8"
+                                          strokeLinecap="round"
+                                          cx="50"
+                                          cy="50"
+                                          r="40"
+                                          fill="transparent"
+                                          strokeDasharray={`${dayWinRate * 2.51} 251.2`}
+                                          strokeDashoffset="0"
+                                          transform="rotate(-90 50 50)"
+                                        />
+                                      </svg>
+                                      <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-semibold text-violet-700 dark:text-white">
+                                          {dayWins}/{ops.length}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Profit Factor Gauge */}
+                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">Profit Factor</h3>
+                                    <Badge
+                                      variant={profitFactor >= 2 ? 'success' : profitFactor >= 1 ? 'outline' : 'destructive'}
+                                      className="text-xs py-0 h-5"
+                                    >
+                                      {profitFactor.toFixed(2)}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-center h-16">
+                                    <div className="relative h-14 w-14">
+                                      <svg className="w-full h-full" viewBox="0 0 100 100">
+                                        <circle
+                                          className="text-violet-200 dark:text-violet-900/50 stroke-current"
+                                          strokeWidth="8"
+                                          cx="50"
+                                          cy="50"
+                                          r="40"
+                                          fill="transparent"
+                                        />
+                                        <circle
+                                          className={cn(
+                                            'stroke-current transition-all duration-500 ease-in-out',
+                                            profitFactor >= 2
+                                              ? 'text-emerald-500'
+                                              : profitFactor >= 1
+                                                ? 'text-amber-500'
+                                                : 'text-red-500'
+                                          )}
+                                          strokeWidth="8"
+                                          strokeLinecap="round"
+                                          cx="50"
+                                          cy="50"
+                                          r="40"
+                                          fill="transparent"
+                                          strokeDasharray={`${Math.min(profitFactor, 3) * 83.73} 251.2`}
+                                          strokeDashoffset="0"
+                                          transform="rotate(-90 50 50)"
+                                        />
+                                      </svg>
+                                      <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs text-violet-700 dark:text-white font-semibold">
+                                          {profitFactor >= 2 ? 'Ottimo' : profitFactor >= 1 ? 'Buono' : 'Basso'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Average Trade */}
+                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">Media Trade</h3>
+                                    <Badge
+                                      variant={avgTrade > 0 ? 'success' : avgTrade < 0 ? 'destructive' : 'outline'}
+                                      className="text-xs py-0 h-5"
+                                    >
+                                      {formatValuta(avgTrade)}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-center h-16">
+                                    <div className="w-full flex flex-col items-center">
+                                      <div className="w-full h-2 bg-violet-200 dark:bg-violet-900/50 rounded-full overflow-hidden">
+                                        {avgTrade !== 0 && (
+                                          <div
+                                            className={avgTrade > 0 ? 'h-full bg-emerald-500' : 'h-full bg-red-500'}
+                                            style={{
+                                              width: `${Math.min((Math.abs(avgTrade) / 50) * 100, 100)}%`,
+                                              marginLeft: avgTrade > 0 ? '50%' : '',
+                                              marginRight: avgTrade < 0 ? '50%' : '',
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+                                      <div className="flex justify-between w-full mt-1 text-[10px] text-violet-600/60 dark:text-gray-500">
+                                        <span>-50€</span>
+                                        <span>0</span>
+                                        <span>+50€</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* P&L Total */}
+                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">P&L Totale</h3>
+                                    <Badge variant="outline" className="text-xs py-0 h-5">
+                                      {ops.length}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-center h-16">
+                                    <div className="w-full flex flex-col items-center">
+                                      <span className={cn('text-lg font-bold', dayPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                                        {dayPnl >= 0 ? '+' : ''}{formatValuta(dayPnl)}
                                       </span>
+                                      <div className="mt-1 w-full h-2 bg-violet-200 dark:bg-violet-900/50 rounded-full overflow-hidden">
+                                        <div
+                                          className={dayPnl >= 0 ? 'h-full bg-emerald-500' : 'h-full bg-red-500'}
+                                          style={{ width: `${Math.min((Math.abs(dayPnl) / 500) * 100, 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Best/Worst Trade & Detailed Stats */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {/* Best/Worst Trade */}
+                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                  <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300 mb-2">Operazioni Significative</h3>
+                                  <div className="space-y-2">
+                                    {bestOp && (bestOp.pnl || 0) > 0 ? (
+                                      <div className="flex items-center justify-between p-2 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-md">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-1.5 h-6 bg-emerald-500 rounded-sm" />
+                                          <div>
+                                            <p className="text-xs font-medium text-violet-700 dark:text-white">{bestOp.ticker}</p>
+                                            <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Miglior trade</p>
+                                          </div>
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{formatValuta(bestOp.pnl || 0)}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 p-2 bg-gray-100/50 dark:bg-gray-800/30 rounded-md">
+                                        <div className="w-1.5 h-6 bg-gray-400 rounded-sm" />
+                                        <div>
+                                          <p className="text-xs font-medium text-violet-700 dark:text-white">Nessun trade in profitto</p>
+                                          <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Miglior trade</p>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {worstOp && (worstOp.pnl || 0) < 0 ? (
+                                      <div className="flex items-center justify-between p-2 bg-red-50/50 dark:bg-red-900/20 rounded-md">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-1.5 h-6 bg-red-500 rounded-sm" />
+                                          <div>
+                                            <p className="text-xs font-medium text-violet-700 dark:text-white">{worstOp.ticker}</p>
+                                            <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Peggior trade</p>
+                                          </div>
+                                        </div>
+                                        <span className="text-xs font-bold text-red-600 dark:text-red-400">{formatValuta(worstOp.pnl || 0)}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 p-2 bg-gray-100/50 dark:bg-gray-800/30 rounded-md">
+                                        <div className="w-1.5 h-6 bg-gray-400 rounded-sm" />
+                                        <div>
+                                          <p className="text-xs font-medium text-violet-700 dark:text-white">Nessun trade in perdita</p>
+                                          <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Peggior trade</p>
+                                        </div>
+                                      </div>
                                     )}
                                   </div>
-                                  <span className={`font-semibold text-sm ${(op.pnl || 0) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                    {formatValuta(op.pnl || 0)}
-                                  </span>
                                 </div>
-                              ))}
+
+                                {/* Detailed Stats */}
+                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                  <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300 mb-2">Statistiche Dettagliate</h3>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
+                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Media Win</p>
+                                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                        {avgWinAmount > 0 ? `+${formatValuta(avgWinAmount)}` : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
+                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Media Loss</p>
+                                      <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+                                        {avgLossAmount < 0 ? formatValuta(avgLossAmount) : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
+                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Commissioni</p>
+                                      <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+                                        -{formatValuta(totalCommissions)}
+                                      </p>
+                                    </div>
+                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
+                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Rapporto W/L</p>
+                                      <p className="text-xs font-semibold text-violet-700 dark:text-violet-300">
+                                        {Math.abs(avgLossAmount) > 0 && avgWinAmount > 0
+                                          ? `${(avgWinAmount / Math.abs(avgLossAmount)).toFixed(2)}`
+                                          : 'N/A'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Strategies section */}
+                              {strategies.size > 0 && (
+                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                  <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300 mb-2">Strategie</h3>
+                                  <div className="flex flex-wrap gap-1">
+                                    {Array.from(strategies).map((strategy) => (
+                                      <Badge key={strategy} variant="outline" className="text-xs py-0 h-5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30">
+                                        {strategy}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Operations list */}
+                              <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 overflow-hidden">
+                                <div className="border-b border-violet-200/20 dark:border-violet-500/20 px-3 py-2 bg-violet-50/50 dark:bg-violet-900/10">
+                                  <p className="text-xs font-medium text-violet-700 dark:text-gray-300">Operazioni ({ops.length})</p>
+                                </div>
+                                <div className="divide-y divide-violet-200/10 dark:divide-violet-500/10 max-h-64 overflow-y-auto">
+                                  {ops.map((op) => (
+                                    <div
+                                      key={op.id}
+                                      className="flex items-center justify-between px-3 py-2 hover:bg-violet-50/50 dark:hover:bg-violet-900/5 transition-colors cursor-pointer"
+                                      onClick={() => {
+                                        setOperazioneInModifica(op);
+                                        setDialogOpen(true);
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-2 flex-grow min-w-0">
+                                        <span className="font-mono font-semibold text-xs text-violet-700 dark:text-white min-w-[45px]">
+                                          {op.ticker}
+                                        </span>
+                                        <Badge
+                                          variant={op.direzione === 'LONG' ? 'success' : 'destructive'}
+                                          className="text-[10px] px-1 py-0 h-4 flex-shrink-0"
+                                        >
+                                          {op.direzione}
+                                        </Badge>
+                                        <span className="text-xs text-violet-600/60 dark:text-gray-500 hidden sm:inline truncate">
+                                          {op.quantita} @ {op.prezzo_entrata?.toFixed(2)}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className={cn('text-xs font-semibold flex-shrink-0', (op.pnl || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                                          {(op.pnl || 0) >= 0 ? '+' : ''}{formatValuta(op.pnl || 0)}
+                                        </span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 text-xs px-1.5 flex-shrink-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOperazioneInModifica(op);
+                                            setDialogOpen(true);
+                                          }}
+                                        >
+                                          <BarChart2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
                           </motion.div>
                         )}
@@ -483,28 +836,36 @@ export default function RegistroPage() {
                 const tradingDays = new Set(monthOps.map((op) => op.data)).size;
 
                 return (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-white/50 dark:bg-gray-900/50 p-3 text-center">
-                      <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1">Operazioni</p>
-                      <p className="text-lg font-bold text-violet-700 dark:text-white">{monthOps.length}</p>
+                  <motion.div variants={itemVariants} className="mt-6 pt-4 border-t border-violet-200/30 dark:border-violet-500/30">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-gradient-to-br from-white/50 to-white/30 dark:from-violet-900/20 dark:to-gray-900/50 p-4 text-center hover:shadow-md transition-all">
+                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">Operazioni</p>
+                        <p className="text-2xl font-bold text-violet-700 dark:text-white">{monthOps.length}</p>
+                        <p className="text-[10px] text-violet-600/50 dark:text-gray-500 mt-1">del mese</p>
+                      </div>
+                      <div className={cn('rounded-lg border p-4 text-center hover:shadow-md transition-all', monthPnl >= 0
+                        ? 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200/30 dark:border-emerald-500/30'
+                        : 'bg-gradient-to-br from-red-50/50 to-red-100/30 dark:from-red-950/30 dark:to-red-900/20 border-red-200/30 dark:border-red-500/30'
+                      )}>
+                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">P&L Mese</p>
+                        <p className={`text-2xl font-bold ${monthPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {monthPnl >= 0 ? '+' : ''}{formatValuta(monthPnl)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-gradient-to-br from-white/50 to-white/30 dark:from-violet-900/20 dark:to-gray-900/50 p-4 text-center hover:shadow-md transition-all">
+                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">Win Rate</p>
+                        <p className={`text-2xl font-bold ${monthWinRate >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-500'}`}>
+                          {Math.round(monthWinRate)}%
+                        </p>
+                        <p className="text-[10px] text-violet-600/50 dark:text-gray-500 mt-1">{monthWins}W / {monthOps.length - monthWins}L</p>
+                      </div>
+                      <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-gradient-to-br from-white/50 to-white/30 dark:from-violet-900/20 dark:to-gray-900/50 p-4 text-center hover:shadow-md transition-all">
+                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">Giorni Trading</p>
+                        <p className="text-2xl font-bold text-violet-700 dark:text-white">{tradingDays}</p>
+                        <p className="text-[10px] text-violet-600/50 dark:text-gray-500 mt-1">con operazioni</p>
+                      </div>
                     </div>
-                    <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-white/50 dark:bg-gray-900/50 p-3 text-center">
-                      <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1">P&L Mese</p>
-                      <p className={`text-lg font-bold ${monthPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {formatValuta(monthPnl)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-white/50 dark:bg-gray-900/50 p-3 text-center">
-                      <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1">Win Rate</p>
-                      <p className={`text-lg font-bold ${monthWinRate >= 50 ? 'text-emerald-500' : 'text-orange-400'}`}>
-                        {Math.round(monthWinRate)}%
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-white/50 dark:bg-gray-900/50 p-3 text-center">
-                      <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1">Giorni Trading</p>
-                      <p className="text-lg font-bold text-violet-700 dark:text-white">{tradingDays}</p>
-                    </div>
-                  </div>
+                  </motion.div>
                 );
               })()}
             </motion.div>

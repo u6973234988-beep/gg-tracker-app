@@ -85,7 +85,7 @@ export function useDashboardData(): DashboardData {
 
           const strategieIds = strategieData?.map((s: any) => s.id) || [];
           const filteredPerformance = (performanceData || []).filter((p: any) =>
-            strategieIds.includes(p.strategia_id)
+            p.strategia_id === null || strategieIds.includes(p.strategia_id)
           );
           setPerformanceStrategie(filteredPerformance);
         }

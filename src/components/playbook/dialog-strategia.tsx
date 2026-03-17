@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BookOpen, Palette, DollarSign, Percent } from 'lucide-react';
 import type { StrategiaConDettagli } from '@/hooks/usePlaybook';
 
 const strategiaSchema = z.object({
@@ -74,6 +75,24 @@ export function DialogStrategia({
     setColorPreview(colore);
   }, [colore]);
 
+  React.useEffect(() => {
+    if (strategiaEdit) {
+      reset({
+        nome: strategiaEdit.nome,
+        descrizione: strategiaEdit.descrizione,
+        colore: strategiaEdit.colore || '#7F00FF',
+      });
+      setColorPreview(strategiaEdit.colore || '#7F00FF');
+    } else {
+      reset({
+        nome: '',
+        descrizione: '',
+        colore: '#7F00FF',
+      });
+      setColorPreview('#7F00FF');
+    }
+  }, [strategiaEdit, reset]);
+
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       reset();
@@ -89,12 +108,16 @@ export function DialogStrategia({
           nome: data.nome,
           descrizione: data.descrizione,
           colore: data.colore,
+          rischio_max_importo: data.rischio_max_importo,
+          rischio_max_percentuale: data.rischio_max_percentuale,
         });
       } else {
         await onSave({
           nome: data.nome,
           descrizione: data.descrizione,
           colore: data.colore,
+          rischio_max_importo: data.rischio_max_importo,
+          rischio_max_percentuale: data.rischio_max_percentuale,
         });
       }
       handleOpenChange(false);
@@ -105,19 +128,25 @@ export function DialogStrategia({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px] border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-xl dark:shadow-violet-500/5">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+            <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-500/20">
+              <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            </div>
             {strategiaEdit ? 'Modifica Strategia' : 'Crea Nuova Strategia'}
           </DialogTitle>
-          <DialogDescription>
-            {strategiaEdit ? 'Modifica i dettagli della strategia esistente.' : 'Compila i campi per creare una nuova strategia di trading.'}
+          <DialogDescription className="text-gray-500 dark:text-gray-400">
+            {strategiaEdit
+              ? 'Modifica i dettagli della strategia esistente.'
+              : 'Compila i campi per creare una nuova strategia di trading.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mt-2">
+          {/* Nome */}
           <div className="space-y-2">
-            <Label htmlFor="nome">
+            <Label htmlFor="nome" className="text-sm font-bold text-gray-700 dark:text-gray-300">
               Nome Strategia *
             </Label>
             <Input
@@ -125,13 +154,16 @@ export function DialogStrategia({
               placeholder="Es. Mean Reversion Breakout"
               {...register('nome')}
               disabled={isLoading}
-              className=""
+              className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
             />
-            {errors.nome && <p className="text-sm text-[#FF4757]">{errors.nome.message}</p>}
+            {errors.nome && (
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium">{errors.nome.message}</p>
+            )}
           </div>
 
+          {/* Descrizione */}
           <div className="space-y-2">
-            <Label htmlFor="descrizione">
+            <Label htmlFor="descrizione" className="text-sm font-bold text-gray-700 dark:text-gray-300">
               Descrizione Breve
             </Label>
             <Input
@@ -139,12 +171,14 @@ export function DialogStrategia({
               placeholder="Una breve descrizione della strategia"
               {...register('descrizione')}
               disabled={isLoading}
-              className=""
+              className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
             />
           </div>
 
+          {/* Colore */}
           <div className="space-y-2">
-            <Label htmlFor="colore">
+            <Label htmlFor="colore" className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <Palette className="h-4 w-4 text-violet-500" />
               Colore Strategia
             </Label>
             <div className="flex items-center gap-3">
@@ -153,21 +187,25 @@ export function DialogStrategia({
                 type="color"
                 {...register('colore')}
                 disabled={isLoading}
-                className="h-12 w-20 rounded cursor-pointer border border-gray-300 dark:border-[#2a2a3e]"
+                className="h-12 w-20 rounded-lg cursor-pointer border border-gray-200 dark:border-violet-500/30"
               />
               <div className="flex-1 flex items-center gap-2">
                 <div
-                  className="h-10 w-10 rounded border border-gray-300 dark:border-[#2a2a3e]"
+                  className="h-10 w-10 rounded-lg border border-gray-200 dark:border-violet-500/30 shadow-sm"
                   style={{ backgroundColor: colorPreview }}
                 />
-                <span className="text-sm text-gray-500 dark:text-gray-400">{colorPreview}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 font-mono font-bold">
+                  {colorPreview}
+                </span>
               </div>
             </div>
           </div>
 
+          {/* Risk settings */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="rischio_max_importo">
+              <Label htmlFor="rischio_max_importo" className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-amber-500" />
                 Rischio Max (€)
               </Label>
               <Input
@@ -176,13 +214,14 @@ export function DialogStrategia({
                 placeholder="Opzionale"
                 {...register('rischio_max_importo', { valueAsNumber: true })}
                 disabled={isLoading}
-                className=""
+                className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
                 step="0.01"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="rischio_max_percentuale">
+              <Label htmlFor="rischio_max_percentuale" className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Percent className="h-4 w-4 text-amber-500" />
                 Rischio Max (%)
               </Label>
               <Input
@@ -191,23 +230,28 @@ export function DialogStrategia({
                 placeholder="Opzionale"
                 {...register('rischio_max_percentuale', { valueAsNumber: true })}
                 disabled={isLoading}
-                className=""
+                className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
                 step="0.01"
               />
             </div>
           </div>
 
-          <DialogFooter className="flex gap-2 justify-end">
+          <DialogFooter className="flex gap-2 justify-end pt-2">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={() => handleOpenChange(false)}
               disabled={isLoading}
+              className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-700 dark:text-gray-300 font-medium"
             >
               Annulla
             </Button>
-            <Button type="submit" variant="default" disabled={isLoading}>
-              {isLoading ? 'Salvataggio...' : 'Salva'}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-lg shadow-violet-500/25 font-bold"
+            >
+              {isLoading ? 'Salvataggio...' : strategiaEdit ? 'Aggiorna' : 'Crea Playbook'}
             </Button>
           </DialogFooter>
         </form>

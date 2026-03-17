@@ -426,10 +426,25 @@ function EquityChart({
 
 function PerformanceMetricsCard({
   data,
+  metriche,
 }: {
   data: any[];
+  metriche?: any;
 }) {
-  if (!data || data.length === 0) {
+  // Use metriche data if available, otherwise fall back to data
+  let winRate = 0;
+  let profitFactor = 0;
+
+  if (metriche) {
+    winRate = parseFloat(metriche.win_rate) || 0;
+    profitFactor = parseFloat(metriche.profit_factor) || 0;
+  } else if (data && data.length > 0) {
+    winRate = data[0]?.win_rate || 0;
+    profitFactor = data[0]?.profit_factor || 0;
+  }
+
+  // Show "no data" only if neither metriche nor data has entries
+  if (!metriche && (!data || data.length === 0)) {
     return (
       <motion.div variants={itemVariants}>
         <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
@@ -448,9 +463,6 @@ function PerformanceMetricsCard({
       </motion.div>
     );
   }
-
-  const winRate = data[0]?.win_rate || 0;
-  const profitFactor = data[0]?.profit_factor || 0;
 
   return (
     <motion.div variants={itemVariants}>
@@ -491,7 +503,7 @@ function PerformanceMetricsCard({
 
         <CardContent className="relative z-10 pt-0 flex-1">
           <div className="relative w-full bg-white/50 dark:bg-gray-900/50 rounded-lg p-4">
-            <div className="relative z-10 w-full flex flex-col gap-6">
+            <div className="relative z-10 w-full flex flex-row gap-6 justify-center">
               {/* Win Rate */}
               <div className="relative flex flex-col items-center justify-center group">
                 <div className="mb-2 px-3 py-1 bg-white dark:bg-gray-800 rounded-full text-xs font-medium text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50">
@@ -647,7 +659,7 @@ function PerformanceStrategieTable({
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-violet-500" />
-                          <span className="text-violet-700 dark:text-white">{row.nome_strategia}</span>
+                          <span className="text-violet-700 dark:text-white">{row.nome_strategia || 'Senza Strategia'}</span>
                         </div>
                       </td>
                       <td className="text-center py-3 px-4 text-violet-600/80 dark:text-gray-300">
@@ -870,7 +882,7 @@ export default function DashboardPage() {
 
   return (
     <motion.div
-      className="flex flex-col gap-6 p-3 md:p-6 min-h-[calc(100vh-4rem)] bg-transparent relative"
+      className="flex flex-col gap-5 p-4 md:p-6 min-h-[calc(100vh-4rem)] bg-transparent relative"
       variants={containerVariants}
       initial="hidden"
       animate={isLoaded ? 'visible' : 'hidden'}
@@ -973,7 +985,7 @@ export default function DashboardPage() {
 
             {/* Main grid layout — Equity Chart (2/3) + Performance (1/3) */}
             <motion.div
-              className="grid gap-5 lg:grid-cols-3 mt-4"
+              className="grid gap-5 lg:grid-cols-3"
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
@@ -988,13 +1000,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="lg:col-span-1">
-                <PerformanceMetricsCard data={performanceStrategie} />
+                <PerformanceMetricsCard data={performanceStrategie} metriche={metriche} />
               </div>
             </motion.div>
 
             {/* Second row — Strategy Table (3/5) + Best/Worst Trades (2/5) */}
             <motion.div
-              className="grid gap-5 lg:grid-cols-5 mt-4"
+              className="grid gap-5 lg:grid-cols-5"
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
