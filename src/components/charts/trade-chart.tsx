@@ -44,25 +44,13 @@ const TIMEFRAMES: { label: string; value: Timeframe; icon: 'bar' | 'clock' }[] =
 // Find candle whose raw datetime contains the given time string "HH:MM:SS"
 function candleByTime(data: OHLCData[], timeStr: string): OHLCData | null {
   if (!timeStr) return null;
-  console.log('[v0] candleByTime search for:', timeStr);
-  console.log('[v0] sample candle datetimes:', data.slice(0, 5).map(c => c.datetime));
-  
-  // Exact match: datetime ends with " HH:MM:SS"
+  // Exact match: datetime includes " HH:MM:SS"
   const exact = data.find(c => c.datetime.includes(` ${timeStr}`));
-  if (exact) {
-    console.log('[v0] found exact match:', exact.datetime);
-    return exact;
-  }
-  
-  // Fallback: match HH:MM only
-  const targetHHMM = timeStr.slice(0, 5); // "09:34"
+  if (exact) return exact;
+  // Fallback: match HH:MM only (ignore seconds)
+  const targetHHMM = timeStr.slice(0, 5);
   const approx = data.find(c => c.datetime.includes(` ${targetHHMM}:`));
-  if (approx) {
-    console.log('[v0] found approx match:', approx.datetime);
-    return approx;
-  }
-  
-  console.log('[v0] no match found, using first candle:', data[0]?.datetime);
+  if (approx) return approx;
   return data[0] ?? null;
 }
 
@@ -263,20 +251,27 @@ function ChartCore({
         const scrollTs =
           entryC?.timestamp ?? exitC?.timestamp ?? data[data.length - 1].timestamp;
 
+        // Scroll immediately so the entry candle is visible
+        try { (chart as any)?.scrollToTimestamp(scrollTs, 0); } catch (_) {}
+
+        // Draw arrows after a delay so KlineCharts has fully rendered the scale
         setTimeout(() => {
           if (dead || !chart) return;
 
-          const pad = (c: OHLCData, price: number) =>
-            Math.max((c.high - c.low) * 0.4, price * 0.004);
+          // Use the actual trade price as the value — KlineCharts maps it on the Y axis
+          // For arrow UP (below candle): subtract a small % of price to place below
+          // For arrow DOWN (above candle): add a small % of price to place above
+          const pct = 0.005; // 0.5% offset from the trade price
 
           if (entryC) {
-            const p = pad(entryC, trade.entryPrice);
-            const value = isLong ? entryC.low - p : entryC.high + p;
+            const value = isLong
+              ? trade.entryPrice * (1 - pct)   // below: arrow UP pointing at price
+              : trade.entryPrice * (1 + pct);  // above: arrow DOWN pointing at price
             try {
               chart.createOverlay({
                 name:       isLong ? 'tradeArrowUp' : 'tradeArrowDown',
                 points:     [{ timestamp: entryC.timestamp, value }],
-                extendData: { color: isLong ? '#22c55e' : '#ef4444', label: 'E' },
+                extendData: { color: '#22c55e', label: 'E' },
                 lock: true,
                 zLevel: 10,
               });
@@ -284,9 +279,10 @@ function ChartCore({
           }
 
           if (exitC && trade.exitPrice != null) {
-            const p = pad(exitC, trade.exitPrice);
             const col = isPnlOk ? '#22c55e' : '#ef4444';
-            const value = isLong ? exitC.high + p : exitC.low - p;
+            const value = isLong
+              ? trade.exitPrice * (1 + pct)    // above: arrow DOWN
+              : trade.exitPrice * (1 - pct);   // below: arrow UP
             try {
               chart.createOverlay({
                 name:       isLong ? 'tradeArrowDown' : 'tradeArrowUp',
@@ -297,10 +293,7 @@ function ChartCore({
               });
             } catch (_) {}
           }
-
-          // scroll to entry candle
-          try { (chart as any)?.scrollToTimestamp(scrollTs, 300); } catch (_) {}
-        }, 300);
+        }, 500);
 
         onLoaded(usage.remaining);
       } catch (err: any) {
