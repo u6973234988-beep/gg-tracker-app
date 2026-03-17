@@ -282,10 +282,8 @@ function ChartCore({
         } else {
           const entryMs = resolveMs(trade.entryTime, tradeDate);
           const exitMs  = resolveMs(trade.exitTime,  tradeDate);
-          console.log('[v0] 1min markers — entryTime:', trade.entryTime, '→ entryMs:', entryMs, '| exitTime:', trade.exitTime, '→ exitMs:', exitMs);
           if (entryMs != null) entryC = nearestCandle(data, entryMs);
           if (exitMs  != null) exitC  = nearestCandle(data, exitMs);
-          console.log('[v0] nearest entry candle ts:', entryC?.timestamp, new Date(entryC?.timestamp ?? 0).toISOString(), '| nearest exit candle ts:', exitC?.timestamp, new Date(exitC?.timestamp ?? 0).toISOString());
           if (!entryC) entryC = data[0];
         }
 
@@ -302,7 +300,6 @@ function ChartCore({
           if (entryC) {
             const p = pad(entryC, trade.entryPrice);
             const value = isLong ? entryC.low - p : entryC.high + p;
-            console.log('[v0] entry overlay — ts:', entryC.timestamp, 'value:', value, 'low:', entryC.low, 'high:', entryC.high);
             try {
               chart.createOverlay({
                 name:       isLong ? 'tradeArrowUp' : 'tradeArrowDown',
@@ -311,14 +308,13 @@ function ChartCore({
                 lock: true,
                 zLevel: 10,
               });
-            } catch (e) { console.log('[v0] entry overlay error:', e); }
+            } catch (_) {}
           }
 
           if (exitC && trade.exitPrice != null) {
             const p = pad(exitC, trade.exitPrice);
             const col = isPnlOk ? '#22c55e' : '#ef4444';
             const value = isLong ? exitC.high + p : exitC.low - p;
-            console.log('[v0] exit overlay — ts:', exitC.timestamp, 'value:', value);
             try {
               chart.createOverlay({
                 name:       isLong ? 'tradeArrowDown' : 'tradeArrowUp',
@@ -327,7 +323,7 @@ function ChartCore({
                 lock: true,
                 zLevel: 10,
               });
-            } catch (e) { console.log('[v0] exit overlay error:', e); }
+            } catch (_) {}
           }
 
           // scroll to entry candle

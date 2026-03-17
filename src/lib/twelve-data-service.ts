@@ -116,6 +116,36 @@ function formatDate(d: Date): string {
   return d.toISOString().split('T')[0];
 }
 
+// Twelve Data restituisce "YYYY-MM-DD HH:MM:SS" in America/New_York.
+// Questa funzione converte correttamente in epoch ms rispettando DST.
+function parseTwelveDataDatetime(dt: string): number {
+  // dt = "2024-03-13 09:34:00" or "2024-03-13" (daily)
+  if (!dt.includes(' ')) {
+    // Giornaliero: usiamo mezzogiorno ET per evitare shift di giorno
+    dt = dt + ' 12:00:00';
+  }
+  const [datePart, timePart] = dt.split(' ');
+  const [y, mo, d] = datePart.split('-').map(Number);
+  const [h, m, s] = timePart.split(':').map(Number);
+
+  // Costruiamo come UTC naïve
+  const naiveUtc = Date.UTC(y, mo - 1, d, h, m, s);
+
+  // Ricaviamo l'offset ET reale (gestisce EST=-5 / EDT=-4 automaticamente)
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'shortOffset',
+  });
+  const tzName = formatter.formatToParts(new Date(naiveUtc))
+    .find(p => p.type === 'timeZoneName')?.value ?? 'GMT-5';
+  const match = tzName.match(/GMT([+-])(\d+)/);
+  const sign  = match ? (match[1] === '-' ? 1 : -1) : 1;
+  const hours = match ? +match[2] : 5;
+
+  // naiveUtc è "come se fosse UTC" ma è ET → aggiungiamo l'offset per ottenere UTC reale
+  return naiveUtc + sign * hours * 3_600_000;
+}
+
 // ─── Main fetch function ─────────────────────────────────────────────
 export async function getOHLCData(
   ticker: string,
@@ -237,8 +267,11 @@ export async function getOHLCData(
   }
 
   // Converti in formato OHLCData
+  // IMPORTANTE: Twelve Data restituisce datetime come "YYYY-MM-DD HH:MM:SS" in America/New_York (ET).
+  // Non usare new Date() direttamente perché interpreta la stringa come ora locale del browser.
+  // Convertiamo manualmente: appendo 'T' e '-05:00' (EST) o '-04:00' (EDT) secondo DST.
   const ohlcData: OHLCData[] = values.map((v: any) => ({
-    timestamp: new Date(v.datetime).getTime(),
+    timestamp: parseTwelveDataDatetime(v.datetime),
     open: parseFloat(v.open),
     high: parseFloat(v.high),
     low: parseFloat(v.low),
