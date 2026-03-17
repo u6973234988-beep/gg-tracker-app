@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, AlertTriangle, BarChart2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types — kline-chart v3 ───────────────────────────────────────────────────
 interface TradeMarker {
   entryPrice: number;
   exitPrice: number | null;
