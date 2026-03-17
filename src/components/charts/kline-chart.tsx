@@ -243,8 +243,8 @@ function ChartInner({
   return (
     <div
       ref={containerRef}
-      className="w-full h-full"
-      style={{ minHeight: '100%' }}
+      className="w-full"
+      style={{ height: '100%', minHeight: 300 }}
     />
   );
 }
@@ -372,7 +372,7 @@ export function KlineChartComponent({
       </div>
 
       {/* Chart area */}
-      <div className="relative flex-1" style={{ height }}>
+      <div className="relative" style={{ height }}>
         {/* Loading overlay */}
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-[#161622]/90 z-10 gap-3 pointer-events-none">
@@ -410,16 +410,18 @@ export function KlineChartComponent({
         )}
 
         {/* KlineCharts — re-keyed on every load to get a fresh DOM node */}
-        <ChartInner
-          key={mountKey}
-          ticker={ticker}
-          tradeDate={tradeDate}
-          trade={trade}
-          timeframe={timeframe}
-          isDark={isDark}
-          onLoaded={handleLoaded}
-          onError={handleError}
-        />
+        <div style={{ height: '100%', width: '100%' }}>
+          <ChartInner
+            key={mountKey}
+            ticker={ticker}
+            tradeDate={tradeDate}
+            trade={trade}
+            timeframe={timeframe}
+            isDark={isDark}
+            onLoaded={handleLoaded}
+            onError={handleError}
+          />
+        </div>
       </div>
 
       {/* Legend bar */}
