@@ -1,7 +1,7 @@
 {
   "name": "gg-tracker-app",
   "version": "1.0.1",
-  "description": "GG Tracker - Advanced Trading Journal with AI-powered insights",
+  "description": "GG Tracker - Advanced Trading Journal with AI-powered insights - Massive",
   "private": true,
   "scripts": {
     "dev": "next dev",
