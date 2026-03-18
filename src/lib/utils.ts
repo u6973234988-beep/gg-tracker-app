@@ -64,13 +64,13 @@ export function formatDataBreve(data: Date | string): string {
 }
 
 /**
- * Calcola il profitto/perdita (P&L) di un'operazione
- * @param direzione - 'LONG' o 'SHORT'
- * @param prezzoEntrata - Prezzo di entrata della posizione
- * @param prezzoUscita - Prezzo di uscita della posizione
- * @param quantita - Quantità di unità scambiate
- * @param commissione - Commissione totale in EUR (opzionale)
- * @returns Oggetto con pnl, pnlPercentuale, pnlLordo, commissione
+ * Calcola il P&L completo di un'operazione (lordo, netto, %, R/R, rischio).
+ *
+ * LONG:  P&L lordo = (uscita - entrata) × qty
+ * SHORT: P&L lordo = (entrata - uscita) × qty
+ * In entrambi i casi il capitale impiegato è (entrata × qty).
+ *
+ * @returns { pnl, pnlLordo, pnlPercentuale, commissione, rischio, rischioPct, rr }
  */
 export function calcolaPnl(
   direzione: 'LONG' | 'SHORT',
@@ -78,25 +78,99 @@ export function calcolaPnl(
   prezzoUscita: number,
   quantita: number,
   commissione: number = 0,
+  stopLoss?: number | null,
 ) {
-  let pnlLordo: number;
+  const capitaleImpiegato = prezzoEntrata * quantita;
 
-  if (direzione === 'LONG') {
-    pnlLordo = (prezzoUscita - prezzoEntrata) * quantita;
-  } else {
-    // SHORT: profitto quando il prezzo scende
-    pnlLordo = (prezzoEntrata - prezzoUscita) * quantita;
-  }
+  const pnlLordo =
+    direzione === 'LONG'
+      ? (prezzoUscita - prezzoEntrata) * quantita
+      : (prezzoEntrata - prezzoUscita) * quantita;
 
   const pnlNetto = pnlLordo - commissione;
-  const pnlPercentuale = (pnlNetto / (prezzoEntrata * quantita)) * 100;
+  const pnlPercentuale = capitaleImpiegato !== 0 ? (pnlNetto / capitaleImpiegato) * 100 : 0;
+
+  // Rischio monetario dal stop loss (sempre positivo = quanto si perde se colpisce lo SL)
+  let rischio: number | null = null;
+  let rischioPct: number | null = null;
+  if (stopLoss != null && stopLoss > 0) {
+    rischio =
+      direzione === 'LONG'
+        ? (prezzoEntrata - stopLoss) * quantita
+        : (stopLoss - prezzoEntrata) * quantita;
+    rischioPct = capitaleImpiegato !== 0 ? (Math.abs(rischio) / capitaleImpiegato) * 100 : 0;
+  }
+
+  // Risk/Reward: quante "unità di rischio" vale il guadagno
+  let rr: number | null = null;
+  if (rischio != null && Math.abs(rischio) > 0) {
+    rr = pnlLordo / Math.abs(rischio);
+  }
 
   return {
     pnl: pnlNetto,
-    pnlPercentuale,
     pnlLordo,
+    pnlPercentuale,
     commissione,
+    rischio,
+    rischioPct,
+    rr,
   };
+}
+
+/**
+ * Alias mantenuto per compatibilità: calcola P&L senza SL/RR.
+ */
+export function calcolaPnlSemplice(
+  direzione: 'LONG' | 'SHORT',
+  prezzoEntrata: number,
+  prezzoUscita: number,
+  quantita: number,
+  commissione: number = 0,
+) {
+  return calcolaPnl(direzione, prezzoEntrata, prezzoUscita, quantita, commissione);
+}
+
+/**
+ * Determina lo stato dell'operazione in base alla presenza del prezzo di uscita.
+ */
+export function calcolaStatoOperazione(
+  prezzoUscita: number | null | undefined,
+): 'aperta' | 'chiusa' {
+  return prezzoUscita != null && prezzoUscita > 0 ? 'chiusa' : 'aperta';
+}
+
+/**
+ * Calcola la durata in minuti tra ora_entrata e ora_uscita (formato HH:MM o HH:MM:SS).
+ */
+export function calcolaDurataMinuti(
+  oraEntrata: string | null | undefined,
+  oraUscita: string | null | undefined,
+): number | null {
+  if (!oraEntrata || !oraUscita) return null;
+  try {
+    const toMin = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const diff = toMin(oraUscita) - toMin(oraEntrata);
+    return diff >= 0 ? diff : diff + 24 * 60; // overnight
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Formatta il P&L con segno e valuta EUR.
+ */
+export function formatPnl(pnl: number): string {
+  const sign = pnl >= 0 ? '+' : '';
+  return `${sign}${new Intl.NumberFormat('it-IT', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(pnl)}`;
 }
 
 /**

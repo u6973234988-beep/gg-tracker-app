@@ -13,7 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { formatValuta, formatData, cn } from '@/lib/utils';
+import { formatValuta, formatData, cn, calcolaPnl } from '@/lib/utils';
 import { Edit2, Trash2, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { OperazioneConDettagli } from '@/hooks/useOperazioni';
@@ -131,12 +131,17 @@ export function TabellaOperazioni({
                         {op.ticker}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={isLong ? 'success' : 'destructive'}
-                          className="w-fit"
-                        >
-                          {isLong ? 'LONG' : 'SHORT'}
-                        </Badge>
+                        <div className="flex flex-col gap-0.5">
+                          <Badge
+                            variant={isLong ? 'success' : 'destructive'}
+                            className="w-fit text-xs"
+                          >
+                            {isLong ? 'LONG' : 'SHORT'}
+                          </Badge>
+                          <span className="text-[10px] text-gray-400">
+                            {isLong ? 'BUY → SELL' : 'SELL → BUY'}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>{op.prezzo_entrata.toFixed(2)}</TableCell>
                       <TableCell>{op.prezzo_uscita?.toFixed(2) || '-'}</TableCell>
@@ -232,7 +237,98 @@ export function TabellaOperazioni({
                     className="border-b border-gray-100 dark:border-[#1e1e2e] bg-gray-50 dark:bg-[#0a0a12]"
                   >
                     <TableCell colSpan={10}>
-                      <div className="p-4 space-y-3">
+                      <div className="p-4 space-y-4">
+
+                        {/* P&L Breakdown */}
+                        {op.prezzo_uscita && op.prezzo_uscita > 0 && (() => {
+                          const calc = calcolaPnl(
+                            op.direzione as 'LONG' | 'SHORT',
+                            op.prezzo_entrata,
+                            op.prezzo_uscita,
+                            op.quantita,
+                            op.commissione,
+                            (op as any).stop_loss ?? null,
+                          );
+                          return (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-gray-100 dark:bg-[#12121a]">
+                              <div>
+                                <p className="text-[10px] text-gray-500 mb-0.5">P&L lordo</p>
+                                <p className={cn('text-sm font-bold', calc.pnlLordo >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                                  {calc.pnlLordo >= 0 ? '+' : ''}{calc.pnlLordo.toFixed(2)}€
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-gray-500 mb-0.5">P&L netto</p>
+                                <p className={cn('text-sm font-bold', calc.pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                                  {calc.pnl >= 0 ? '+' : ''}{calc.pnl.toFixed(2)}€
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-gray-500 mb-0.5">P&L %</p>
+                                <p className={cn('text-sm font-bold', calc.pnlPercentuale >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                                  {calc.pnlPercentuale >= 0 ? '+' : ''}{calc.pnlPercentuale.toFixed(2)}%
+                                </p>
+                              </div>
+                              {calc.rr !== null && (
+                                <div>
+                                  <p className="text-[10px] text-gray-500 mb-0.5">R/R</p>
+                                  <p className="text-sm font-bold text-gray-200">{calc.rr.toFixed(2)}R</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Dettagli operazione */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Commissione</p>
+                            <p className="text-gray-800 dark:text-white">{formatValuta(op.commissione)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Stato</p>
+                            <Badge variant="secondary" className="w-fit">
+                              {op.stato}
+                            </Badge>
+                          </div>
+                          {(op as any).ora_entrata && (
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ora Entrata</p>
+                              <p className="text-gray-800 dark:text-white font-mono">{(op as any).ora_entrata}</p>
+                            </div>
+                          )}
+                          {(op as any).ora_uscita && (
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ora Uscita</p>
+                              <p className="text-gray-800 dark:text-white font-mono">{(op as any).ora_uscita}</p>
+                            </div>
+                          )}
+                          {(op as any).stop_loss && (
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Stop Loss</p>
+                              <p className="text-red-400 font-mono">{(op as any).stop_loss.toFixed(4)}</p>
+                            </div>
+                          )}
+                          {(op as any).take_profit && (
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Take Profit</p>
+                              <p className="text-emerald-400 font-mono">{(op as any).take_profit.toFixed(4)}</p>
+                            </div>
+                          )}
+                          {(op as any).durata_minuti != null && (
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Durata</p>
+                              <p className="text-gray-800 dark:text-white">
+                                {Math.floor((op as any).durata_minuti / 60)}h {(op as any).durata_minuti % 60}m
+                              </p>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Broker</p>
+                            <p className="text-gray-800 dark:text-white">{op.broker || 'N/A'}</p>
+                          </div>
+                        </div>
+
                         {op.note && (
                           <div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Note</p>
@@ -240,45 +336,12 @@ export function TabellaOperazioni({
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">P&L %</p>
-                            <p className={cn(
-                              'font-semibold',
-                              (op.pnl_percentuale || 0) >= 0
-                                ? 'text-emerald-400'
-                                : 'text-red-400'
-                            )}>
-                              {(op.pnl_percentuale || 0).toFixed(2)}%
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Commissione</p>
-                            <p className="text-gray-800 dark:text-white">{formatValuta(op.commissione)}</p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Stato</p>
-                            <Badge variant="secondary" className="w-fit">
-                              {op.stato}
-                            </Badge>
-                          </div>
-
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Broker</p>
-                            <p className="text-gray-800 dark:text-white">{op.broker || 'N/A'}</p>
-                          </div>
-                        </div>
-
                         {op.tags && op.tags.length > 0 && (
                           <div>
                             <p className="text-xs text-gray-400 mb-2">Tag</p>
                             <div className="flex flex-wrap gap-2">
-                              {op.tags.map((tag) => (
-                                <Badge key={tag.id} variant="outline">
-                                  {tag.nome}
-                                </Badge>
+                              {op.tags.map((tag: any) => (
+                                <Badge key={tag.id} variant="outline">{tag.nome}</Badge>
                               ))}
                             </div>
                           </div>
