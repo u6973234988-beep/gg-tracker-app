@@ -537,24 +537,115 @@ function parseInteractiveBrokersFormat(rows: string[][]): OperazioneCSV[] {
 
   const operazioni: OperazioneCSV[] = [];
 
+  // Raccogli tutti i fill IB
+  type IBFill = {
+    data: string;
+    ticker: string;
+    quantita: number;          // positiva = BUY, negativa = SELL
+    prezzo: number;
+    commissione: number;
+    ora: string;
+    timestamp: number;
+  };
+
+  const allFills: IBFill[] = [];
+
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || !row[symbolIdx]) continue;
 
-    const quantity = Math.abs(parseFloat(row[quantityIdx]?.replace(',', '.') || '0'));
+    const rawQty = parseFloat(row[quantityIdx]?.replace(',', '.') || '0');
     const price = parseFloat(row[priceIdx]?.replace(',', '.') || '0');
     const commission = Math.abs(parseFloat(row[commissionIdx]?.replace(',', '.') || '0'));
+    const rawDate = row[tradeIdTimeIdx] || '';
 
-    operazioni.push({
-      data: parseDate(row[tradeIdTimeIdx] || ''),
-      ticker: row[symbolIdx].toUpperCase().trim(),
-      direzione: quantity > 0 ? 'LONG' : 'SHORT',
-      quantita: quantity,
-      prezzo_entrata: price,
-      prezzo_uscita: null,
-      commissione: commission,
-    });
+    // Estrai data e ora dal campo datetime IB (es. "20231015 09:30:00")
+    let data = parseDate(rawDate);
+    let ora = '00:00';
+    let timestamp = 0;
+    try {
+      const parts = rawDate.trim().split(' ');
+      if (parts.length >= 2) {
+        ora = parts[1].substring(0, 5); // HH:MM
+        const d = new Date(`${data}T${ora}:00`);
+        timestamp = d.getTime();
+      }
+    } catch {}
+
+    allFills.push({ data, ticker: row[symbolIdx].toUpperCase().trim(), quantita: rawQty, prezzo: price, commissione: commission, ora, timestamp });
   }
+
+  // Raggruppa per ticker+data, poi ricostruisce sessioni con position tracking
+  const byTickerDate: Record<string, IBFill[]> = {};
+  allFills.forEach((f) => {
+    const key = `${f.data}_${f.ticker}`;
+    if (!byTickerDate[key]) byTickerDate[key] = [];
+    byTickerDate[key].push(f);
+  });
+
+  const operazioni: OperazioneCSV[] = [];
+
+  Object.values(byTickerDate).forEach((fills) => {
+    fills.sort((a, b) => a.timestamp - b.timestamp || a.ora.localeCompare(b.ora));
+
+    let posizione = 0;
+    let sessionFills: IBFill[] = [];
+
+    const flushSession = (fills: IBFill[]) => {
+      const buys  = fills.filter((f) => f.quantita > 0);
+      const sells = fills.filter((f) => f.quantita < 0);
+      const direzione: 'LONG' | 'SHORT' = buys.length >= sells.length ? 'LONG' : 'SHORT';
+      const aperture = direzione === 'LONG' ? buys : sells;
+      const chiusure = direzione === 'LONG' ? sells : buys;
+
+      const qtyApertura = aperture.reduce((s, f) => s + Math.abs(f.quantita), 0) || fills[0].quantita;
+      const prezzoEntrata = aperture.length > 0
+        ? aperture.reduce((s, f) => s + f.prezzo * Math.abs(f.quantita), 0) / aperture.reduce((s, f) => s + Math.abs(f.quantita), 0)
+        : fills[0].prezzo;
+      const prezzoUscita = chiusure.length > 0
+        ? chiusure.reduce((s, f) => s + f.prezzo * Math.abs(f.quantita), 0) / chiusure.reduce((s, f) => s + Math.abs(f.quantita), 0)
+        : null;
+      const totalCommission = fills.reduce((s, f) => s + f.commissione, 0);
+      const oraEntrata = aperture.length > 0 ? aperture[0].ora : fills[0].ora;
+      const oraUscita = chiusure.length > 0 ? chiusure[chiusure.length - 1].ora : null;
+
+      let pnl: number | null = null;
+      let pnlPercentuale: number | null = null;
+      if (prezzoUscita !== null) {
+        const pnlLordo = direzione === 'LONG'
+          ? (prezzoUscita - prezzoEntrata) * qtyApertura
+          : (prezzoEntrata - prezzoUscita) * qtyApertura;
+        pnl = pnlLordo - totalCommission;
+        pnlPercentuale = prezzoEntrata > 0 ? (pnl / (prezzoEntrata * qtyApertura)) * 100 : 0;
+      }
+
+      operazioni.push({
+        data: fills[0].data,
+        ticker: fills[0].ticker,
+        direzione,
+        quantita: qtyApertura,
+        prezzo_entrata: prezzoEntrata,
+        prezzo_uscita: prezzoUscita,
+        commissione: totalCommission,
+        pnl,
+        pnl_percentuale: pnlPercentuale,
+        ora_entrata: oraEntrata,
+        ora_uscita: oraUscita ?? undefined,
+        durata: oraUscita ? calculateTradeDuration(oraEntrata, oraUscita) : '00:00',
+      });
+    };
+
+    for (const fill of fills) {
+      posizione += fill.quantita;
+      sessionFills.push(fill);
+      if (Math.abs(posizione) < 0.0001) {
+        flushSession(sessionFills);
+        sessionFills = [];
+        posizione = 0;
+      }
+    }
+    if (sessionFills.length > 0) flushSession(sessionFills); // posizione ancora aperta
+  });
 
   return operazioni;
 }
