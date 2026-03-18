@@ -395,18 +395,17 @@ function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
     });
   }
 
-  // Raggruppa le operazioni per ticker e data per consolidare le operazioni multi-gamba
+  // Raggruppa per ticker+data, poi ricostruisce SESSIONI separate
+  // Una sessione = una sequenza apertura→chiusura completa
+  // Se nello stesso giorno si fanno 2 operazioni su AAPL, sono 2 sessioni distinte
   const tradesByTickerAndDate: Record<string, typeof allTrades> = {};
 
   allTrades.forEach((trade) => {
     const key = `${trade.data}_${trade.ticker}`;
-    if (!tradesByTickerAndDate[key]) {
-      tradesByTickerAndDate[key] = [];
-    }
+    if (!tradesByTickerAndDate[key]) tradesByTickerAndDate[key] = [];
     tradesByTickerAndDate[key].push(trade);
   });
 
-  // Elabora le operazioni raggruppate
   const operazioni: OperazioneCSV[] = [];
 
   Object.values(tradesByTickerAndDate).forEach((tickerTrades) => {
@@ -417,68 +416,108 @@ function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
         : a.ora.localeCompare(b.ora),
     );
 
-    // Separa aperture (B/SS) da chiusure (S/BC)
-    const aperture = tickerTrades.filter((t) => tzSideInfo(t.side || '').isApertura);
-    const chiusure = tickerTrades.filter((t) => !tzSideInfo(t.side || '').isApertura);
+    // --- Ricostruzione sessioni tramite position tracking ---
+    // TradeZero emette ogni fill separatamente.
+    // Tracciamo la posizione netta: positiva = LONG aperta, negativa = SHORT aperta, 0 = flat.
+    // Ogni volta che la posizione ritorna a 0 → fine di una sessione.
 
-    // Direzione dalla prima apertura
-    const direzione: 'LONG' | 'SHORT' =
-      aperture.length > 0
-        ? tzSideInfo(aperture[0].side || '').direzione
-        : tickerTrades[0].direzione;
-
-    // Quantità = solo lato apertura (es. SS 100 + BC 100 → qty = 100, non 200)
-    const qtyApertura = aperture.reduce((sum, t) => sum + t.quantita, 0) || tickerTrades[0].quantita;
-
-    // Prezzo medio ponderato dell'apertura
-    const prezzoEntrata =
-      aperture.length > 0
-        ? aperture.reduce((sum, t) => sum + t.prezzo * t.quantita, 0) /
-          aperture.reduce((sum, t) => sum + t.quantita, 0)
-        : tickerTrades[0].prezzo;
-
-    // Prezzo medio ponderato della chiusura (o null se posizione ancora aperta)
-    const prezzoUscita =
-      chiusure.length > 0
-        ? chiusure.reduce((sum, t) => sum + t.prezzo * t.quantita, 0) /
-          chiusure.reduce((sum, t) => sum + t.quantita, 0)
-        : null;
-
-    // P&L netto = somma Net Proceeds di tutte le leg (TradeZero lo calcola già)
-    const totalPnL = tickerTrades.reduce((sum, t) => sum + t.pnl, 0);
-    const totalCommission = tickerTrades.reduce((sum, t) => sum + t.commissione, 0);
-
-    // P&L% calcolato sul capitale impiegato (prezzo apertura × qty apertura)
-    const capitaleImpiegato = prezzoEntrata * qtyApertura;
-    const pnlPercentuale = capitaleImpiegato > 0 ? (totalPnL / capitaleImpiegato) * 100 : 0;
-
-    const oraEntrata = aperture.length > 0 ? aperture[0].ora : tickerTrades[0].ora;
-    const oraUscita = chiusure.length > 0 ? chiusure[chiusure.length - 1].ora : null;
-
-    const op: OperazioneCSV = {
-      data: tickerTrades[0].data,
-      ticker: tickerTrades[0].ticker,
-      direzione,
-      quantita: qtyApertura,
-      prezzo_entrata: prezzoEntrata,
-      prezzo_uscita: prezzoUscita,
-      commissione: totalCommission,
-      pnl: prezzoUscita !== null ? totalPnL : null,
-      pnl_percentuale: prezzoUscita !== null ? pnlPercentuale : null,
-      ora_entrata: oraEntrata,
-      ora_uscita: oraUscita ?? undefined,
-      durata: oraUscita ? calculateTradeDuration(oraEntrata, oraUscita) : '00:00',
-      timestamp: tickerTrades[0].timestamp,
-      esecuzioni: tickerTrades.map((t) => ({
-        ora: t.ora,
-        prezzo: t.prezzo,
-        quantita: t.quantita,
-        lato: tzSideInfo(t.side || '').isApertura ? 'apertura' : 'chiusura',
-        pnl: t.pnl,
-      })),
+    type Session = {
+      fills: typeof allTrades;
+      direzione: 'LONG' | 'SHORT';
     };
 
-    operazioni.push(op);
+    const sessions: Session[] = [];
+    let posizione = 0; // posizione netta corrente
+    let sessioneFills: typeof allTrades = [];
+    let sessioneDirezione: 'LONG' | 'SHORT' = 'LONG';
+
+    for (const trade of tickerTrades) {
+      const info = tzSideInfo(trade.side || '');
+
+      if (sessioneFills.length === 0) {
+        // Primo fill della sessione — determina la direzione
+        sessioneDirezione = info.direzione;
+      }
+
+      // Aggiorna posizione netta
+      if (info.isApertura) {
+        posizione += trade.quantita;  // B o SS aumentano la posizione
+      } else {
+        posizione -= trade.quantita;  // S o BC riducono la posizione
+      }
+
+      sessioneFills.push(trade);
+
+      // Posizione flat → sessione completata
+      if (Math.abs(posizione) < 0.0001) {
+        sessions.push({ fills: [...sessioneFills], direzione: sessioneDirezione });
+        sessioneFills = [];
+        posizione = 0;
+      }
+    }
+
+    // Posizione ancora aperta (nessuna chiusura trovata)
+    if (sessioneFills.length > 0) {
+      sessions.push({ fills: sessioneFills, direzione: sessioneDirezione });
+    }
+
+    // Converti ogni sessione in OperazioneCSV
+    for (const session of sessions) {
+      const { fills, direzione } = session;
+
+      const aperture = fills.filter((t) => tzSideInfo(t.side || '').isApertura);
+      const chiusure = fills.filter((t) => !tzSideInfo(t.side || '').isApertura);
+
+      // Quantità = qty delle leg di apertura (NON somma di apertura+chiusura)
+      const qtyApertura = aperture.reduce((sum, t) => sum + t.quantita, 0) || fills[0].quantita;
+
+      // Prezzo medio ponderato apertura
+      const prezzoEntrata =
+        aperture.length > 0
+          ? aperture.reduce((sum, t) => sum + t.prezzo * t.quantita, 0) /
+            aperture.reduce((sum, t) => sum + t.quantita, 0)
+          : fills[0].prezzo;
+
+      // Prezzo medio ponderato chiusura (null se aperta)
+      const prezzoUscita =
+        chiusure.length > 0
+          ? chiusure.reduce((sum, t) => sum + t.prezzo * t.quantita, 0) /
+            chiusure.reduce((sum, t) => sum + t.quantita, 0)
+          : null;
+
+      // P&L netto da Net Proceeds TradeZero (già commissioni incluse)
+      const totalPnL = fills.reduce((sum, t) => sum + t.pnl, 0);
+      const totalCommission = fills.reduce((sum, t) => sum + t.commissione, 0);
+
+      const capitaleImpiegato = prezzoEntrata * qtyApertura;
+      const pnlPercentuale = capitaleImpiegato > 0 ? (totalPnL / capitaleImpiegato) * 100 : 0;
+
+      const oraEntrata = aperture.length > 0 ? aperture[0].ora : fills[0].ora;
+      const oraUscita = chiusure.length > 0 ? chiusure[chiusure.length - 1].ora : null;
+
+      operazioni.push({
+        data: fills[0].data,
+        ticker: fills[0].ticker,
+        direzione,
+        quantita: qtyApertura,
+        prezzo_entrata: prezzoEntrata,
+        prezzo_uscita: prezzoUscita,
+        commissione: totalCommission,
+        pnl: prezzoUscita !== null ? totalPnL : null,
+        pnl_percentuale: prezzoUscita !== null ? pnlPercentuale : null,
+        ora_entrata: oraEntrata,
+        ora_uscita: oraUscita ?? undefined,
+        durata: oraUscita ? calculateTradeDuration(oraEntrata, oraUscita) : '00:00',
+        timestamp: fills[0].timestamp,
+        esecuzioni: fills.map((t) => ({
+          ora: t.ora,
+          prezzo: t.prezzo,
+          quantita: t.quantita,
+          lato: tzSideInfo(t.side || '').isApertura ? 'apertura' : 'chiusura',
+          pnl: t.pnl,
+        })),
+      });
+    }
   });
 
   return operazioni;
