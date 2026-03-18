@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import type { Database } from '@/types/database';
 import { toast } from 'sonner';
 import { parseCSV } from '@/lib/csv-parser';
+import { calcolaPnl, calcolaStatoOperazione, calcolaDurataMinuti } from '@/lib/utils';
 
 type Profilo = Database['public']['Tables']['profili']['Row'];
 type ProfiloUpdate = Database['public']['Tables']['profili']['Update'];
@@ -153,32 +154,51 @@ export function useImpostazioni(): UseImpostazioniReturn {
           const quantita = safeNum(op.quantita) ?? 0;
           const prezzoEntrata = safeNum(op.prezzo_entrata) ?? 0;
           const commissione = safeNum(op.commissione) ?? 0;
+          const direzione: 'LONG' | 'SHORT' = op.direzione === 'SHORT' ? 'SHORT' : 'LONG';
+          const isClosed = prezzoUscita !== null && prezzoUscita > 0;
+          const stato = calcolaStatoOperazione(prezzoUscita);
 
-          // Calcola PnL se abbiamo prezzo di uscita
+          // Se il CSV ha gia' un pnl calcolato (es. TradeZero Net Proceeds), usalo direttamente.
+          // Altrimenti ricalcola con la formula corretta LONG/SHORT.
           let pnl: number | null = null;
           let pnlPercentuale: number | null = null;
-          if (prezzoUscita !== null && prezzoUscita > 0) {
-            const dir = op.direzione === 'LONG' ? 1 : -1;
-            const pnlLordo = (prezzoUscita - prezzoEntrata) * quantita * dir;
-            pnl = pnlLordo - commissione;
-            pnlPercentuale = prezzoEntrata > 0
-              ? (pnl / (prezzoEntrata * quantita)) * 100
-              : 0;
+          if (isClosed) {
+            const csvPnl = safeNum(op.pnl);
+            if (csvPnl !== null && csvPnl !== 0) {
+              // Usa il P&L gia' calcolato dal parser (es. TradeZero Net Proceeds)
+              pnl = csvPnl;
+              pnlPercentuale = prezzoEntrata > 0 && quantita > 0
+                ? (pnl / (prezzoEntrata * quantita)) * 100
+                : 0;
+            } else {
+              // Ricalcola con la formula corretta LONG/SHORT
+              const calc = calcolaPnl(direzione, prezzoEntrata, prezzoUscita!, quantita, commissione);
+              pnl = calc.pnl;
+              pnlPercentuale = calc.pnlPercentuale;
+            }
           }
+
+          const durataMinuti = calcolaDurataMinuti(
+            op.ora_entrata ?? null,
+            op.ora_uscita ?? null,
+          );
 
           return {
             ticker: String(op.ticker || ''),
-            direzione: String(op.direzione || 'LONG'),
-            quantita: quantita,
+            direzione,
+            quantita,
             prezzo_entrata: prezzoEntrata,
-            prezzo_uscita: prezzoUscita,
-            commissione: commissione,
+            prezzo_uscita: isClosed ? prezzoUscita : null,
+            commissione,
             data: String(op.data || new Date().toISOString().split('T')[0]),
             utente_id: userId,
-            stato: prezzoUscita !== null && prezzoUscita > 0 ? 'chiusa' : 'aperta',
+            stato,
             note: op.note ? String(op.note) : null,
-            pnl: pnl,
+            pnl,
             pnl_percentuale: pnlPercentuale,
+            ora_entrata: op.ora_entrata ?? null,
+            ora_uscita: op.ora_uscita ?? null,
+            durata_minuti: durataMinuti,
           };
         });
 
