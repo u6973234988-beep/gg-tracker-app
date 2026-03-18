@@ -31,10 +31,10 @@ interface KlineChartProps {
 }
 
 // ─── Timeframes ───────────────────────────────────────────────────────────────
-// Only two timeframes per spec: 1 minute and Daily.
+// Only two timeframes per spec: 1 minute intraday and Daily EOD.
 const TIMEFRAMES: { label: string; value: MassiveTimeframe }[] = [
-  { label: '1m',  value: '1min' },
-  { label: '1D',  value: '1day' },
+  { label: '1 min',        value: '1min' },
+  { label: 'Giornaliero',  value: '1day' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -49,7 +49,8 @@ export function KlineChartComponent({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef     = useRef<Chart | null>(null);
 
-  const [timeframe, setTimeframe] = useState<MassiveTimeframe>('1day');
+  // Default: 1min shows the full execution day in detail
+  const [timeframe, setTimeframe] = useState<MassiveTimeframe>('1min');
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
   const [isDark,    setIsDark]    = useState(false);
