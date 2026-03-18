@@ -34,6 +34,7 @@
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.36.0",
+    "@klinecharts/pro": "^1.0.0",
     "klinecharts": "^9.8.12",
     "lucide-react": "^0.469.0",
     "next": "^15.0.0",
