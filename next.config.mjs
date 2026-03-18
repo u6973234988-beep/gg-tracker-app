@@ -13,12 +13,6 @@ const nextConfig = {
   typescript: {
     tsconfigPath: './tsconfig.json',
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('framer-motion');
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
