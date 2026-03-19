@@ -21,7 +21,7 @@ export interface OHLCData {
   volume: number;
 }
 
-export type Timeframe = '1min' | '2min' | '1day';
+export type Timeframe = '1min' | '1day';
 
 // ─── Cache ───────────────────────────────────────────────────────────
 const dataCache: Record<string, { data: OHLCData[]; fetchedAt: number }> = {};
@@ -69,7 +69,6 @@ function getCacheKey(ticker: string, timeframe: Timeframe, dateRange: string): s
 function getPolygonParams(tf: Timeframe): { multiplier: number; timespan: string } {
   switch (tf) {
     case '1min': return { multiplier: 1, timespan: 'minute' };
-    case '2min': return { multiplier: 2, timespan: 'minute' };
     case '1day': return { multiplier: 1, timespan: 'day' };
   }
 }

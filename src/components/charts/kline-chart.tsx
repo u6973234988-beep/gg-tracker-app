@@ -31,7 +31,6 @@ interface KlineChartProps {
 
 const TIMEFRAMES: { label: string; value: Timeframe }[] = [
   { label: '1m', value: '1min' },
-  { label: '2m', value: '2min' },
   { label: '1D', value: '1day' },
 ];
 
@@ -124,16 +123,8 @@ function registerTradeMarkerOverlay() {
 }
 
 // ─── Conversione orario mercato (ET) → UTC ms ──────────────────────
-// Polygon.io: timestamp `t` = Unix ms UTC, candele allineate in Eastern Time.
-// TradeZero + import manuale: orari in ET (orario reale mercato US).
-//
-// Approccio: calcolo offset ET dinamico via Intl (gestisce EST/EDT automaticamente),
-// poi cerco tra le candele reali ricevute dall'API quella che contiene il trade.
-// Questo funziona da qualsiasi timezone del browser (Italia, Giappone, ovunque).
-
 function getETOffsetHours(dateStr: string): number {
   const [year, month, day] = dateStr.split('-').map(Number);
-  // Probe a mezzogiorno UTC: sempre stesso giorno calendario in ET
   const probeUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
@@ -141,8 +132,6 @@ function getETOffsetHours(dateStr: string): number {
     hour12: false,
   }).formatToParts(probeUtc);
   const etHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '12');
-  // EDT (estate): noon UTC = 8 AM ET → offset = 8-12 = -4
-  // EST (inverno): noon UTC = 7 AM ET → offset = 7-12 = -5
   return etHour - 12;
 }
 
@@ -150,24 +139,18 @@ function etToUnixMs(dateStr: string, timeStr: string): number {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
   const offsetHours = getETOffsetHours(dateStr);
-  // ET → UTC: sottrai l'offset (offset e negativo, quindi aggiunge ore)
   return Date.UTC(year, month - 1, day, hours - offsetHours, minutes, 0, 0);
 }
 
-// Converte un timestamp UTC in ore:minuti ET (per comparare con le candele)
 function utcMsToETMinutes(ms: number, dateStr: string): number {
   const offsetHours = getETOffsetHours(dateStr);
   const d = new Date(ms);
-  // Ore e minuti in UTC, poi aggiungi offset per ottenere ET
   const utcH = d.getUTCHours();
   const utcM = d.getUTCMinutes();
   return (utcH + offsetHours) * 60 + utcM;
 }
 
-// Trova la candela che CONTIENE il momento del trade.
-// Per 1min: candela 09:31 contiene trade 09:31:xx
-// Per 2min: candela 09:30 contiene trade 09:30:00-09:31:59
-// Per daily: candela del giorno del trade
+// Trova la candela che CONTIENE il momento del trade
 function findBestCandleForTime(
   data: { timestamp: number }[],
   dateStr: string,
@@ -179,10 +162,8 @@ function findBestCandleForTime(
   // ── Daily: cerca la candela del giorno del trade ──
   if (timeframe === '1day') {
     const targetMidnight = etToUnixMs(dateStr, '00:00');
-    // Match esatto
     const exact = data.find((d) => d.timestamp === targetMidnight);
     if (exact) return exact.timestamp;
-    // Fallback: candela piu vicina (entro 48h per gestire weekend/holiday)
     let best = data[0].timestamp;
     let bestDiff = Math.abs(data[0].timestamp - targetMidnight);
     for (const d of data) {
@@ -198,24 +179,20 @@ function findBestCandleForTime(
   // ── Intraday: serve l'orario ──
   if (!timeStr) return null;
 
-  const candleMins = timeframe === '2min' ? 2 : 1;
+  const candleMins = 1; // solo 1min ora
   const tradeET = (() => {
     const [h, m] = timeStr.split(':').map(Number);
-    return h * 60 + m; // minuti totali dalla mezzanotte ET
+    return h * 60 + m;
   })();
 
-  // Per ogni candela, calcolo l'orario ET e verifico se il trade cade dentro
   let bestCandle: number | null = null;
   let bestDiff = Infinity;
 
   for (const d of data) {
     const candleET = utcMsToETMinutes(d.timestamp, dateStr);
-    // Il trade cade in questa candela se:
-    // candleET <= tradeET < candleET + candleMins
     if (tradeET >= candleET && tradeET < candleET + candleMins) {
-      return d.timestamp; // Match perfetto: il trade e dentro questa candela
+      return d.timestamp;
     }
-    // Traccia la candela piu vicina come fallback
     const diff = Math.abs(candleET - tradeET);
     if (diff < bestDiff) {
       bestDiff = diff;
@@ -223,8 +200,21 @@ function findBestCandleForTime(
     }
   }
 
-  // Fallback: candela piu vicina (in caso di gap, pre/post market, ecc.)
   return bestCandle;
+}
+
+// Trova l'indice della candela piu vicina al timestamp target
+function findCandleIndex(data: { timestamp: number }[], targetTs: number): number {
+  let bestIdx = 0;
+  let bestDiff = Math.abs(data[0].timestamp - targetTs);
+  for (let i = 1; i < data.length; i++) {
+    const diff = Math.abs(data[i].timestamp - targetTs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
 }
 
 // ─── Componente principale ──────────────────────────────────────────
@@ -259,91 +249,11 @@ export function KlineChartComponent({
     registerTradeMarkerOverlay();
   }, []);
 
-  const addTradeMarkers = useCallback((chart: Chart, data: any[]) => {
-    if (!data.length) return;
+  // Ref per timeframe corrente (evita stale closure)
+  const timeframeRef = useRef<Timeframe>(timeframe);
+  timeframeRef.current = timeframe;
 
-    // Entry marker
-    if (trade.entryPrice) {
-      const entryTs = findBestCandleForTime(data, tradeDate, trade.entryTime, timeframe);
-      if (entryTs) {
-        chart.createOverlay({
-          name: 'tradeSignalMarker',
-          points: [{ timestamp: entryTs, value: trade.entryPrice }],
-          extendData: {
-            type: 'entry',
-            direction: trade.direction,
-            pnl: trade.pnl,
-          },
-          lock: true,
-          visible: true,
-        });
-      }
-    }
-
-    // Exit marker
-    if (trade.exitPrice) {
-      const exitTs = findBestCandleForTime(data, tradeDate, trade.exitTime, timeframe);
-      if (exitTs) {
-        chart.createOverlay({
-          name: 'tradeSignalMarker',
-          points: [{ timestamp: exitTs, value: trade.exitPrice }],
-          extendData: {
-            type: 'exit',
-            direction: trade.direction,
-            pnl: trade.pnl,
-          },
-          lock: true,
-          visible: true,
-        });
-      }
-    }
-
-    // Stop Loss line
-    if (trade.stopLoss) {
-      const firstTs = data[0].timestamp;
-      const lastTs = data[data.length - 1].timestamp;
-      chart.createOverlay({
-        name: 'straightLine',
-        points: [
-          { value: trade.stopLoss, timestamp: firstTs },
-          { value: trade.stopLoss, timestamp: lastTs },
-        ],
-        styles: {
-          line: {
-            style: 'dashed' as any,
-            size: 1,
-            color: '#ef4444',
-            dashedValue: [6, 3],
-          },
-        },
-        lock: true,
-      });
-    }
-
-    // Take Profit line
-    if (trade.takeProfit) {
-      const firstTs = data[0].timestamp;
-      const lastTs = data[data.length - 1].timestamp;
-      chart.createOverlay({
-        name: 'straightLine',
-        points: [
-          { value: trade.takeProfit, timestamp: firstTs },
-          { value: trade.takeProfit, timestamp: lastTs },
-        ],
-        styles: {
-          line: {
-            style: 'dashed' as any,
-            size: 1,
-            color: '#22c55e',
-            dashedValue: [6, 3],
-          },
-        },
-        lock: true,
-      });
-    }
-  }, [trade, tradeDate, timeframe]);
-
-  const loadChart = useCallback(async () => {
+  const loadChart = useCallback(async (tf: Timeframe) => {
     if (!containerRef.current) return;
 
     setLoading(true);
@@ -356,7 +266,7 @@ export function KlineChartComponent({
     }
 
     try {
-      const ohlcData = await getOHLCData(ticker, timeframe, tradeDate);
+      const ohlcData = await getOHLCData(ticker, tf, tradeDate);
 
       const usage = getApiUsageInfo();
       setApiInfo({ daily: usage.daily, remaining: usage.remaining });
@@ -487,8 +397,101 @@ export function KlineChartComponent({
       chart.applyNewData(chartData);
       chart.createIndicator('VOL', false);
 
-      // Aggiungi marker entry/exit e linee SL/TP
-      addTradeMarkers(chart, chartData);
+      // ── Aggiungi marker entry/exit e linee SL/TP ──
+      let entryTs: number | null = null;
+
+      if (trade.entryPrice) {
+        entryTs = findBestCandleForTime(chartData, tradeDate, trade.entryTime, tf);
+        if (entryTs) {
+          chart.createOverlay({
+            name: 'tradeSignalMarker',
+            points: [{ timestamp: entryTs, value: trade.entryPrice }],
+            extendData: {
+              type: 'entry',
+              direction: trade.direction,
+              pnl: trade.pnl,
+            },
+            lock: true,
+            visible: true,
+          });
+        }
+      }
+
+      if (trade.exitPrice) {
+        const exitTs = findBestCandleForTime(chartData, tradeDate, trade.exitTime, tf);
+        if (exitTs) {
+          chart.createOverlay({
+            name: 'tradeSignalMarker',
+            points: [{ timestamp: exitTs, value: trade.exitPrice }],
+            extendData: {
+              type: 'exit',
+              direction: trade.direction,
+              pnl: trade.pnl,
+            },
+            lock: true,
+            visible: true,
+          });
+        }
+      }
+
+      if (trade.stopLoss) {
+        const firstTs = chartData[0].timestamp;
+        const lastTs = chartData[chartData.length - 1].timestamp;
+        chart.createOverlay({
+          name: 'straightLine',
+          points: [
+            { value: trade.stopLoss, timestamp: firstTs },
+            { value: trade.stopLoss, timestamp: lastTs },
+          ],
+          styles: {
+            line: { style: 'dashed' as any, size: 1, color: '#ef4444', dashedValue: [6, 3] },
+          },
+          lock: true,
+        });
+      }
+
+      if (trade.takeProfit) {
+        const firstTs = chartData[0].timestamp;
+        const lastTs = chartData[chartData.length - 1].timestamp;
+        chart.createOverlay({
+          name: 'straightLine',
+          points: [
+            { value: trade.takeProfit, timestamp: firstTs },
+            { value: trade.takeProfit, timestamp: lastTs },
+          ],
+          styles: {
+            line: { style: 'dashed' as any, size: 1, color: '#22c55e', dashedValue: [6, 3] },
+          },
+          lock: true,
+        });
+      }
+
+      // ── Auto-scroll: centra la vista sulla candela dell'operazione ──
+      // Per 1min: centra sulla candela di entrata
+      // Per daily: centra sulla data dell'operazione
+      const scrollTargetTs = tf === '1day'
+        ? findBestCandleForTime(chartData, tradeDate, null, '1day')
+        : entryTs;
+
+      if (scrollTargetTs && chartData.length > 0) {
+        const targetIdx = findCandleIndex(chartData, scrollTargetTs);
+        const totalCandles = chartData.length;
+
+        // Calcola quante candele sono visibili (approssimativo)
+        const visibleCount = tf === '1day' ? 40 : 60;
+        const halfVisible = Math.floor(visibleCount / 2);
+
+        // Posiziona in modo che il target sia al centro della vista
+        // scrollToDataIndex posiziona la candela all'indice come prima visibile a sinistra
+        const scrollTo = Math.max(0, Math.min(targetIdx - halfVisible, totalCandles - visibleCount));
+
+        // Usa setTimeout per dare tempo al chart di renderizzare
+        setTimeout(() => {
+          if (chartRef.current) {
+            chartRef.current.scrollToDataIndex?.(scrollTo);
+          }
+        }, 100);
+      }
 
     } catch (err: any) {
       console.error('Chart load error:', err);
@@ -498,10 +501,11 @@ export function KlineChartComponent({
     } finally {
       setLoading(false);
     }
-  }, [ticker, timeframe, tradeDate, isDark, addTradeMarkers]);
+  }, [ticker, tradeDate, isDark, trade]);
 
+  // Carica il chart quando cambia timeframe, ticker, data o tema
   useEffect(() => {
-    loadChart();
+    loadChart(timeframe);
     return () => {
       if (containerRef.current) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -509,7 +513,12 @@ export function KlineChartComponent({
         chartRef.current = null;
       }
     };
-  }, [loadChart]);
+  }, [timeframe, loadChart]);
+
+  const handleTimeframeChange = (tf: Timeframe) => {
+    if (tf === timeframe) return;
+    setTimeframe(tf);
+  };
 
   const handleZoomIn = () => {
     chartRef.current?.zoomAtCoordinate?.(1.2);
@@ -537,13 +546,14 @@ export function KlineChartComponent({
               key={tf.value}
               variant={timeframe === tf.value ? 'default' : 'ghost'}
               size="sm"
+              disabled={loading}
               className={cn(
-                'h-7 px-2 text-xs',
+                'h-7 px-3 text-xs font-medium',
                 timeframe === tf.value
                   ? 'bg-violet-600 hover:bg-violet-700 text-white'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               )}
-              onClick={() => setTimeframe(tf.value)}
+              onClick={() => handleTimeframeChange(tf.value)}
             >
               {tf.label}
             </Button>
@@ -551,14 +561,14 @@ export function KlineChartComponent({
 
           <div className="w-px h-5 bg-gray-200 dark:bg-violet-500/20 mx-1" />
 
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomIn}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomIn} disabled={loading}>
             <ZoomIn className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomOut}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomOut} disabled={loading}>
             <ZoomOut className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={loadChart}>
-            <RefreshCw className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => loadChart(timeframe)} disabled={loading}>
+            <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
           </Button>
         </div>
       </div>
@@ -569,7 +579,9 @@ export function KlineChartComponent({
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-[#161622]/80 z-10">
             <div className="flex items-center gap-2">
               <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Caricamento dati...</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Caricamento {timeframe === '1day' ? 'giornaliero' : '1 minuto'}...
+              </span>
             </div>
           </div>
         )}
@@ -578,7 +590,7 @@ export function KlineChartComponent({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#161622] z-10 px-6">
             <AlertTriangle className="h-8 w-8 text-amber-500 mb-3" />
             <p className="text-sm text-gray-700 dark:text-gray-300 text-center mb-3 max-w-md">{error}</p>
-            <Button variant="outline" size="sm" onClick={loadChart}>
+            <Button variant="outline" size="sm" onClick={() => loadChart(timeframe)}>
               <RefreshCw className="h-3.5 w-3.5 mr-1" />
               Riprova
             </Button>
