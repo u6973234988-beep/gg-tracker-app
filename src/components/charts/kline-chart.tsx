@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { init, dispose, Chart } from 'klinecharts';
-import { getOHLCData, getApiUsageInfo } from '@/lib/twelve-data-service';
-import type { Timeframe } from '@/lib/twelve-data-service';
+import { init, dispose, registerOverlay, Chart } from 'klinecharts';
+import { getOHLCData, getApiUsageInfo } from '@/lib/massive-data-service';
+import type { Timeframe } from '@/lib/massive-data-service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, ZoomIn, ZoomOut, AlertTriangle, Info } from 'lucide-react';
@@ -30,14 +30,204 @@ interface KlineChartProps {
 }
 
 const TIMEFRAMES: { label: string; value: Timeframe }[] = [
-  { label: '1D', value: '1day' },
-  { label: '1h', value: '1h' },
-  { label: '30m', value: '30min' },
-  { label: '15m', value: '15min' },
-  { label: '5m', value: '5min' },
   { label: '1m', value: '1min' },
+  { label: '2m', value: '2min' },
+  { label: '1D', value: '1day' },
 ];
 
+// ─── Registra overlay custom per marker entry/exit ───────────────────
+let overlayRegistered = false;
+
+function registerTradeMarkerOverlay() {
+  if (overlayRegistered) return;
+  overlayRegistered = true;
+
+  registerOverlay({
+    name: 'tradeSignalMarker',
+    totalStep: 2,
+    needDefaultPointFigure: false,
+    needDefaultXAxisFigure: false,
+    needDefaultYAxisFigure: false,
+    createPointFigures: ({ overlay, coordinates }) => {
+      const extData = overlay.extendData;
+      if (!coordinates[0]) return [];
+
+      const x = coordinates[0].x;
+      const y = coordinates[0].y;
+      const isEntry = extData?.type === 'entry';
+      const isLong = extData?.direction === 'LONG';
+      const isProfitable = extData?.pnl >= 0;
+
+      // Colori
+      let bgColor: string;
+      let label: string;
+      if (isEntry) {
+        bgColor = isLong ? '#16a34a' : '#dc2626';
+        label = isLong ? 'LONG' : 'SHORT';
+      } else {
+        bgColor = isProfitable ? '#16a34a' : '#dc2626';
+        label = 'EXIT';
+      }
+
+      // Direzione freccia: per SHORT entry la freccia punta giu (dall'alto), per LONG entry punta su (dal basso)
+      const arrowPointsUp = isEntry ? isLong : !isProfitable;
+      const arrowOffset = arrowPointsUp ? 14 : -14;
+      const textOffset = arrowPointsUp ? 28 : -28;
+
+      const figures: any[] = [
+        // Freccia triangolare
+        {
+          type: 'polygon',
+          attrs: {
+            coordinates: arrowPointsUp
+              ? [
+                  { x: x - 6, y: y - arrowOffset + 8 },
+                  { x: x + 6, y: y - arrowOffset + 8 },
+                  { x, y: y - arrowOffset - 2 },
+                ]
+              : [
+                  { x: x - 6, y: y - arrowOffset - 8 },
+                  { x: x + 6, y: y - arrowOffset - 8 },
+                  { x, y: y - arrowOffset + 2 },
+                ],
+          },
+          styles: { color: bgColor },
+        },
+        // Label con testo
+        {
+          type: 'text',
+          attrs: {
+            x: x,
+            y: y - textOffset,
+            text: label,
+            align: 'center',
+            baseline: 'middle',
+          },
+          styles: {
+            color: '#ffffff',
+            size: 10,
+            weight: 'bold',
+            paddingLeft: 4,
+            paddingRight: 4,
+            paddingTop: 2,
+            paddingBottom: 2,
+            borderRadius: 3,
+            backgroundColor: bgColor,
+            borderSize: 0,
+          },
+        },
+      ];
+
+      return figures;
+    },
+  });
+}
+
+// ─── Conversione orario mercato (ET) → UTC ms ──────────────────────
+// Polygon.io: timestamp `t` = Unix ms UTC, candele allineate in Eastern Time.
+// TradeZero + import manuale: orari in ET (orario reale mercato US).
+//
+// Approccio: calcolo offset ET dinamico via Intl (gestisce EST/EDT automaticamente),
+// poi cerco tra le candele reali ricevute dall'API quella che contiene il trade.
+// Questo funziona da qualsiasi timezone del browser (Italia, Giappone, ovunque).
+
+function getETOffsetHours(dateStr: string): number {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  // Probe a mezzogiorno UTC: sempre stesso giorno calendario in ET
+  const probeUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(probeUtc);
+  const etHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '12');
+  // EDT (estate): noon UTC = 8 AM ET → offset = 8-12 = -4
+  // EST (inverno): noon UTC = 7 AM ET → offset = 7-12 = -5
+  return etHour - 12;
+}
+
+function etToUnixMs(dateStr: string, timeStr: string): number {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const offsetHours = getETOffsetHours(dateStr);
+  // ET → UTC: sottrai l'offset (offset e negativo, quindi aggiunge ore)
+  return Date.UTC(year, month - 1, day, hours - offsetHours, minutes, 0, 0);
+}
+
+// Converte un timestamp UTC in ore:minuti ET (per comparare con le candele)
+function utcMsToETMinutes(ms: number, dateStr: string): number {
+  const offsetHours = getETOffsetHours(dateStr);
+  const d = new Date(ms);
+  // Ore e minuti in UTC, poi aggiungi offset per ottenere ET
+  const utcH = d.getUTCHours();
+  const utcM = d.getUTCMinutes();
+  return (utcH + offsetHours) * 60 + utcM;
+}
+
+// Trova la candela che CONTIENE il momento del trade.
+// Per 1min: candela 09:31 contiene trade 09:31:xx
+// Per 2min: candela 09:30 contiene trade 09:30:00-09:31:59
+// Per daily: candela del giorno del trade
+function findBestCandleForTime(
+  data: { timestamp: number }[],
+  dateStr: string,
+  timeStr: string | null | undefined,
+  timeframe: Timeframe
+): number | null {
+  if (!data.length) return null;
+
+  // ── Daily: cerca la candela del giorno del trade ──
+  if (timeframe === '1day') {
+    const targetMidnight = etToUnixMs(dateStr, '00:00');
+    // Match esatto
+    const exact = data.find((d) => d.timestamp === targetMidnight);
+    if (exact) return exact.timestamp;
+    // Fallback: candela piu vicina (entro 48h per gestire weekend/holiday)
+    let best = data[0].timestamp;
+    let bestDiff = Math.abs(data[0].timestamp - targetMidnight);
+    for (const d of data) {
+      const diff = Math.abs(d.timestamp - targetMidnight);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = d.timestamp;
+      }
+    }
+    return best;
+  }
+
+  // ── Intraday: serve l'orario ──
+  if (!timeStr) return null;
+
+  const candleMins = timeframe === '2min' ? 2 : 1;
+  const tradeET = (() => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m; // minuti totali dalla mezzanotte ET
+  })();
+
+  // Per ogni candela, calcolo l'orario ET e verifico se il trade cade dentro
+  let bestCandle: number | null = null;
+  let bestDiff = Infinity;
+
+  for (const d of data) {
+    const candleET = utcMsToETMinutes(d.timestamp, dateStr);
+    // Il trade cade in questa candela se:
+    // candleET <= tradeET < candleET + candleMins
+    if (tradeET >= candleET && tradeET < candleET + candleMins) {
+      return d.timestamp; // Match perfetto: il trade e dentro questa candela
+    }
+    // Traccia la candela piu vicina come fallback
+    const diff = Math.abs(candleET - tradeET);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestCandle = d.timestamp;
+    }
+  }
+
+  // Fallback: candela piu vicina (in caso di gap, pre/post market, ecc.)
+  return bestCandle;
+}
+
+// ─── Componente principale ──────────────────────────────────────────
 export function KlineChartComponent({
   ticker,
   tradeDate,
@@ -47,7 +237,7 @@ export function KlineChartComponent({
 }: KlineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
-  const [timeframe, setTimeframe] = useState<Timeframe>('1day');
+  const [timeframe, setTimeframe] = useState<Timeframe>('1min');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
@@ -64,56 +254,54 @@ export function KlineChartComponent({
     return () => observer.disconnect();
   }, []);
 
-  const addOverlays = useCallback((chart: Chart, data: any[]) => {
+  // Registra overlay al mount
+  useEffect(() => {
+    registerTradeMarkerOverlay();
+  }, []);
+
+  const addTradeMarkers = useCallback((chart: Chart, data: any[]) => {
     if (!data.length) return;
 
-    const firstTs = data[0].timestamp;
-    const lastTs = data[data.length - 1].timestamp;
-
-    // Entry price line (verde = LONG, rossa = SHORT)
+    // Entry marker
     if (trade.entryPrice) {
-      const isLong = trade.direction === 'LONG';
-      chart.createOverlay({
-        name: 'straightLine',
-        points: [
-          { value: trade.entryPrice, timestamp: firstTs },
-          { value: trade.entryPrice, timestamp: lastTs },
-        ],
-        styles: {
-          line: {
-            style: 'dashed' as any,
-            size: 1.5,
-            color: isLong ? '#22c55e' : '#ef4444',
-            dashedValue: [4, 4],
+      const entryTs = findBestCandleForTime(data, tradeDate, trade.entryTime, timeframe);
+      if (entryTs) {
+        chart.createOverlay({
+          name: 'tradeSignalMarker',
+          points: [{ timestamp: entryTs, value: trade.entryPrice }],
+          extendData: {
+            type: 'entry',
+            direction: trade.direction,
+            pnl: trade.pnl,
           },
-        },
-        lock: true,
-      });
+          lock: true,
+          visible: true,
+        });
+      }
     }
 
-    // Exit price line
+    // Exit marker
     if (trade.exitPrice) {
-      const isProfitable = (trade.pnl || 0) >= 0;
-      chart.createOverlay({
-        name: 'straightLine',
-        points: [
-          { value: trade.exitPrice, timestamp: firstTs },
-          { value: trade.exitPrice, timestamp: lastTs },
-        ],
-        styles: {
-          line: {
-            style: 'dashed' as any,
-            size: 1.5,
-            color: isProfitable ? '#22c55e' : '#ef4444',
-            dashedValue: [2, 3],
+      const exitTs = findBestCandleForTime(data, tradeDate, trade.exitTime, timeframe);
+      if (exitTs) {
+        chart.createOverlay({
+          name: 'tradeSignalMarker',
+          points: [{ timestamp: exitTs, value: trade.exitPrice }],
+          extendData: {
+            type: 'exit',
+            direction: trade.direction,
+            pnl: trade.pnl,
           },
-        },
-        lock: true,
-      });
+          lock: true,
+          visible: true,
+        });
+      }
     }
 
-    // Stop loss line
+    // Stop Loss line
     if (trade.stopLoss) {
+      const firstTs = data[0].timestamp;
+      const lastTs = data[data.length - 1].timestamp;
       chart.createOverlay({
         name: 'straightLine',
         points: [
@@ -132,8 +320,10 @@ export function KlineChartComponent({
       });
     }
 
-    // Take profit line
+    // Take Profit line
     if (trade.takeProfit) {
+      const firstTs = data[0].timestamp;
+      const lastTs = data[data.length - 1].timestamp;
       chart.createOverlay({
         name: 'straightLine',
         points: [
@@ -151,7 +341,7 @@ export function KlineChartComponent({
         lock: true,
       });
     }
-  }, [trade]);
+  }, [trade, tradeDate, timeframe]);
 
   const loadChart = useCallback(async () => {
     if (!containerRef.current) return;
@@ -159,17 +349,15 @@ export function KlineChartComponent({
     setLoading(true);
     setError(null);
 
-    // Dispose previous chart instance
+    // Dispose previous chart
     if (chartRef.current) {
       dispose(containerRef.current);
       chartRef.current = null;
     }
 
     try {
-      // Fetch dati reali da Twelve Data
       const ohlcData = await getOHLCData(ticker, timeframe, tradeDate);
 
-      // Aggiorna contatore API
       const usage = getApiUsageInfo();
       setApiInfo({ daily: usage.daily, remaining: usage.remaining });
 
@@ -179,7 +367,6 @@ export function KlineChartComponent({
         return;
       }
 
-      // Formato KlineCharts v9: { timestamp, open, high, low, close, volume }
       const chartData = ohlcData.map((d) => ({
         timestamp: d.timestamp,
         open: d.open,
@@ -189,14 +376,13 @@ export function KlineChartComponent({
         volume: d.volume,
       }));
 
-      // Colori in base al tema
+      // Colori tema
       const bgColor = isDark ? '#161622' : '#ffffff';
       const gridColor = isDark ? 'rgba(139, 92, 246, 0.06)' : 'rgba(0, 0, 0, 0.04)';
       const textColor = isDark ? '#9ca3af' : '#6b7280';
       const crosshairColor = isDark ? 'rgba(139, 92, 246, 0.3)' : 'rgba(0, 0, 0, 0.1)';
       const axisLineColor = isDark ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0, 0, 0, 0.08)';
 
-      // Init chart - KlineCharts v9 API
       const chart = init(containerRef.current, {
         styles: {
           grid: {
@@ -294,30 +480,25 @@ export function KlineChartComponent({
 
       chartRef.current = chart;
 
-      // Background
       if (containerRef.current) {
         containerRef.current.style.backgroundColor = bgColor;
       }
 
-      // KlineCharts v9: carica dati con applyNewData
       chart.applyNewData(chartData);
-
-      // Aggiungi indicatore Volume in un pannello separato sotto il grafico
       chart.createIndicator('VOL', false);
 
-      // Aggiungi overlay per entrata/uscita/SL/TP
-      addOverlays(chart, chartData);
+      // Aggiungi marker entry/exit e linee SL/TP
+      addTradeMarkers(chart, chartData);
 
     } catch (err: any) {
       console.error('Chart load error:', err);
       setError(err.message || 'Errore nel caricamento del grafico');
-      // Aggiorna info API anche in errore
       const usage = getApiUsageInfo();
       setApiInfo({ daily: usage.daily, remaining: usage.remaining });
     } finally {
       setLoading(false);
     }
-  }, [ticker, timeframe, tradeDate, isDark, addOverlays]);
+  }, [ticker, timeframe, tradeDate, isDark, addTradeMarkers]);
 
   useEffect(() => {
     loadChart();
@@ -337,6 +518,9 @@ export function KlineChartComponent({
   const handleZoomOut = () => {
     chartRef.current?.zoomAtCoordinate?.(0.8);
   };
+
+  const isLong = trade.direction === 'LONG';
+  const isProfitable = (trade.pnl || 0) >= 0;
 
   return (
     <div className={cn('rounded-lg overflow-hidden border border-gray-200 dark:border-violet-500/20', className)}>
@@ -404,17 +588,33 @@ export function KlineChartComponent({
         <div ref={containerRef} className="w-full h-full" />
       </div>
 
-      {/* Legend + API usage */}
+      {/* Legend */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-[#1e1e30] border-t border-gray-200 dark:border-violet-500/20 text-xs">
         <div className="flex items-center gap-4">
+          {/* Entry */}
           <div className="flex items-center gap-1.5">
-            <div className="w-4 h-0 border-t-2 border-dashed border-emerald-500" />
-            <span className="text-gray-600 dark:text-gray-400">Entrata {trade.entryPrice?.toFixed(2)}</span>
+            <div className={cn(
+              'w-3 h-3 rounded-sm text-[8px] font-bold text-white flex items-center justify-center',
+              isLong ? 'bg-green-600' : 'bg-red-600'
+            )}>
+              {isLong ? 'L' : 'S'}
+            </div>
+            <span className="text-gray-600 dark:text-gray-400">
+              Entrata {trade.entryPrice?.toFixed(2)}
+            </span>
           </div>
+          {/* Exit */}
           {trade.exitPrice && (
             <div className="flex items-center gap-1.5">
-              <div className="w-4 h-0 border-t-2 border-dashed" style={{ borderColor: (trade.pnl || 0) >= 0 ? '#22c55e' : '#ef4444' }} />
-              <span className="text-gray-600 dark:text-gray-400">Uscita {trade.exitPrice?.toFixed(2)}</span>
+              <div className={cn(
+                'w-3 h-3 rounded-sm text-[8px] font-bold text-white flex items-center justify-center',
+                isProfitable ? 'bg-green-600' : 'bg-red-600'
+              )}>
+                E
+              </div>
+              <span className="text-gray-600 dark:text-gray-400">
+                Uscita {trade.exitPrice?.toFixed(2)}
+              </span>
             </div>
           )}
           {trade.stopLoss && (

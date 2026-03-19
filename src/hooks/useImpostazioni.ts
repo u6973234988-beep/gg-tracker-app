@@ -154,10 +154,13 @@ export function useImpostazioni(): UseImpostazioniReturn {
           const prezzoEntrata = safeNum(op.prezzo_entrata) ?? 0;
           const commissione = safeNum(op.commissione) ?? 0;
 
-          // Calcola PnL se abbiamo prezzo di uscita
-          let pnl: number | null = null;
-          let pnlPercentuale: number | null = null;
-          if (prezzoUscita !== null && prezzoUscita > 0) {
+          // Usa PnL dal parser se disponibile (calcolato correttamente dal broker's Net Proceeds)
+          // Altrimenti ricalcola solo per formati che non forniscono PnL
+          let pnl: number | null = safeNum(op.pnl);
+          let pnlPercentuale: number | null = safeNum(op.pnl_percentuale);
+
+          // Ricalcola solo se il parser non ha fornito un PnL e abbiamo prezzo di uscita
+          if (pnl === null && prezzoUscita !== null && prezzoUscita > 0) {
             const dir = op.direzione === 'LONG' ? 1 : -1;
             const pnlLordo = (prezzoUscita - prezzoEntrata) * quantita * dir;
             pnl = pnlLordo - commissione;
@@ -179,6 +182,8 @@ export function useImpostazioni(): UseImpostazioniReturn {
             note: op.note ? String(op.note) : null,
             pnl: pnl,
             pnl_percentuale: pnlPercentuale,
+            ora_entrata: op.ora_entrata ? String(op.ora_entrata) : null,
+            ora_uscita: op.ora_uscita ? String(op.ora_uscita) : null,
           };
         });
 

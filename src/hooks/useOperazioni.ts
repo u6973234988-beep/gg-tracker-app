@@ -29,6 +29,7 @@ export interface UseOperazioniReturn {
   setFiltri: (filtri: FiltriOperazioni) => void;
   resetFiltri: () => void;
   aggiungiOperazione: (operazione: Database['public']['Tables']['operazioni']['Insert']) => Promise<void>;
+  importaOperazioniCSV: (operazioni: Database['public']['Tables']['operazioni']['Insert'][]) => Promise<{ importati: number; duplicati: number }>;
   modificaOperazione: (id: string, updates: Database['public']['Tables']['operazioni']['Update']) => Promise<void>;
   eliminaOperazione: (id: string) => Promise<void>;
 }
@@ -158,6 +159,71 @@ export function useOperazioni(): UseOperazioniReturn {
     [fetchOperazioni]
   );
 
+  const importaOperazioniCSV = useCallback(
+    async (operazioniCSV: Database['public']['Tables']['operazioni']['Insert'][]): Promise<{ importati: number; duplicati: number }> => {
+      const supabase = createClient();
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        toast.error('Sessione non trovata');
+        return { importati: 0, duplicati: 0 };
+      }
+
+      const userId = session.user.id;
+
+      // Recupera operazioni esistenti dell'utente per check duplicati
+      const { data: esistenti } = await (supabase as any)
+        .from('operazioni')
+        .select('ticker, data, direzione, quantita, prezzo_entrata')
+        .eq('utente_id', userId);
+
+      const esistentiSet = new Set(
+        (esistenti || []).map((op: any) =>
+          `${op.ticker}|${op.data}|${op.direzione}|${op.quantita}|${op.prezzo_entrata}`
+        )
+      );
+
+      const nuove: Database['public']['Tables']['operazioni']['Insert'][] = [];
+      let duplicati = 0;
+
+      for (const op of operazioniCSV) {
+        const chiave = `${op.ticker}|${op.data}|${op.direzione}|${op.quantita}|${op.prezzo_entrata}`;
+        if (esistentiSet.has(chiave)) {
+          duplicati++;
+        } else {
+          nuove.push({ ...op, utente_id: userId });
+          esistentiSet.add(chiave); // Evita duplicati anche dentro lo stesso batch
+        }
+      }
+
+      if (nuove.length > 0) {
+        const { error } = await (supabase as any)
+          .from('operazioni')
+          .insert(nuove);
+
+        if (error) {
+          toast.error('Errore nell\'importazione');
+          console.error('Supabase error:', JSON.stringify(error, null, 2));
+          return { importati: 0, duplicati };
+        }
+      }
+
+      if (duplicati > 0) {
+        toast.info(`${nuove.length} operazioni importate, ${duplicati} duplicati saltati`);
+      } else {
+        toast.success(`${nuove.length} operazioni importate con successo`);
+      }
+
+      await fetchOperazioni();
+      return { importati: nuove.length, duplicati };
+    },
+    [fetchOperazioni]
+  );
+
   const modificaOperazione = useCallback(
     async (id: string, updates: Database['public']['Tables']['operazioni']['Update']) => {
       try {
@@ -216,6 +282,7 @@ export function useOperazioni(): UseOperazioniReturn {
     setFiltri,
     resetFiltri: () => setFiltri({}),
     aggiungiOperazione,
+    importaOperazioniCSV,
     modificaOperazione,
     eliminaOperazione,
   };

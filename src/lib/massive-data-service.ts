@@ -1,20 +1,17 @@
 /**
- * Twelve Data Market Data Service
+ * Massive (ex Polygon.io) Market Data Service
  *
- * Free tier limits:
- * - 8 API calls per minute
- * - 800 calls per day
- * - Max 5000 data points per request
- * - 1min data available from Feb 10, 2020
+ * API: https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}
  *
- * Rate limiting conservativo per sviluppo:
- * - Min 10s tra richieste
- * - Cache 24h per evitare chiamate ripetute
- * - Counter giornaliero per non superare 800/day
+ * Rate limiting (free tier):
+ * - 5 API calls per minute
+ * - Max 50000 data points per request
+ *
+ * Cache 24h per evitare chiamate ripetute.
  */
 
-const TWELVE_DATA_API_KEY = '7500a6baac884aa3a18f820fa0add6b8';
-const BASE_URL = 'https://api.twelvedata.com';
+const MASSIVE_API_KEY = process.env.NEXT_PUBLIC_MASSIVE_API_KEY || '';
+const BASE_URL = 'https://api.polygon.io/v2/aggs/ticker';
 
 // ─── Types ───────────────────────────────────────────────────────────
 export interface OHLCData {
@@ -26,18 +23,18 @@ export interface OHLCData {
   volume: number;
 }
 
-export type Timeframe = '1min' | '5min' | '15min' | '30min' | '1h' | '1day';
+export type Timeframe = '1min' | '2min' | '1day';
 
 // ─── Cache ───────────────────────────────────────────────────────────
 const dataCache: Record<string, { data: OHLCData[]; fetchedAt: number }> = {};
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 ore
 
-// ─── Rate Limiting (conservativo per sviluppo) ───────────────────────
+// ─── Rate Limiting ───────────────────────────────────────────────────
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 10_000; // 10 secondi tra richieste (ben sotto 8/min)
+const MIN_REQUEST_INTERVAL = 13_000; // 13s tra richieste (5/min free tier)
 let dailyRequestCount = 0;
 let dailyResetDate = new Date().toDateString();
-const MAX_DAILY_REQUESTS = 600; // Margine sicuro sotto 800
+const MAX_DAILY_REQUESTS = 400;
 
 function resetDailyCounterIfNeeded() {
   const today = new Date().toDateString();
@@ -52,8 +49,7 @@ async function waitForRateLimit(): Promise<void> {
 
   if (dailyRequestCount >= MAX_DAILY_REQUESTS) {
     throw new Error(
-      `Limite giornaliero raggiunto (${MAX_DAILY_REQUESTS} richieste). ` +
-      `Le richieste si resettano a mezzanotte UTC. Riprova domani.`
+      `Limite giornaliero raggiunto (${MAX_DAILY_REQUESTS} richieste). Riprova domani.`
     );
   }
 
@@ -71,17 +67,13 @@ function getCacheKey(ticker: string, timeframe: Timeframe, dateRange: string): s
   return `${ticker}_${timeframe}_${dateRange}`;
 }
 
-// ─── Twelve Data interval mapping ────────────────────────────────────
-function getInterval(tf: Timeframe): string {
-  const map: Record<Timeframe, string> = {
-    '1min': '1min',
-    '5min': '5min',
-    '15min': '15min',
-    '30min': '30min',
-    '1h': '1h',
-    '1day': '1day',
-  };
-  return map[tf];
+// ─── Timeframe to Polygon params ─────────────────────────────────────
+function getPolygonParams(tf: Timeframe): { multiplier: number; timespan: string } {
+  switch (tf) {
+    case '1min': return { multiplier: 1, timespan: 'minute' };
+    case '2min': return { multiplier: 2, timespan: 'minute' };
+    case '1day': return { multiplier: 1, timespan: 'day' };
+  }
 }
 
 // ─── Date range calc ────────────────────────────────────────────────
@@ -89,12 +81,10 @@ function getDateRange(tradeDate: string | undefined, timeframe: Timeframe): { st
   const target = tradeDate ? new Date(tradeDate + 'T12:00:00') : new Date();
 
   if (timeframe === '1day') {
-    // Per daily: ±60 giorni dalla data dell'operazione
     const start = new Date(target);
     start.setDate(start.getDate() - 60);
     const end = new Date(target);
     end.setDate(end.getDate() + 30);
-    // Non andare oltre oggi
     const today = new Date();
     if (end > today) end.setTime(today.getTime());
     return {
@@ -103,11 +93,8 @@ function getDateRange(tradeDate: string | undefined, timeframe: Timeframe): { st
     };
   } else {
     // Per intraday: giorno esatto dell'operazione
-    // start = inizio giornata, end = fine giornata
-    return {
-      start: `${tradeDate || formatDate(target)} 00:00:00`,
-      end: `${tradeDate || formatDate(target)} 23:59:59`,
-    };
+    const dateStr = tradeDate || formatDate(target);
+    return { start: dateStr, end: dateStr };
   }
 }
 
@@ -121,18 +108,21 @@ export async function getOHLCData(
   timeframe: Timeframe = '1day',
   tradeDate?: string
 ): Promise<OHLCData[]> {
-  // Pulisci il ticker (rimuovi spazi, uppercase)
   const cleanTicker = ticker.trim().toUpperCase();
 
   if (!cleanTicker) {
     throw new Error('Ticker non specificato. Inserisci un simbolo valido (es. AAPL, MSFT).');
   }
 
+  if (!MASSIVE_API_KEY) {
+    throw new Error('API key Massive non configurata. Aggiungi NEXT_PUBLIC_MASSIVE_API_KEY in .env.local');
+  }
+
   // Calcola date range
   const { start, end } = getDateRange(tradeDate, timeframe);
   const cacheKey = getCacheKey(cleanTicker, timeframe, `${start}_${end}`);
 
-  // Check cache prima
+  // Check cache
   const cached = dataCache[cacheKey];
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
     if (cached.data.length === 0) {
@@ -146,19 +136,9 @@ export async function getOHLCData(
   // Rate limit
   await waitForRateLimit();
 
-  // Costruisci URL
-  const interval = getInterval(timeframe);
-  const params = new URLSearchParams({
-    symbol: cleanTicker,
-    interval,
-    start_date: start,
-    end_date: end,
-    outputsize: '5000',
-    order: 'ASC', // Ordine cronologico
-    apikey: TWELVE_DATA_API_KEY,
-  });
-
-  const url = `${BASE_URL}/time_series?${params.toString()}`;
+  // Build URL: /v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}
+  const { multiplier, timespan } = getPolygonParams(timeframe);
+  const url = `${BASE_URL}/${cleanTicker}/range/${multiplier}/${timespan}/${start}/${end}?adjusted=true&sort=asc&limit=50000&apiKey=${MASSIVE_API_KEY}`;
 
   // Fetch
   let response: Response;
@@ -166,65 +146,41 @@ export async function getOHLCData(
     response = await fetch(url);
   } catch {
     throw new Error(
-      'Errore di connessione: impossibile raggiungere Twelve Data. Controlla la connessione internet.'
+      'Errore di connessione: impossibile raggiungere Massive API. Controlla la connessione internet.'
     );
   }
 
   if (!response.ok) {
-    throw new Error(
-      `Errore API Twelve Data (HTTP ${response.status}). Riprova tra qualche secondo.`
-    );
+    const status = response.status;
+    if (status === 403) {
+      throw new Error('API key Massive non valida o scaduta. Verifica la chiave in .env.local');
+    }
+    if (status === 429) {
+      throw new Error('Limite API raggiunto. Riprova tra qualche minuto.');
+    }
+    if (status === 404) {
+      throw new Error(`Ticker "${cleanTicker}" non trovato su Massive/Polygon.io.`);
+    }
+    throw new Error(`Errore API Massive (HTTP ${status}). Riprova tra qualche secondo.`);
   }
 
   const json = await response.json();
 
-  // ─── Gestione errori API ─────────────────────────────────────────
-  if (json.status === 'error') {
-    const code = json.code || 0;
-    const msg = json.message || '';
-
-    // Errore: ticker non trovato
-    if (code === 400 || msg.includes('not found') || msg.includes('not available')) {
-      throw new Error(
-        `Ticker "${cleanTicker}" non trovato su Twelve Data. ` +
-        `Verifica che il simbolo sia corretto (es. AAPL, MSFT, EURUSD).`
-      );
-    }
-
-    // Errore: rate limit
-    if (code === 429 || msg.includes('exceeded') || msg.includes('limit')) {
-      throw new Error(
-        `Limite API raggiunto. Con il piano gratuito hai 8 richieste al minuto e 800 al giorno. ` +
-        `Riprova tra qualche minuto.`
-      );
-    }
-
-    // Errore: endpoint premium
-    if (msg.includes('premium') || msg.includes('upgrade') || msg.includes('subscription')) {
-      throw new Error(
-        `Questo tipo di dati richiede un piano premium su Twelve Data. ` +
-        `Prova con il timeframe "1D" (giornaliero) che e disponibile nel piano gratuito.`
-      );
-    }
-
-    // Errore generico
-    throw new Error(
-      `Errore Twelve Data: ${msg || 'errore sconosciuto'}. Codice: ${code}`
-    );
+  // Check API status
+  if (json.status === 'ERROR' || json.status === 'NOT_FOUND') {
+    throw new Error(`Errore Massive: ${json.message || json.error || 'ticker non trovato'}`);
   }
 
-  // ─── Parse dei dati ─────────────────────────────────────────────
-  const values = json.values;
+  // Parse results
+  const results = json.results;
 
-  if (!values || !Array.isArray(values) || values.length === 0) {
-    // Cache anche il risultato vuoto per evitare chiamate ripetute
+  if (!results || !Array.isArray(results) || results.length === 0) {
     dataCache[cacheKey] = { data: [], fetchedAt: Date.now() };
 
     if (timeframe !== '1day') {
       throw new Error(
         `Nessun dato intraday (${timeframe}) trovato per "${cleanTicker}" nella data ${tradeDate || 'selezionata'}. ` +
-        `Possibili cause: mercato chiuso in quella data, ticker non supporta intraday, ` +
-        `o dati non disponibili (il piano gratuito ha dati 1min dal 10 Feb 2020). ` +
+        `Possibili cause: mercato chiuso, ticker non supportato per intraday, o dati non disponibili. ` +
         `Prova con il timeframe "1D" (giornaliero).`
       );
     }
@@ -235,14 +191,14 @@ export async function getOHLCData(
     );
   }
 
-  // Converti in formato OHLCData
-  const ohlcData: OHLCData[] = values.map((v: any) => ({
-    timestamp: new Date(v.datetime).getTime(),
-    open: parseFloat(v.open),
-    high: parseFloat(v.high),
-    low: parseFloat(v.low),
-    close: parseFloat(v.close),
-    volume: parseInt(v.volume || '0', 10),
+  // Converti: Polygon {o,h,l,c,v,t} -> OHLCData {open,high,low,close,volume,timestamp}
+  const ohlcData: OHLCData[] = results.map((r: any) => ({
+    timestamp: r.t,  // gia in millisecondi Unix
+    open: r.o,
+    high: r.h,
+    low: r.l,
+    close: r.c,
+    volume: r.v || 0,
   }));
 
   // Salva in cache

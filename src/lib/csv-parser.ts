@@ -222,8 +222,20 @@ function convertTo24HourFormat(timeString: string, ampm: string): string {
 }
 
 /**
- * Effettua il parsing di un CSV nel formato TradeZero con supporto completo
- * Richiede header: T/D, Side, Symbol, Qty, Price, Exec Time, Comm, Net Proceeds
+ * Effettua il parsing di un CSV nel formato TradeZero con supporto completo.
+ *
+ * Algoritmo: Position Tracking
+ * - Processa le esecuzioni cronologicamente per ticker/data
+ * - Traccia la posizione aperta (SS/B aprono, BC/S chiudono)
+ * - Quando la posizione torna a 0, emette un trade completato
+ * - Gestisce: multi-leg, scale-in, partial close, re-entry, round trip multipli
+ * - Supporta sia SHORT (SS/BC) che LONG (B/S)
+ *
+ * Side codes TradeZero:
+ *   SS = Short Sell (apri short)    → posizione scende (negativa)
+ *   BC = Buy to Cover (chiudi short) → posizione sale verso 0
+ *   B  = Buy (apri long)            → posizione sale (positiva)
+ *   S  = Sell (chiudi long)         → posizione scende verso 0
  */
 function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
   if (rows.length < 2) {
@@ -245,34 +257,42 @@ function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
   const requiredHeaders = ['T/D', 'Side', 'Symbol', 'Qty', 'Price', 'Exec Time', 'Comm', 'Net Proceeds'];
   const missingHeaders = requiredHeaders.filter((header) => !(header in headerIndexMap));
 
+  // Indici opzionali per fee aggiuntive (per calcolo commissione totale reale)
+  const secIdx = headerIndexMap['SEC'] ?? -1;
+  const tafIdx = headerIndexMap['TAF'] ?? -1;
+  const nsccIdx = headerIndexMap['NSCC'] ?? -1;
+  const nasdaqIdx = headerIndexMap['Nasdaq'] ?? -1;
+  const ecnRemoveIdx = headerIndexMap['ECN Remove'] ?? -1;
+  const ecnAddIdx = headerIndexMap['ECN Add'] ?? -1;
+
   if (missingHeaders.length > 0) {
     console.error(`Intestazioni mancanti nel file TradeZero: ${missingHeaders.join(', ')}`);
     throw new Error(`Formato TradeZero non valido. Intestazioni mancanti: ${missingHeaders.join(', ')}`);
   }
 
-  // Raccogli tutti i trades individuali prima del consolidamento
-  const allTrades: Array<{
+  // Tipo per singola esecuzione grezza
+  interface RawExecution {
     data: string;
     ticker: string;
-    direzione: 'LONG' | 'SHORT';
+    side: string; // SS, BC, B, S
     quantita: number;
     prezzo: number;
     ora: string;
     commissione: number;
-    pnl: number;
+    netProceeds: number;
     timestamp: number;
-  }> = [];
+  }
+
+  // Step 1: Parsa tutte le righe in esecuzioni grezze
+  const allExecutions: RawExecution[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length === 0) continue;
 
-    // Le righe sono già pre-parsate dalla funzione parseCSV principale
-    // Non serve ri-unire e ri-parsare (causerebbe errori di conteggio colonne)
     const values = row;
 
     if (values.length !== headers.length) {
-      // Tolleranza: se la riga ha meno valori, riempi con stringhe vuote
       if (values.length < headers.length) {
         while (values.length < headers.length) {
           values.push('');
@@ -285,9 +305,8 @@ function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
       }
     }
 
-    // Estrai i valori rilevanti
     const tradeDate = values[headerIndexMap['T/D']]?.trim() || '';
-    const side = values[headerIndexMap['Side']]?.trim() || '';
+    const side = values[headerIndexMap['Side']]?.trim().toUpperCase() || '';
     const symbol = values[headerIndexMap['Symbol']]?.trim() || '';
     const quantity = values[headerIndexMap['Qty']]?.trim() || '0';
     const price = values[headerIndexMap['Price']]?.trim() || '0';
@@ -309,19 +328,20 @@ function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
       console.error(`Errore nel parsing della data: ${tradeDate}`, e);
     }
 
-    // Normalizza la direzione (BC=LONG, SS=SHORT)
-    const direction = side.toUpperCase() === 'BC' ? 'LONG' : 'SHORT';
-
-    // Normalizza la quantità
     const parsedQuantity = Math.abs(parseFloat(quantity.replace(/[^\d.-]/g, '')) || 0);
-
-    // Normalizza il prezzo
     const parsedPrice = parseFloat(price.replace(/[^\d.-]/g, '')) || 0;
+    // Calcola commissione totale reale: Comm + SEC + TAF + NSCC + Nasdaq + |ECN Remove| + |ECN Add|
+    const parsedComm = Math.abs(parseFloat(commission.replace(/[^\d.-]/g, '')) || 0);
+    const parsedSEC = secIdx >= 0 ? Math.abs(parseFloat(values[secIdx]?.replace(/[^\d.-]/g, '') || '0') || 0) : 0;
+    const parsedTAF = tafIdx >= 0 ? Math.abs(parseFloat(values[tafIdx]?.replace(/[^\d.-]/g, '') || '0') || 0) : 0;
+    const parsedNSCC = nsccIdx >= 0 ? Math.abs(parseFloat(values[nsccIdx]?.replace(/[^\d.-]/g, '') || '0') || 0) : 0;
+    const parsedNasdaq = nasdaqIdx >= 0 ? Math.abs(parseFloat(values[nasdaqIdx]?.replace(/[^\d.-]/g, '') || '0') || 0) : 0;
+    const parsedECNRemove = ecnRemoveIdx >= 0 ? Math.abs(parseFloat(values[ecnRemoveIdx]?.replace(/[^\d.-]/g, '') || '0') || 0) : 0;
+    const parsedECNAdd = ecnAddIdx >= 0 ? Math.abs(parseFloat(values[ecnAddIdx]?.replace(/[^\d.-]/g, '') || '0') || 0) : 0;
+    const parsedCommission = parsedComm + parsedSEC + parsedTAF + parsedNSCC + parsedNasdaq + parsedECNRemove + parsedECNAdd;
+    const parsedNetProceeds = parseFloat(netProceeds.replace(/[^\d.-]/g, '')) || 0;
 
-    // Normalizza la commissione
-    const parsedCommission = Math.abs(parseFloat(commission.replace(/[^\d.-]/g, '')) || 0);
-
-    // Estrai l'ora dall'Exec Time (formato HH:MM:SS AM/PM o MM/DD/YYYY HH:MM:SS AM/PM)
+    // Estrai l'ora dall'Exec Time
     let time = '00:00';
     let timestamp = 0;
     try {
@@ -330,21 +350,16 @@ function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
       let ampm = '';
 
       if (timeParts[0].includes('/')) {
-        // Formato con data: MM/DD/YYYY HH:MM:SS AM/PM
         timeString = timeParts[1] || '';
         ampm = timeParts[2] || '';
       } else {
-        // Formato solo ora: HH:MM:SS AM/PM
         timeString = timeParts[0] || '';
         ampm = timeParts[1] || '';
       }
 
-      // Converti in formato 24 ore se necessario
       if (timeString && timeString.includes(':')) {
         const [hours, minutes] = timeString.split(':').map((part) => Number.parseInt(part, 10));
         time = convertTo24HourFormat(`${hours}:${minutes}`, ampm);
-
-        // Crea un timestamp per ordinare le operazioni cronologicamente
         const dateObj = new Date(`${formattedDate}T${time}:00`);
         timestamp = dateObj.getTime();
       }
@@ -352,122 +367,228 @@ function parseTradeZeroFormat(rows: string[][]): OperazioneCSV[] {
       console.error(`Errore nel parsing dell'ora: ${execTime}`, e);
     }
 
-    // Calcolo P&L da Net Proceeds
-    const pnl = parseFloat(netProceeds.replace(/[^\d.-]/g, '')) || 0;
-
-    allTrades.push({
+    allExecutions.push({
       data: formattedDate,
       ticker: symbol.toUpperCase(),
-      direzione: direction,
+      side: side,
       quantita: parsedQuantity,
       prezzo: parsedPrice,
       ora: time,
       commissione: parsedCommission,
-      pnl: pnl,
+      netProceeds: parsedNetProceeds,
       timestamp: timestamp,
     });
   }
 
-  // Raggruppa le operazioni per ticker e data per consolidare le operazioni multi-gamba
-  const tradesByTickerAndDate: Record<string, typeof allTrades> = {};
-
-  allTrades.forEach((trade) => {
-    const key = `${trade.data}_${trade.ticker}`;
-    if (!tradesByTickerAndDate[key]) {
-      tradesByTickerAndDate[key] = [];
+  // Step 2: Raggruppa per ticker + data
+  const execsByTickerDate: Record<string, RawExecution[]> = {};
+  allExecutions.forEach((exec) => {
+    const key = `${exec.data}_${exec.ticker}`;
+    if (!execsByTickerDate[key]) {
+      execsByTickerDate[key] = [];
     }
-    tradesByTickerAndDate[key].push(trade);
+    execsByTickerDate[key].push(exec);
   });
 
-  // Elabora le operazioni raggruppate
+  // Step 3: Position tracking per ogni gruppo ticker/data
   const operazioni: OperazioneCSV[] = [];
 
-  Object.values(tradesByTickerAndDate).forEach((tickerTrades) => {
-    // Ordina per timestamp o ora
-    tickerTrades.sort((a, b) => {
-      if (a.timestamp && b.timestamp) {
-        return a.timestamp - b.timestamp;
-      }
+  Object.values(execsByTickerDate).forEach((executions) => {
+    // Ordina cronologicamente
+    executions.sort((a, b) => {
+      if (a.timestamp && b.timestamp) return a.timestamp - b.timestamp;
       return a.ora.localeCompare(b.ora);
     });
 
-    // Se ci sono più operazioni per lo stesso ticker nella stessa data, consolidale
-    if (tickerTrades.length > 1) {
-      const firstTrade = tickerTrades[0];
-      const lastTrade = tickerTrades[tickerTrades.length - 1];
+    // Traccia posizione: positiva = long, negativa = short, 0 = flat
+    let position = 0;
+    let tradeDirection: 'LONG' | 'SHORT' = 'SHORT';
+    let openingLegs: RawExecution[] = [];
+    let closingLegs: RawExecution[] = [];
+    let allLegs: RawExecution[] = [];
+    let totalCommission = 0;
+    let totalNetProceeds = 0;
 
-      // Calcola i totali
-      let totalQuantity = 0;
-      let totalPnL = 0;
-      let totalCommission = 0;
+    const emitTrade = () => {
+      if (openingLegs.length === 0) return;
 
-      tickerTrades.forEach((trade) => {
-        totalQuantity += trade.quantita;
-        totalPnL += trade.pnl;
-        totalCommission += trade.commissione;
-      });
+      // Calcola quantità posizione (solo dalle aperture)
+      const positionSize = openingLegs.reduce((sum, leg) => sum + leg.quantita, 0);
 
-      // Crea l'operazione consolidata
-      const consolidatedOp: OperazioneCSV = {
-        data: firstTrade.data,
-        ticker: firstTrade.ticker,
-        direzione: firstTrade.direzione,
-        quantita: totalQuantity,
-        prezzo_entrata: firstTrade.prezzo,
-        prezzo_uscita: lastTrade.prezzo,
-        commissione: totalCommission,
-        pnl: totalPnL,
-        pnl_percentuale:
-          firstTrade.prezzo > 0
-            ? (totalPnL / (firstTrade.prezzo * totalQuantity)) * 100
-            : 0,
-        ora_entrata: firstTrade.ora,
-        ora_uscita: lastTrade.ora,
-        durata: calculateTradeDuration(firstTrade.ora, lastTrade.ora),
-        timestamp: firstTrade.timestamp,
-        esecuzioni: tickerTrades.map((trade) => ({
-          ora: trade.ora,
-          prezzo: trade.prezzo,
-          quantita: trade.quantita,
-          lato: trade.direzione,
-          pnl: trade.pnl,
+      // Calcola prezzo medio entrata (media ponderata delle aperture)
+      const totalOpenCost = openingLegs.reduce((sum, leg) => sum + (leg.prezzo * leg.quantita), 0);
+      const avgEntryPrice = positionSize > 0 ? totalOpenCost / positionSize : 0;
+
+      // Calcola prezzo medio uscita (media ponderata delle chiusure)
+      const totalClosedQty = closingLegs.reduce((sum, leg) => sum + leg.quantita, 0);
+      const totalCloseCost = closingLegs.reduce((sum, leg) => sum + (leg.prezzo * leg.quantita), 0);
+      const avgExitPrice = totalClosedQty > 0 ? totalCloseCost / totalClosedQty : null;
+
+      // PnL dal Net Proceeds (già calcolato dal broker, più affidabile)
+      const pnlFromBroker = totalNetProceeds;
+
+      // PnL percentuale basata sul capitale impiegato
+      const capitalUsed = avgEntryPrice * positionSize;
+      const pnlPercentuale = capitalUsed > 0 ? (pnlFromBroker / capitalUsed) * 100 : 0;
+
+      const firstLeg = allLegs[0];
+      const lastLeg = allLegs[allLegs.length - 1];
+
+      const op: OperazioneCSV = {
+        data: firstLeg.data,
+        ticker: firstLeg.ticker,
+        direzione: tradeDirection,
+        quantita: positionSize,
+        prezzo_entrata: Math.round(avgEntryPrice * 1000000) / 1000000,
+        prezzo_uscita: avgExitPrice !== null ? Math.round(avgExitPrice * 1000000) / 1000000 : null,
+        commissione: Math.round(totalCommission * 100) / 100,
+        pnl: Math.round(pnlFromBroker * 100) / 100,
+        pnl_percentuale: Math.round(pnlPercentuale * 100) / 100,
+        ora_entrata: firstLeg.ora,
+        ora_uscita: lastLeg.ora,
+        durata: calculateTradeDuration(firstLeg.ora, lastLeg.ora),
+        timestamp: firstLeg.timestamp,
+        esecuzioni: allLegs.map((leg) => ({
+          ora: leg.ora,
+          prezzo: leg.prezzo,
+          quantita: leg.quantita,
+          lato: leg.side,
+          pnl: leg.netProceeds,
         })),
       };
 
-      operazioni.push(consolidatedOp);
-    } else {
-      // Se c'è solo un'operazione
-      const trade = tickerTrades[0];
-
-      const op: OperazioneCSV = {
-        data: trade.data,
-        ticker: trade.ticker,
-        direzione: trade.direzione,
-        quantita: trade.quantita,
-        prezzo_entrata: trade.prezzo,
-        prezzo_uscita: trade.prezzo,
-        commissione: trade.commissione,
-        pnl: trade.pnl,
-        pnl_percentuale:
-          trade.prezzo > 0
-            ? (trade.pnl / (trade.prezzo * trade.quantita)) * 100
-            : 0,
-        ora_entrata: trade.ora,
-        ora_uscita: trade.ora,
-        durata: '00:00',
-        timestamp: trade.timestamp,
-        esecuzioni: [
-          {
-            ora: trade.ora,
-            prezzo: trade.prezzo,
-            quantita: trade.quantita,
-            lato: trade.direzione,
-            pnl: trade.pnl,
-          },
-        ],
-      };
-
       operazioni.push(op);
+    };
+
+    const resetState = () => {
+      position = 0;
+      openingLegs = [];
+      closingLegs = [];
+      allLegs = [];
+      totalCommission = 0;
+      totalNetProceeds = 0;
+    };
+
+    for (const exec of executions) {
+      const side = exec.side;
+
+      // Determina se questa esecuzione apre o chiude posizione
+      // SS = apri short (posizione scende), BC = chiudi short (posizione sale)
+      // B = apri long (posizione sale), S = chiudi long (posizione scende)
+      let isOpening: boolean;
+      let qtyDelta: number;
+
+      if (side === 'SS') {
+        // Short Sell: apre o incrementa short
+        qtyDelta = -exec.quantita;
+        isOpening = position <= 0; // Apre se flat o già short
+      } else if (side === 'BC') {
+        // Buy to Cover: chiude short
+        qtyDelta = +exec.quantita;
+        isOpening = false;
+      } else if (side === 'B') {
+        // Buy: apre o incrementa long
+        qtyDelta = +exec.quantita;
+        isOpening = position >= 0; // Apre se flat o già long
+      } else if (side === 'S') {
+        // Sell: chiude long
+        qtyDelta = -exec.quantita;
+        isOpening = false;
+      } else {
+        console.warn(`Side sconosciuto: ${side}, riga saltata`);
+        continue;
+      }
+
+      // Se è la prima esecuzione del gruppo, determina la direzione
+      if (position === 0 && allLegs.length === 0) {
+        if (side === 'SS' || side === 'BC') {
+          tradeDirection = 'SHORT';
+        } else {
+          tradeDirection = 'LONG';
+        }
+      }
+
+      // Se la posizione era flat e ora stiamo aprendo una nuova direzione diversa
+      // (es: dopo aver chiuso uno short, apriamo un long sullo stesso ticker/giorno)
+      if (position === 0 && allLegs.length > 0) {
+        // Abbiamo già un trade completato, emettiamolo
+        emitTrade();
+        resetState();
+
+        // Ri-determina la direzione per il nuovo trade
+        if (side === 'SS') {
+          tradeDirection = 'SHORT';
+        } else if (side === 'B') {
+          tradeDirection = 'LONG';
+        } else if (side === 'BC') {
+          // BC senza posizione aperta — improbabile ma gestiamolo
+          tradeDirection = 'SHORT';
+        } else {
+          tradeDirection = 'LONG';
+        }
+      }
+
+      // Aggiungi alla lista appropriata
+      allLegs.push(exec);
+      totalCommission += exec.commissione;
+      totalNetProceeds += exec.netProceeds;
+
+      if (isOpening) {
+        openingLegs.push(exec);
+      } else {
+        closingLegs.push(exec);
+      }
+
+      // Aggiorna posizione
+      position += qtyDelta;
+
+      // Se la posizione è tornata a 0, il trade è completato
+      if (position === 0 && allLegs.length > 0) {
+        emitTrade();
+        resetState();
+      }
+    }
+
+    // Se rimane una posizione aperta alla fine del giorno
+    if (allLegs.length > 0 && position !== 0) {
+      // Emetti come trade aperto (senza prezzo uscita se non c'è chiusura)
+      if (closingLegs.length === 0) {
+        // Posizione completamente aperta
+        const positionSize = openingLegs.reduce((sum, leg) => sum + leg.quantita, 0);
+        const totalOpenCost = openingLegs.reduce((sum, leg) => sum + (leg.prezzo * leg.quantita), 0);
+        const avgEntryPrice = positionSize > 0 ? totalOpenCost / positionSize : 0;
+
+        const firstLeg = allLegs[0];
+
+        const op: OperazioneCSV = {
+          data: firstLeg.data,
+          ticker: firstLeg.ticker,
+          direzione: tradeDirection,
+          quantita: positionSize,
+          prezzo_entrata: Math.round(avgEntryPrice * 1000000) / 1000000,
+          prezzo_uscita: null,
+          commissione: Math.round(totalCommission * 100) / 100,
+          pnl: Math.round(totalNetProceeds * 100) / 100,
+          pnl_percentuale: 0,
+          ora_entrata: firstLeg.ora,
+          ora_uscita: firstLeg.ora,
+          durata: '00:00',
+          timestamp: firstLeg.timestamp,
+          esecuzioni: allLegs.map((leg) => ({
+            ora: leg.ora,
+            prezzo: leg.prezzo,
+            quantita: leg.quantita,
+            lato: leg.side,
+            pnl: leg.netProceeds,
+          })),
+        };
+
+        operazioni.push(op);
+      } else {
+        // Posizione parzialmente chiusa — emetti comunque come trade
+        emitTrade();
+      }
+      resetState();
     }
   });
 
