@@ -1,17 +1,15 @@
 /**
- * Massive (ex Polygon.io) Market Data Service
+ * Massive (ex Polygon.io) Market Data Service - Client Side
  *
- * API: https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}
+ * Chiama l'API route interna /api/market-data che fa da proxy sicuro.
+ * La chiave API resta SOLO sul server, mai esposta al browser.
  *
  * Rate limiting (free tier):
  * - 5 API calls per minute
  * - Max 50000 data points per request
  *
- * Cache 24h per evitare chiamate ripetute.
+ * Cache 24h lato client per evitare chiamate ripetute.
  */
-
-const MASSIVE_API_KEY = process.env.NEXT_PUBLIC_MASSIVE_API_KEY || '';
-const BASE_URL = 'https://api.polygon.io/v2/aggs/ticker';
 
 // ─── Types ───────────────────────────────────────────────────────────
 export interface OHLCData {
@@ -29,7 +27,7 @@ export type Timeframe = '1min' | '2min' | '1day';
 const dataCache: Record<string, { data: OHLCData[]; fetchedAt: number }> = {};
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 ore
 
-// ─── Rate Limiting ───────────────────────────────────────────────────
+// ─── Rate Limiting (client-side) ────────────────────────────────────
 let lastRequestTime = 0;
 const MIN_REQUEST_INTERVAL = 13_000; // 13s tra richieste (5/min free tier)
 let dailyRequestCount = 0;
@@ -114,10 +112,6 @@ export async function getOHLCData(
     throw new Error('Ticker non specificato. Inserisci un simbolo valido (es. AAPL, MSFT).');
   }
 
-  if (!MASSIVE_API_KEY) {
-    throw new Error('API key Massive non configurata. Aggiungi NEXT_PUBLIC_MASSIVE_API_KEY in .env.local');
-  }
-
   // Calcola date range
   const { start, end } = getDateRange(tradeDate, timeframe);
   const cacheKey = getCacheKey(cleanTicker, timeframe, `${start}_${end}`);
@@ -136,32 +130,44 @@ export async function getOHLCData(
   // Rate limit
   await waitForRateLimit();
 
-  // Build URL: /v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}
+  // Build URL per API route interna (la chiave API resta sul server)
   const { multiplier, timespan } = getPolygonParams(timeframe);
-  const url = `${BASE_URL}/${cleanTicker}/range/${multiplier}/${timespan}/${start}/${end}?adjusted=true&sort=asc&limit=50000&apiKey=${MASSIVE_API_KEY}`;
+  const params = new URLSearchParams({
+    ticker: cleanTicker,
+    multiplier: String(multiplier),
+    timespan,
+    from: start,
+    to: end,
+  });
+  const url = `/api/market-data?${params.toString()}`;
 
-  // Fetch
+  // Fetch tramite API route proxy
   let response: Response;
   try {
     response = await fetch(url);
   } catch {
     throw new Error(
-      'Errore di connessione: impossibile raggiungere Massive API. Controlla la connessione internet.'
+      'Errore di connessione: impossibile raggiungere il server. Controlla la connessione internet.'
     );
   }
 
   if (!response.ok) {
-    const status = response.status;
-    if (status === 403) {
-      throw new Error('API key Massive non valida o scaduta. Verifica la chiave in .env.local');
+    const errorData = await response.json().catch(() => ({}));
+    const errorMsg = errorData?.error || `Errore HTTP ${response.status}`;
+
+    if (response.status === 500 && errorMsg.includes('non configurata')) {
+      throw new Error('API key Massive non configurata sul server. Contatta l\'amministratore.');
     }
-    if (status === 429) {
+    if (response.status === 403) {
+      throw new Error('API key Massive non valida o scaduta.');
+    }
+    if (response.status === 429) {
       throw new Error('Limite API raggiunto. Riprova tra qualche minuto.');
     }
-    if (status === 404) {
+    if (response.status === 404) {
       throw new Error(`Ticker "${cleanTicker}" non trovato su Massive/Polygon.io.`);
     }
-    throw new Error(`Errore API Massive (HTTP ${status}). Riprova tra qualche secondo.`);
+    throw new Error(errorMsg);
   }
 
   const json = await response.json();
