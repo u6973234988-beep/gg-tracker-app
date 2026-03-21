@@ -184,7 +184,7 @@ export default function ConfigurazioniPage() {
 
   return (
     <motion.div
-      className="space-y-6 p-6 md:p-8 cyber-grid-lines"
+      className="space-y-6 p-6 md:p-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -9,6 +9,8 @@ import {
   Area,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,81 +21,209 @@ import {
 } from 'recharts';
 import {
   TrendingUp,
+  TrendingDown,
   BarChart3,
   ArrowUpRight,
   LineChart as LineChartIcon,
   AlertTriangle,
+  Calendar,
+  DollarSign,
+  Hash,
+  Clock,
+  Trophy,
+  Target,
+  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale/it';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useDashboardData } from '@/hooks/useDashboardData';
+import { useDashboardData, type StrategyEquityPoint, type StrategyLineInfo } from '@/hooks/useDashboardData';
 import { formatValuta, formatPercentuale, formatData, cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+/* ─── Animation Variants ─── */
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: 'easeOut' as const },
+    transition: { duration: 0.35, ease: 'easeOut' as const },
   },
 };
 
 const fadeInUp = {
-  hidden: { opacity: 0, y: 15 },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
       type: 'spring' as const,
       stiffness: 120,
-      damping: 12,
+      damping: 14,
     },
   },
 };
 
+/* ─── Date Range Filter Component ─── */
+function DateRangeFilter({
+  dateRange,
+  onDateRangeChange,
+}: {
+  dateRange: { from: string | null; to: string | null };
+  onDateRangeChange: (range: { from: string | null; to: string | null }) => void;
+}) {
+  const [fromDate, setFromDate] = useState(dateRange.from || '');
+  const [toDate, setToDate] = useState(dateRange.to || '');
+
+  const handleApply = () => {
+    onDateRangeChange({
+      from: fromDate || null,
+      to: toDate || null,
+    });
+  };
+
+  const handleReset = () => {
+    setFromDate('');
+    setToDate('');
+    onDateRangeChange({ from: null, to: null });
+  };
+
+  const handlePreset = (days: number) => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    const fromStr = from.toISOString().split('T')[0];
+    const toStr = to.toISOString().split('T')[0];
+    setFromDate(fromStr);
+    setToDate(toStr);
+    onDateRangeChange({ from: fromStr, to: toStr });
+  };
+
+  const isActive = dateRange.from || dateRange.to;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Preset buttons */}
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => handlePreset(7)}
+          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
+        >
+          7G
+        </button>
+        <button
+          onClick={() => handlePreset(30)}
+          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
+        >
+          30G
+        </button>
+        <button
+          onClick={() => handlePreset(90)}
+          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
+        >
+          90G
+        </button>
+        <button
+          onClick={() => handlePreset(365)}
+          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
+        >
+          1A
+        </button>
+      </div>
+
+      <div className="hidden sm:block h-5 w-px bg-violet-200/40 dark:bg-violet-700/30" />
+
+      {/* Custom date inputs */}
+      <div className="flex items-center gap-1.5">
+        <div className="relative">
+          <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-violet-400 dark:text-violet-500 pointer-events-none" />
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="pl-6 pr-2 py-1.5 text-xs rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 border border-violet-200/30 dark:border-violet-700/30 focus:outline-none focus:ring-1 focus:ring-violet-400 w-[120px]"
+            placeholder="Da"
+          />
+        </div>
+        <span className="text-xs text-violet-500 dark:text-violet-400">—</span>
+        <div className="relative">
+          <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-violet-400 dark:text-violet-500 pointer-events-none" />
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="pl-6 pr-2 py-1.5 text-xs rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 border border-violet-200/30 dark:border-violet-700/30 focus:outline-none focus:ring-1 focus:ring-violet-400 w-[120px]"
+            placeholder="A"
+          />
+        </div>
+        <button
+          onClick={handleApply}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors shadow-sm"
+        >
+          Applica
+        </button>
+        {isActive && (
+          <button
+            onClick={handleReset}
+            className="p-1.5 rounded-lg text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+            title="Rimuovi filtro"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── KPI Card Component ─── */
 function KPICard({
   label,
   value,
   icon: Icon,
   gradientFrom,
   gradientTo,
+  subtitle,
 }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
   gradientFrom: string;
   gradientTo: string;
+  subtitle?: string;
 }) {
   return (
     <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-md transition-all duration-300 group rounded-xl">
+      <Card className="relative overflow-hidden border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 group rounded-xl h-full">
         <div className={`absolute inset-0 bg-gradient-to-br ${gradientFrom} ${gradientTo} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-violet-700 dark:text-white card-title">
-            {label}
-          </CardTitle>
-          <div className="p-2 rounded-lg bg-violet-500/10 dark:bg-violet-500/20">
-            {Icon}
-          </div>
-        </CardHeader>
-
-        <CardContent className="relative z-10">
-          <div className="space-y-2">
-            <div className="text-2xl font-bold text-violet-700 dark:text-white high-contrast-text">
-              {value}
+        <CardContent className="relative z-10 p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-violet-600/80 dark:text-violet-300/80 truncate">
+                {label}
+              </p>
+              <p className="mt-1.5 text-xl sm:text-2xl font-bold text-violet-700 dark:text-white truncate high-contrast-text">
+                {value}
+              </p>
+              {subtitle && (
+                <p className="mt-1 text-xs text-violet-500/70 dark:text-violet-400/60">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 shrink-0">
+              {Icon}
             </div>
           </div>
         </CardContent>
@@ -102,45 +232,48 @@ function KPICard({
   );
 }
 
+/* ─── Loading Skeleton ─── */
 function LoadingSkeleton() {
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex items-center justify-between">
         <div className="h-10 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
-        <div className="h-5 w-80 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+        <div className="h-8 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[...Array(4)].map((_, i) => (
           <Card key={i} className="border border-violet-200/40 dark:border-violet-500/20">
-            <CardHeader className="pb-3">
-              <div className="h-4 w-32 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="h-8 w-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-              <div className="h-4 w-40 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+            <CardContent className="p-4 space-y-3">
+              <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              <div className="h-7 w-28 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card className="border border-violet-200/40 dark:border-violet-500/20">
-        <CardHeader>
-          <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-        </CardHeader>
-        <CardContent>
-          <div className="h-80 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-        </CardContent>
-      </Card>
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Card className="lg:col-span-2 border border-violet-200/40 dark:border-violet-500/20">
+          <CardContent className="p-4">
+            <div className="h-80 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+          </CardContent>
+        </Card>
+        <Card className="border border-violet-200/40 dark:border-violet-500/20">
+          <CardContent className="p-4">
+            <div className="h-80 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
 
+/* ─── Empty State ─── */
 function EmptyState() {
   const router = useRouter();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4 md:p-6">
       <motion.div variants={itemVariants}>
         <h1 className="text-page-title text-violet-700 dark:text-white">Dashboard</h1>
         <p className="text-violet-600/80 dark:text-gray-300 mt-2">
@@ -175,6 +308,7 @@ function EmptyState() {
   );
 }
 
+/* ─── Equity Chart ─── */
 interface EquityChartData {
   data: string;
   pnl_giorno: number | null;
@@ -196,7 +330,7 @@ function EquityChart({
   if (!equityData || equityData.length === 0) {
     return (
       <motion.div variants={itemVariants}>
-        <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
+        <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
               <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-300" />
@@ -204,10 +338,8 @@ function EquityChart({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-80 flex items-center justify-center text-violet-600/80 dark:text-gray-300">
-              <p>
-                Nessun dato disponibile. Inizia ad aggiungere operazioni dal Registro.
-              </p>
+            <div className="h-72 flex items-center justify-center text-violet-600/80 dark:text-gray-300">
+              <p>Nessun dato disponibile per il periodo selezionato.</p>
             </div>
           </CardContent>
         </Card>
@@ -233,188 +365,162 @@ function EquityChart({
     .filter((item) => !isNaN(item.pnl));
 
   return (
-    <motion.div variants={itemVariants}>
-      <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-md transition-all duration-300 overflow-hidden group relative rounded-xl">
-        {/* Tech grid background */}
-        <div className="absolute inset-0 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(139,92,246,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)]"></div>
-
-        {/* Particle decorations */}
-        <div className="absolute inset-0 overflow-hidden opacity-20 dark:opacity-30 pointer-events-none">
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[20%] left-[30%]"></div>
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[70%] left-[80%]"></div>
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[40%] left-[60%]"></div>
-        </div>
-
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-purple-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-        {/* Glowing border effect */}
-        <div className="absolute inset-0 rounded-xl border-b border-violet-200/20 dark:border-violet-500/10 group-hover:border-violet-300/30 dark:group-hover:border-violet-500/20 transition-colors duration-300"></div>
+    <motion.div variants={itemVariants} className="h-full">
+      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl">
+        {/* Subtle background effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-purple-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
 
         <CardHeader className="relative z-10 pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30">
                 <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-300" />
               </div>
-              <CardTitle className="flex items-center text-xl font-semibold text-violet-700 dark:text-violet-300">
-                {chartType === 'line' ? 'Equity Line' : 'P&L Giornaliero'}
-              </CardTitle>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                  {chartType === 'line' ? 'Equity Line' : 'P&L Giornaliero'}
+                </CardTitle>
+                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                  {chartType === 'line'
+                    ? 'Andamento cumulativo del P&L'
+                    : 'P&L netto giornaliero'}
+                </CardDescription>
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* Chart type toggle buttons */}
-              <div className="flex bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-full p-0.5 border border-violet-200/30 dark:border-violet-700/30">
+              <div className="flex bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-0.5 border border-violet-200/30 dark:border-violet-700/30">
                 <button
                   onClick={() => onChartTypeChange('line')}
-                  className={`flex items-center justify-center h-7 w-7 rounded-full text-xs transition-all duration-200 ${
+                  className={`flex items-center justify-center h-7 w-7 rounded-md text-xs transition-all duration-200 ${
                     chartType === 'line'
                       ? 'bg-violet-500 text-white shadow-md'
                       : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
                   }`}
-                  aria-label="Visualizza equity line"
                   title="Equity Line"
                 >
                   <LineChartIcon className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => onChartTypeChange('bar')}
-                  className={`flex items-center justify-center h-7 w-7 rounded-full text-xs transition-all duration-200 ${
+                  className={`flex items-center justify-center h-7 w-7 rounded-md text-xs transition-all duration-200 ${
                     chartType === 'bar'
                       ? 'bg-violet-500 text-white shadow-md'
                       : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
                   }`}
-                  aria-label="Visualizza istogramma"
                   title="P&L Giornaliero"
                 >
                   <BarChart3 className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <span className="text-xs px-2.5 py-1 rounded-full bg-violet-100/80 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 font-medium backdrop-blur-sm border border-violet-200/30 dark:border-violet-700/30">
+              <span className="text-xs px-2 py-1 rounded-lg bg-violet-100/80 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 font-medium border border-violet-200/30 dark:border-violet-700/30">
                 {lineChartData.length} giorni
               </span>
             </div>
           </div>
-          <CardDescription className="text-violet-600/80 dark:text-gray-300 mt-1.5 ml-8">
-            {chartType === 'line'
-              ? 'Andamento cumulativo del P&L nel periodo selezionato'
-              : 'P&L netto giornaliero nel periodo selezionato'}
-          </CardDescription>
         </CardHeader>
 
         <CardContent className="relative z-10 pt-0">
-          <div className="relative w-full h-80 overflow-hidden rounded-xl">
+          <div className="w-full h-72 sm:h-80">
             <AnimatePresence mode="wait">
               <motion.div
                 key={chartType}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="w-full h-80"
+                transition={{ duration: 0.25 }}
+                className="w-full h-full"
               >
-                {chartType === 'line' ? (
-                  <div className="relative w-full h-80 bg-white/30 dark:bg-gray-900/30 rounded-xl">
-                    <div className="absolute inset-0 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.04)_1px,transparent_1px)] z-0"></div>
-                    <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/3 via-transparent to-violet-500/3 dark:from-violet-500/5 dark:via-transparent dark:to-violet-500/5 z-0 pointer-events-none"></div>
-
-                    <ResponsiveContainer width="100%" height={320}>
-                      <AreaChart data={lineChartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.1)" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fill: '#8b8b9f', fontSize: 12 }}
-                          axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
-                        />
-                        <YAxis
-                          tick={{ fill: '#8b8b9f', fontSize: 12 }}
-                          axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
-                          tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            borderRadius: '0.5rem',
-                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)',
-                          }}
-                          labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
-                          formatter={(value: any) => [formatValuta(Number(value) || 0), 'Equity']}
-                          labelFormatter={(label) => `Data: ${label}`}
-                        />
-                        <ReferenceLine
-                          y={0}
-                          stroke="rgba(139, 92, 246, 0.4)"
-                          strokeDasharray="3 3"
-                          label={{ value: 'Break-even', position: 'insideBottomRight', fill: '#8b5cf6', fontSize: 12 }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="equity"
-                          stroke="#a855f7"
-                          strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#colorEquity)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-
-                    {/* Glowing border */}
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/20 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/20 to-transparent"></div>
-                  </div>
-                ) : (
-                  <div className="relative w-full h-80 bg-white/30 dark:bg-gray-900/30 rounded-xl">
-                    <div className="absolute inset-0 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.04)_1px,transparent_1px)] z-0"></div>
-                    <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/3 via-transparent to-violet-500/3 dark:from-violet-500/5 dark:via-transparent dark:to-violet-500/5 z-0 pointer-events-none"></div>
-
-                    <ResponsiveContainer width="100%" height={320}>
-                      <BarChart data={barChartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.1)" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fill: '#8b8b9f', fontSize: 12 }}
-                          axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
-                        />
-                        <YAxis
-                          tick={{ fill: '#8b8b9f', fontSize: 12 }}
-                          axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
-                          tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            borderRadius: '0.5rem',
-                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)',
-                          }}
-                          labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
-                          formatter={(value: any) => [formatValuta(Number(value) || 0), 'P&L']
-                          }
-                          labelFormatter={(label) => `Data: ${label}`}
-                        />
-                        <ReferenceLine y={0} stroke="rgba(139, 92, 246, 0.4)" strokeDasharray="3 3" />
-                        <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
-                          {barChartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={entry.pnl >= 0 ? '#8b5cf6' : '#ef4444'}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-
-                    {/* Glowing border */}
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/20 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/20 to-transparent"></div>
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  {chartType === 'line' ? (
+                    <AreaChart data={lineChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                        axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(value) =>
+                          Math.abs(value) >= 1000 ? `€${(value / 1000).toFixed(0)}K` : `€${value}`
+                        }
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
+                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          borderRadius: '0.75rem',
+                          boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+                          fontSize: '13px',
+                        }}
+                        labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
+                        formatter={(value: any) => [formatValuta(Number(value) || 0), 'Equity']}
+                        labelFormatter={(label) => `Data: ${label}`}
+                      />
+                      <ReferenceLine
+                        y={0}
+                        stroke="rgba(139, 92, 246, 0.3)"
+                        strokeDasharray="3 3"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="equity"
+                        stroke="#a855f7"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorEquity)"
+                      />
+                    </AreaChart>
+                  ) : (
+                    <BarChart data={barChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                        axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(value) =>
+                          Math.abs(value) >= 1000 ? `€${(value / 1000).toFixed(0)}K` : `€${value}`
+                        }
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
+                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          borderRadius: '0.75rem',
+                          boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+                          fontSize: '13px',
+                        }}
+                        labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
+                        formatter={(value: any) => [formatValuta(Number(value) || 0), 'P&L']}
+                        labelFormatter={(label) => `Data: ${label}`}
+                      />
+                      <ReferenceLine y={0} stroke="rgba(139, 92, 246, 0.3)" strokeDasharray="3 3" />
+                      <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                        {barChartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.pnl >= 0 ? '#8b5cf6' : '#ef4444'}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -424,6 +530,7 @@ function EquityChart({
   );
 }
 
+/* ─── Performance Metrics Card (Win Rate + Profit Factor) ─── */
 function PerformanceMetricsCard({
   data,
   metriche,
@@ -431,7 +538,6 @@ function PerformanceMetricsCard({
   data: any[];
   metriche?: any;
 }) {
-  // Use metriche data if available, otherwise fall back to data
   let winRate = 0;
   let profitFactor = 0;
 
@@ -443,11 +549,10 @@ function PerformanceMetricsCard({
     profitFactor = data[0]?.profit_factor || 0;
   }
 
-  // Show "no data" only if neither metriche nor data has entries
   if (!metriche && (!data || data.length === 0)) {
     return (
       <motion.div variants={itemVariants}>
-        <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
+        <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
               <BarChart3 className="w-5 h-5 text-violet-600 dark:text-violet-300" />
@@ -465,51 +570,38 @@ function PerformanceMetricsCard({
   }
 
   return (
-    <motion.div variants={itemVariants}>
-      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-md transition-all duration-300 overflow-hidden group relative rounded-xl">
-        {/* Tech grid background */}
-        <div className="absolute inset-0 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(139,92,246,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)]"></div>
-
-        {/* Particle decorations */}
-        <div className="absolute inset-0 overflow-hidden opacity-20 dark:opacity-30 pointer-events-none">
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[25%] left-[35%]"></div>
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[75%] left-[65%]"></div>
-        </div>
-
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-purple-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-        {/* Glowing border effect */}
-        <div className="absolute inset-0 rounded-xl border-b border-violet-200/20 dark:border-violet-500/10 group-hover:border-violet-300/30 dark:group-hover:border-violet-500/20 transition-colors duration-300"></div>
+    <motion.div variants={itemVariants} className="h-full">
+      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl flex flex-col">
+        {/* Background effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-purple-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
 
         <CardHeader className="relative z-10 pb-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30">
-                <BarChart3 className="h-5 w-5 text-violet-500" />
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                <BarChart3 className="h-4 w-4 text-violet-500" />
               </div>
-              <CardTitle className="flex items-center text-xl font-semibold text-violet-700 dark:text-violet-300">
-                Performance
-              </CardTitle>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                  Performance
+                </CardTitle>
+                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                  Win Rate e Profit Factor
+                </CardDescription>
+              </div>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-violet-100/80 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 font-medium backdrop-blur-sm border border-violet-200/30 dark:border-violet-700/30">
-              Metriche
-            </span>
           </div>
-          <CardDescription className="text-violet-600/80 dark:text-gray-300 mt-1.5 ml-8">
-            Win Rate e Profit Factor
-          </CardDescription>
         </CardHeader>
 
-        <CardContent className="relative z-10 pt-0 flex-1">
-          <div className="relative w-full bg-white/50 dark:bg-gray-900/50 rounded-lg p-4">
-            <div className="relative z-10 w-full flex flex-row gap-6 justify-center">
+        <CardContent className="relative z-10 pt-0 flex-1 flex items-center justify-center">
+          <div className="w-full bg-white/30 dark:bg-gray-900/30 rounded-xl p-4 sm:p-6">
+            <div className="flex flex-row gap-6 sm:gap-8 justify-center items-center">
               {/* Win Rate */}
-              <div className="relative flex flex-col items-center justify-center group">
-                <div className="mb-2 px-3 py-1 bg-white dark:bg-gray-800 rounded-full text-xs font-medium text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50">
+              <div className="flex flex-col items-center">
+                <span className="mb-2 px-2.5 py-0.5 bg-white dark:bg-gray-800 rounded-full text-xs font-medium text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50">
                   Win Rate
-                </div>
-                <div className="relative w-28 h-28 flex items-center justify-center">
+                </span>
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
                   <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                     <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(139, 92, 246, 0.1)" strokeWidth="8" />
                     <circle
@@ -524,13 +616,13 @@ function PerformanceMetricsCard({
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-xl font-bold text-violet-700 dark:text-violet-300">
+                    <span className="text-lg sm:text-xl font-bold text-violet-700 dark:text-violet-300">
                       {Math.round(winRate)}%
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <div className={`h-2 w-2 rounded-full ${winRate > 50 ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className={`h-2 w-2 rounded-full ${winRate > 50 ? 'bg-green-500' : 'bg-amber-500'}`} />
                   <span className="text-xs text-violet-700 dark:text-violet-300">
                     {winRate > 50 ? 'Buona' : 'Migliorabile'}
                   </span>
@@ -538,11 +630,11 @@ function PerformanceMetricsCard({
               </div>
 
               {/* Profit Factor */}
-              <div className="relative flex flex-col items-center justify-center group">
-                <div className="mb-2 px-3 py-1 bg-white dark:bg-gray-800 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50">
+              <div className="flex flex-col items-center">
+                <span className="mb-2 px-2.5 py-0.5 bg-white dark:bg-gray-800 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50">
                   Profit Factor
-                </div>
-                <div className="relative w-28 h-28 flex items-center justify-center">
+                </span>
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
                   <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                     <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(139, 92, 246, 0.1)" strokeWidth="8" />
                     <circle
@@ -557,13 +649,13 @@ function PerformanceMetricsCard({
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-xl font-bold text-purple-700 dark:text-purple-300">
+                    <span className="text-lg sm:text-xl font-bold text-purple-700 dark:text-purple-300">
                       {profitFactor.toFixed(1)}x
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <div className={`h-2 w-2 rounded-full ${profitFactor > 1.5 ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className={`h-2 w-2 rounded-full ${profitFactor > 1.5 ? 'bg-green-500' : 'bg-amber-500'}`} />
                   <span className="text-xs text-purple-700 dark:text-purple-300">
                     {profitFactor > 1.5 ? 'Buona' : 'Migliorabile'}
                   </span>
@@ -571,34 +663,41 @@ function PerformanceMetricsCard({
               </div>
             </div>
           </div>
-
-          {/* Glowing borders */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent"></div>
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
-function PerformanceStrategieTable({
-  data,
+/* ─── Unified Strategie Section: Chart + Table ─── */
+function StrategieSection({
+  performanceData,
+  equityData,
+  equityLines,
 }: {
-  data: any[];
+  performanceData: any[];
+  equityData: StrategyEquityPoint[];
+  equityLines: StrategyLineInfo[];
 }) {
-  if (!data || data.length === 0) {
+  const { theme } = useTheme();
+  const [view, setView] = useState<'chart' | 'table'>('chart');
+
+  const hasEquityData = equityData && equityData.length > 0 && equityLines && equityLines.length > 0;
+  const hasPerformanceData = performanceData && performanceData.length > 0;
+
+  if (!hasPerformanceData && !hasEquityData) {
     return (
       <motion.div variants={itemVariants}>
-        <Card className="border border-violet-200/40 dark:border-violet-500/20">
+        <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
-              <BarChart3 className="w-5 h-5 text-violet-600 dark:text-violet-300" />
-              Performance per Strategia
+              <Target className="w-5 h-5 text-violet-600 dark:text-violet-300" />
+              Strategie
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-violet-600/80 dark:text-gray-300">
-              Nessuna strategia trovata
+              Nessuna strategia trovata. Associa una strategia alle tue operazioni per vederla qui.
             </div>
           </CardContent>
         </Card>
@@ -606,101 +705,299 @@ function PerformanceStrategieTable({
     );
   }
 
+  // Chart date labels
+  const chartData = hasEquityData
+    ? equityData.map((point) => ({
+        ...point,
+        dateLabel: format(new Date(point.data), 'd MMM', { locale: it }),
+      }))
+    : [];
+
+  // Match table strategy colors with equity lines
+  const getStrategyColor = (stratId: string) => {
+    const line = equityLines.find(l => l.key === `s_${stratId.slice(0, 8)}`);
+    return line?.colore || '#8b5cf6';
+  };
+
   return (
     <motion.div variants={itemVariants}>
-      <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-md transition-all duration-300 overflow-hidden group relative rounded-xl">
-        {/* Tech grid background */}
-        <div className="absolute inset-0 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(139,92,246,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)]"></div>
+      <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-cyan-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-cyan-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
 
-        {/* Particle decorations */}
-        <div className="absolute inset-0 overflow-hidden opacity-20 dark:opacity-30 pointer-events-none">
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[15%] left-[25%]"></div>
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[65%] left-[75%]"></div>
-        </div>
+        <CardHeader className="relative z-10 pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            {/* Title + icon */}
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 dark:from-violet-500/20 dark:to-purple-500/20">
+                <Target className="h-4.5 w-4.5 text-violet-600 dark:text-violet-300" />
+              </div>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                  Strategie
+                </CardTitle>
+                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                  {view === 'chart' ? 'Equity cumulativa per strategia' : 'Metriche di performance'}
+                </CardDescription>
+              </div>
+            </div>
 
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-violet-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-violet-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Strategy legend pills (visible in chart view) */}
+              {view === 'chart' && hasEquityData && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {equityLines.map((line) => (
+                    <span
+                      key={line.key}
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-white/60 dark:bg-gray-800/60 border border-violet-200/20 dark:border-violet-700/20 text-violet-700 dark:text-violet-300"
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: line.colore }}
+                      />
+                      <span className="truncate max-w-[80px]">{line.nome}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
 
-        <CardHeader className="relative z-10 pb-2">
-          <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
-            <BarChart3 className="w-5 h-5 text-violet-600 dark:text-violet-300" />
-            Performance per Strategia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="relative z-10">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-violet-200/40 dark:border-violet-500/20">
-                  <th className="text-left py-3 px-4 font-semibold text-violet-600 dark:text-violet-300">
-                    Strategia
-                  </th>
-                  <th className="text-center py-3 px-4 font-semibold text-violet-600 dark:text-violet-300">
-                    Operazioni
-                  </th>
-                  <th className="text-center py-3 px-4 font-semibold text-violet-600 dark:text-violet-300">
-                    Win Rate
-                  </th>
-                  <th className="text-center py-3 px-4 font-semibold text-violet-600 dark:text-violet-300">
-                    Profit Factor
-                  </th>
-                  <th className="text-right py-3 px-4 font-semibold text-violet-600 dark:text-violet-300">
-                    P&L Totale
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((row) => {
-                  const pnl = row.pnl_totale || 0;
-                  const isPositive = pnl >= 0;
-
-                  return (
-                    <tr key={row.strategia_id} className="border-b border-violet-200/20 dark:border-violet-500/10 hover:bg-violet-50/50 dark:hover:bg-violet-900/10">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-violet-500" />
-                          <span className="text-violet-700 dark:text-white">{row.nome_strategia || 'Senza Strategia'}</span>
-                        </div>
-                      </td>
-                      <td className="text-center py-3 px-4 text-violet-600/80 dark:text-gray-300">
-                        {row.totale_operazioni || 0}
-                      </td>
-                      <td className="text-center py-3 px-4">
-                        <span className={cn(
-                          'font-medium',
-                          (row.win_rate || 0) >= 50 ? 'text-emerald-500' : 'text-red-500'
-                        )}>
-                          {row.win_rate ? formatPercentuale(row.win_rate / 100) : '0%'}
-                        </span>
-                      </td>
-                      <td className="text-center py-3 px-4">
-                        <span className={cn(
-                          'font-medium',
-                          (row.profit_factor || 0) >= 1.5 ? 'text-emerald-500' : 'text-red-500'
-                        )}>
-                          {(row.profit_factor || 0).toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="text-right py-3 px-4">
-                        <span className={cn(
-                          'font-semibold',
-                          isPositive ? 'text-emerald-500' : 'text-red-500'
-                        )}>
-                          {formatValuta(pnl)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              {/* View toggle */}
+              <div className="flex bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-0.5 border border-violet-200/30 dark:border-violet-700/30">
+                <button
+                  onClick={() => setView('chart')}
+                  className={cn(
+                    'flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-all duration-200',
+                    view === 'chart'
+                      ? 'bg-violet-500 text-white shadow-md'
+                      : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
+                  )}
+                >
+                  <LineChartIcon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Equity</span>
+                </button>
+                <button
+                  onClick={() => setView('table')}
+                  className={cn(
+                    'flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-all duration-200',
+                    view === 'table'
+                      ? 'bg-violet-500 text-white shadow-md'
+                      : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
+                  )}
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Tabella</span>
+                </button>
+              </div>
+            </div>
           </div>
+        </CardHeader>
+
+        <CardContent className="relative z-10 pt-0">
+          <AnimatePresence mode="wait">
+            {view === 'chart' ? (
+              <motion.div
+                key="strategy-chart"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+              >
+                {hasEquityData ? (
+                  <div className="w-full h-72 sm:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={chartData}
+                        margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+                      >
+                        <defs>
+                          {equityLines.map((line) => (
+                            <linearGradient
+                              key={`grad_${line.key}`}
+                              id={`grad_${line.key}`}
+                              x1="0" y1="0" x2="0" y2="1"
+                            >
+                              <stop offset="5%" stopColor={line.colore} stopOpacity={0.15} />
+                              <stop offset="95%" stopColor={line.colore} stopOpacity={0} />
+                            </linearGradient>
+                          ))}
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="rgba(139, 92, 246, 0.08)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="dateLabel"
+                          tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                          axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(value) =>
+                            Math.abs(value) >= 1000
+                              ? `€${(value / 1000).toFixed(0)}K`
+                              : `€${value}`
+                          }
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            borderRadius: '0.75rem',
+                            boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+                            fontSize: '12px',
+                            padding: '10px 14px',
+                          }}
+                          labelStyle={{
+                            color: theme === 'dark' ? '#a78bfa' : '#8b5cf6',
+                            fontWeight: 600,
+                            marginBottom: '6px',
+                          }}
+                          formatter={(value: any, name: any) => {
+                            const lineInfo = equityLines.find((l) => l.key === String(name));
+                            return [
+                              formatValuta(Number(value) || 0),
+                              lineInfo?.nome || String(name),
+                            ];
+                          }}
+                          labelFormatter={(label) => `Data: ${label}`}
+                        />
+                        <ReferenceLine
+                          y={0}
+                          stroke="rgba(139, 92, 246, 0.25)"
+                          strokeDasharray="3 3"
+                        />
+                        {equityLines.map((line) => (
+                          <Line
+                            key={line.key}
+                            type="monotone"
+                            dataKey={line.key}
+                            stroke={line.colore}
+                            strokeWidth={2.5}
+                            dot={false}
+                            activeDot={{
+                              r: 5,
+                              fill: line.colore,
+                              stroke: theme === 'dark' ? '#161622' : '#ffffff',
+                              strokeWidth: 2,
+                            }}
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-violet-600/80 dark:text-gray-300">
+                    <p className="text-sm text-center">
+                      Servono almeno 2 operazioni per strategia per visualizzare il grafico.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="strategy-table"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+              >
+                {hasPerformanceData ? (
+                  <div className="overflow-x-auto -mx-4 sm:-mx-6">
+                    <div className="inline-block min-w-full px-4 sm:px-6">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-violet-200/40 dark:border-violet-500/20">
+                            <th className="text-left py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                              Strategia
+                            </th>
+                            <th className="text-center py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden sm:table-cell">
+                              Op.
+                            </th>
+                            <th className="text-center py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                              Win Rate
+                            </th>
+                            <th className="text-center py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden md:table-cell">
+                              PF
+                            </th>
+                            <th className="text-right py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                              P&L
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {performanceData.map((row) => {
+                            const pnl = row.pnl_totale || 0;
+                            const isPositive = pnl >= 0;
+                            const stratColor = getStrategyColor(row.strategia_id || '');
+
+                            return (
+                              <tr key={row.strategia_id} className="border-b border-violet-200/20 dark:border-violet-500/10 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-colors">
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: stratColor }} />
+                                    <span className="text-violet-700 dark:text-white text-sm font-medium truncate max-w-[140px] sm:max-w-none">
+                                      {row.nome_strategia || 'Senza Strategia'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="text-center py-3 px-3 text-violet-600/80 dark:text-gray-300 hidden sm:table-cell">
+                                  {row.totale_operazioni || 0}
+                                </td>
+                                <td className="text-center py-3 px-3">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <div className={cn(
+                                      'h-1.5 w-1.5 rounded-full',
+                                      (row.win_rate || 0) >= 50 ? 'bg-emerald-500' : 'bg-red-500'
+                                    )} />
+                                    <span className={cn(
+                                      'font-semibold text-sm',
+                                      (row.win_rate || 0) >= 50 ? 'text-emerald-500' : 'text-red-500'
+                                    )}>
+                                      {row.win_rate ? formatPercentuale(row.win_rate / 100) : '0%'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="text-center py-3 px-3 hidden md:table-cell">
+                                  <span className={cn(
+                                    'font-semibold text-sm',
+                                    (row.profit_factor || 0) >= 1.5 ? 'text-emerald-500' : 'text-red-500'
+                                  )}>
+                                    {(row.profit_factor || 0).toFixed(2)}
+                                  </span>
+                                </td>
+                                <td className="text-right py-3 px-3">
+                                  <span className={cn(
+                                    'font-bold text-sm',
+                                    isPositive ? 'text-emerald-500' : 'text-red-500'
+                                  )}>
+                                    {isPositive ? '+' : ''}{formatValuta(pnl)}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-violet-600/80 dark:text-gray-300">
+                    Nessuna strategia trovata
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
+/* ─── Best/Worst Trades (FIXED) ─── */
 function BestWorstTrades({
   operazioniRecenti,
 }: {
@@ -708,168 +1005,188 @@ function BestWorstTrades({
 }) {
   const [activeTab, setActiveTab] = useState<'best' | 'worst'>('best');
 
-  const trades = operazioniRecenti.filter((op) => op.operazione.stato === 'chiusa');
-  const sortedTrades = [...trades].sort((a, b) => {
-    const aPnl = a.operazione.pnl || 0;
-    const bPnl = b.operazione.pnl || 0;
-    return bPnl - aPnl;
-  });
+  // All operazioni are already filtered to 'chiusa' by the hook
+  const trades = operazioniRecenti;
 
-  const bestTrades = sortedTrades.slice(0, 5);
-  const worstTrades = sortedTrades.slice(-5).reverse();
+  // Sort by PnL descending for best, ascending for worst
+  const sortedByPnlDesc = useMemo(() => {
+    return [...trades].sort((a, b) => {
+      const aPnl = a.operazione.pnl || 0;
+      const bPnl = b.operazione.pnl || 0;
+      return bPnl - aPnl;
+    });
+  }, [trades]);
+
+  // Best: top 5 with highest (positive) PnL
+  const bestTrades = useMemo(() => {
+    return sortedByPnlDesc.filter(t => (t.operazione.pnl || 0) > 0).slice(0, 5);
+  }, [sortedByPnlDesc]);
+
+  // Worst: bottom 5 with lowest (most negative) PnL
+  const worstTrades = useMemo(() => {
+    return [...trades]
+      .filter(t => (t.operazione.pnl || 0) < 0)
+      .sort((a, b) => (a.operazione.pnl || 0) - (b.operazione.pnl || 0))
+      .slice(0, 5);
+  }, [trades]);
 
   const displayTrades = activeTab === 'best' ? bestTrades : worstTrades;
 
   return (
-    <motion.div variants={itemVariants}>
-      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-md transition-all duration-300 overflow-hidden group relative rounded-xl">
-        {/* Tech grid background */}
-        <div className="absolute inset-0 bg-[length:40px_40px] bg-[linear-gradient(to_right,rgba(139,92,246,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)]"></div>
-
-        {/* Particle decorations */}
-        <div className="absolute inset-0 overflow-hidden opacity-20 dark:opacity-30 pointer-events-none">
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[15%] left-[25%]"></div>
-          <div className="absolute h-1 w-1 rounded-full bg-violet-500 animate-pulse top-[65%] left-[75%]"></div>
-        </div>
-
-        {/* Gradient background - dynamic based on active tab */}
+    <motion.div variants={itemVariants} className="h-full">
+      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl flex flex-col">
+        {/* Dynamic gradient */}
         <div className={`absolute inset-0 bg-gradient-to-br transition-colors duration-300 opacity-60 group-hover:opacity-100 ${
           activeTab === 'best'
             ? 'from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10'
             : 'from-red-500/5 to-rose-500/5 dark:from-red-500/10 dark:to-rose-500/10'
-        }`}></div>
-
-        {/* Glowing border effect */}
-        <div className="absolute inset-0 rounded-xl border-b border-violet-200/20 dark:border-violet-500/10 group-hover:border-violet-300/30 dark:group-hover:border-violet-500/20 transition-colors duration-300"></div>
+        }`} />
 
         <CardHeader className="relative z-10 pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30">
-                <TrendingUp className="h-5 w-5 text-violet-500" />
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                <Trophy className="h-4 w-4 text-violet-500" />
               </div>
-              <CardTitle className="flex items-center text-xl font-semibold text-violet-700 dark:text-violet-300">
-                Migliori e Peggiori Operazioni
-              </CardTitle>
+              <div>
+                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                  Migliori e Peggiori
+                </CardTitle>
+                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                  Top e Flop per P&L
+                </CardDescription>
+              </div>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-violet-100/80 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 font-medium backdrop-blur-sm border border-violet-200/30 dark:border-violet-700/30">
-              Top & Flop
-            </span>
           </div>
-          <CardDescription className="text-violet-600/80 dark:text-gray-300 mt-1.5 ml-8">
-            In termini di profitto € e %
-          </CardDescription>
         </CardHeader>
 
-        <CardContent className="relative z-10 pt-0">
-          <div className="space-y-4">
-            <div className="flex gap-2 border-b border-violet-200/40 dark:border-violet-500/20">
-              <button
-                onClick={() => setActiveTab('best')}
-                className={cn(
-                  'px-4 py-2 font-medium text-sm border-b-2 transition-colors',
-                  activeTab === 'best'
-                    ? 'border-emerald-400 text-emerald-500 dark:text-emerald-400'
-                    : 'border-transparent text-violet-600/80 dark:text-gray-300 hover:text-violet-700 dark:hover:text-white'
-                )}
-              >
-                Migliori (5)
-              </button>
-              <button
-                onClick={() => setActiveTab('worst')}
-                className={cn(
-                  'px-4 py-2 font-medium text-sm border-b-2 transition-colors',
-                  activeTab === 'worst'
-                    ? 'border-red-400 text-red-500 dark:text-red-400'
-                    : 'border-transparent text-violet-600/80 dark:text-gray-300 hover:text-violet-700 dark:hover:text-white'
-                )}
-              >
-                Peggiori (5)
-              </button>
-            </div>
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-3"
-              >
-                {displayTrades.length === 0 ? (
-                  <p className="text-center py-8 text-violet-600/80 dark:text-gray-300">
-                    Nessun trade chiuso disponibile
-                  </p>
-                ) : (
-                  displayTrades.map((trade) => {
-                    const pnl = trade.operazione.pnl || 0;
-                    const isPositive = pnl >= 0;
-
-                    return (
-                      <motion.div
-                        key={trade.operazione.id}
-                        variants={itemVariants}
-                        className="flex items-center justify-between p-3 rounded-lg bg-white/50 dark:bg-gray-900/50 hover:bg-white/70 dark:hover:bg-gray-900/70 transition-colors border border-violet-200/20 dark:border-violet-500/10"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="font-mono font-semibold text-violet-700 dark:text-white min-w-fit">
-                            {trade.operazione.ticker}
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-xs text-violet-600/80 dark:text-gray-400">
-                              {formatData(trade.operazione.data)}
-                            </div>
-                          </div>
-                          {trade.strategia && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300">
-                              {trade.strategia.nome}
-                            </span>
-                          )}
-                        </div>
-                        <div className={cn(
-                          'text-right font-semibold',
-                          isPositive ? 'text-emerald-500' : 'text-red-500'
-                        )}>
-                          {formatValuta(pnl)}
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                )}
-              </motion.div>
-            </AnimatePresence>
+        <CardContent className="relative z-10 pt-0 flex-1 flex flex-col">
+          <div className="flex gap-1 border-b border-violet-200/40 dark:border-violet-500/20 mb-3">
+            <button
+              onClick={() => setActiveTab('best')}
+              className={cn(
+                'px-3 py-2 font-medium text-sm border-b-2 transition-colors',
+                activeTab === 'best'
+                  ? 'border-emerald-400 text-emerald-500 dark:text-emerald-400'
+                  : 'border-transparent text-violet-600/80 dark:text-gray-400 hover:text-violet-700 dark:hover:text-white'
+              )}
+            >
+              Migliori ({bestTrades.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('worst')}
+              className={cn(
+                'px-3 py-2 font-medium text-sm border-b-2 transition-colors',
+                activeTab === 'worst'
+                  ? 'border-red-400 text-red-500 dark:text-red-400'
+                  : 'border-transparent text-violet-600/80 dark:text-gray-400 hover:text-violet-700 dark:hover:text-white'
+              )}
+            >
+              Peggiori ({worstTrades.length})
+            </button>
           </div>
 
-          {/* Glowing borders */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent"></div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-2 flex-1"
+            >
+              {displayTrades.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-violet-600/80 dark:text-gray-400">
+                  {activeTab === 'best' ? (
+                    <>
+                      <TrendingUp className="h-8 w-8 mb-2 opacity-40" />
+                      <p className="text-sm">Nessun trade in profitto</p>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingDown className="h-8 w-8 mb-2 opacity-40" />
+                      <p className="text-sm">Nessun trade in perdita</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                displayTrades.map((trade) => {
+                  const pnl = trade.operazione.pnl || 0;
+                  const isPositive = pnl >= 0;
+
+                  return (
+                    <div
+                      key={trade.operazione.id}
+                      className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-white/50 dark:bg-gray-900/50 hover:bg-white/70 dark:hover:bg-gray-900/70 transition-colors border border-violet-200/20 dark:border-violet-500/10"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className={cn(
+                          'w-1.5 h-8 rounded-full shrink-0',
+                          isPositive ? 'bg-emerald-500' : 'bg-red-500'
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-semibold text-sm text-violet-700 dark:text-white">
+                              {trade.operazione.ticker}
+                            </span>
+                            {trade.strategia && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-300 truncate max-w-[80px]">
+                                {trade.strategia.nome}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-violet-600/70 dark:text-gray-400 mt-0.5">
+                            {formatData(trade.operazione.data)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        'text-right font-semibold text-sm shrink-0 ml-2',
+                        isPositive ? 'text-emerald-500' : 'text-red-500'
+                      )}>
+                        {formatValuta(pnl)}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </motion.div>
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MAIN DASHBOARD PAGE
+   ═══════════════════════════════════════════════════════════════ */
 export default function DashboardPage() {
-  const { metriche, performanceStrategie, equityData, operazioniRecenti, isLoading, errore } =
-    useDashboardData();
+  const {
+    metriche,
+    performanceStrategie,
+    equityData,
+    operazioniRecenti,
+    totaleCommissioni,
+    strategyEquityData,
+    strategyLines,
+    isLoading,
+    errore,
+    dateRange,
+    setDateRange,
+  } = useDashboardData();
+
   const [isLoaded, setIsLoaded] = useState(false);
   const [mainChartType, setMainChartType] = useState<'line' | 'bar'>('line');
   const [activeTab, setActiveTab] = useState('panoramica');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 100);
+    const timer = setTimeout(() => setIsLoaded(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <LoadingSkeleton />
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (!metriche) {
@@ -878,56 +1195,44 @@ export default function DashboardPage() {
 
   const totalTrades = metriche.totale_operazioni || 0;
   const netPnl = metriche.pnl_totale || 0;
-  const pnlPercentage = metriche.win_rate || 0;
 
   return (
     <motion.div
-      className="flex flex-col gap-5 p-4 md:p-6 min-h-[calc(100vh-4rem)] bg-transparent relative"
+      className="flex flex-col gap-4 sm:gap-5 p-3 sm:p-4 md:p-6 min-h-[calc(100vh-4rem)] bg-transparent relative"
       variants={containerVariants}
       initial="hidden"
       animate={isLoaded ? 'visible' : 'hidden'}
     >
-      {/* Background effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Grid background */}
-        <div className="absolute inset-0 bg-[length:50px_50px] bg-[linear-gradient(to_right,rgba(139,92,246,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.04)_1px,transparent_1px)] opacity-70 dark:opacity-100"></div>
-
-        {/* Radial glows */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_-100px,rgba(139,92,246,0.04),transparent_70%)] dark:bg-[radial-gradient(circle_800px_at_50%_-100px,rgba(109,40,217,0.12),transparent_70%)] animate-pulse-slow"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_600px_at_80%_60%,rgba(139,92,246,0.03),transparent_70%)] dark:bg-[radial-gradient(circle_600px_at_80%_60%,rgba(109,40,217,0.12),transparent_70%)] animate-float-slow"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_500px_at_20%_30%,rgba(139,92,246,0.02),transparent_70%)] dark:bg-[radial-gradient(circle_500px_at_20%_30%,rgba(109,40,217,0.08),transparent_70%)] animate-float-slow-delayed"></div>
-
-        {/* Particle decorations */}
-        <div className="absolute h-1 w-1 rounded-full bg-violet-500/30 dark:bg-violet-500/50 top-[20%] left-[30%] animate-pulse"></div>
-        <div className="absolute h-1 w-1 rounded-full bg-violet-500/30 dark:bg-violet-500/50 top-[70%] left-[80%] animate-pulse-slow"></div>
-        <div className="absolute h-1 w-1 rounded-full bg-violet-500/30 dark:bg-violet-500/50 top-[40%] left-[60%] animate-pulse"></div>
-        <div className="absolute h-1 w-1 rounded-full bg-violet-500/30 dark:bg-violet-500/50 top-[80%] left-[20%] animate-pulse-slow"></div>
-      </div>
-
-      {/* Sticky tabs bar */}
+      {/* Top bar: Tabs + Date Filter */}
       <motion.div
-        className="flex items-center gap-3 sticky top-0 z-10 py-2 px-3 bg-white/95 dark:bg-[#161622] border-gray-200/80 dark:border-violet-500/20 dark:shadow-[0_0_15px_rgba(109,40,217,0.08)] backdrop-blur-md rounded-xl border shadow-sm mb-2"
+        className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sticky top-0 z-10 py-2.5 px-3 sm:px-4 bg-white/95 dark:bg-[#161622]/95 border-gray-200/80 dark:border-violet-500/20 backdrop-blur-md rounded-xl border shadow-sm"
         variants={itemVariants}
       >
-        <div className="w-full">
+        <div className="shrink-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-violet-200/30 dark:border-violet-500/30 w-full md:w-auto">
+            <TabsList className="bg-gray-50/80 dark:bg-gray-900/80 p-1 rounded-lg border border-violet-200/30 dark:border-violet-500/30">
               <TabsTrigger
                 value="panoramica"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-300 rounded-lg transition-all duration-300 flex items-center gap-2"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-300 rounded-md transition-all duration-200 flex items-center gap-1.5 text-sm px-3 py-1.5"
               >
-                <BarChart3 className="h-4 w-4" />
+                <BarChart3 className="h-3.5 w-3.5" />
                 <span>Panoramica</span>
               </TabsTrigger>
               <TabsTrigger
                 value="progressi"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-300 rounded-lg transition-all duration-300 flex items-center gap-2"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-300 rounded-md transition-all duration-200 flex items-center gap-1.5 text-sm px-3 py-1.5"
               >
-                <LineChartIcon className="h-4 w-4" />
+                <LineChartIcon className="h-3.5 w-3.5" />
                 <span>Progressi</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
+        </div>
+
+        <div className="hidden sm:block h-5 w-px bg-violet-200/40 dark:bg-violet-700/30 shrink-0" />
+
+        <div className="flex-1 overflow-x-auto">
+          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
         </div>
       </motion.div>
 
@@ -935,41 +1240,47 @@ export default function DashboardPage() {
       <AnimatePresence mode="wait">
         {activeTab === 'panoramica' && (
           <motion.div
+            key="panoramica"
             variants={itemVariants}
-            className="w-full space-y-6"
-            initial={{ opacity: 0, y: 10 }}
+            className="w-full space-y-4 sm:space-y-5"
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
           >
-            {/* 4 KPI Cards */}
+            {/* 4 KPI Cards — Win Rate removed, Total Commissions added */}
             <motion.div
-              className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ staggerChildren: 0.1 }}
+              transition={{ staggerChildren: 0.08 }}
             >
               <KPICard
                 label="Profitto/Perdita"
                 value={formatValuta(netPnl)}
-                icon={<TrendingUp className="w-5 h-5 text-green-600" />}
+                icon={
+                  netPnl >= 0
+                    ? <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                    : <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                }
                 gradientFrom="from-green-500/5"
                 gradientTo="to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10"
               />
 
               <KPICard
-                label="Win Rate"
-                value={`${pnlPercentage.toFixed(2)}%`}
-                icon={<BarChart3 className="w-5 h-5 text-blue-600" />}
-                gradientFrom="from-blue-500/5"
-                gradientTo="to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10"
+                label="Commissioni Pagate"
+                value={formatValuta(totaleCommissioni)}
+                icon={<DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
+                gradientFrom="from-amber-500/5"
+                gradientTo="to-orange-500/5 dark:from-amber-500/10 dark:to-orange-500/10"
+                subtitle="Totale costi"
               />
 
               <KPICard
                 label="Trade Totali"
                 value={totalTrades}
-                icon={<TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-400" />}
+                icon={<Hash className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />}
                 gradientFrom="from-violet-500/5"
                 gradientTo="to-purple-500/5 dark:from-violet-500/10 dark:to-purple-500/10"
               />
@@ -977,19 +1288,19 @@ export default function DashboardPage() {
               <KPICard
                 label="Giorni di Trading"
                 value={equityData.length}
-                icon={<LineChartIcon className="w-5 h-5 text-amber-600" />}
-                gradientFrom="from-amber-500/5"
-                gradientTo="to-orange-500/5 dark:from-amber-500/10 dark:to-orange-500/10"
+                icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />}
+                gradientFrom="from-blue-500/5"
+                gradientTo="to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10"
               />
             </motion.div>
 
-            {/* Main grid layout — Equity Chart (2/3) + Performance (1/3) */}
+            {/* Row 2: Equity Chart (2/3) + Performance (1/3) */}
             <motion.div
-              className="grid gap-5 lg:grid-cols-3"
+              className="grid gap-4 sm:gap-5 lg:grid-cols-3"
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ staggerChildren: 0.08, delayChildren: 0.15 }}
+              transition={{ staggerChildren: 0.06, delayChildren: 0.1 }}
             >
               <div className="lg:col-span-2">
                 <EquityChart
@@ -1004,16 +1315,20 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            {/* Second row — Strategy Table (3/5) + Best/Worst Trades (2/5) */}
+            {/* Row 3: Strategie (chart+table unified) + Best/Worst Trades */}
             <motion.div
-              className="grid gap-5 lg:grid-cols-5"
+              className="grid gap-4 sm:gap-5 lg:grid-cols-5"
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
-              transition={{ staggerChildren: 0.08, delayChildren: 0.2 }}
+              transition={{ staggerChildren: 0.06, delayChildren: 0.15 }}
             >
               <div className="lg:col-span-3">
-                <PerformanceStrategieTable data={performanceStrategie} />
+                <StrategieSection
+                  performanceData={performanceStrategie}
+                  equityData={strategyEquityData}
+                  equityLines={strategyLines}
+                />
               </div>
 
               <div className="lg:col-span-2">
@@ -1025,11 +1340,12 @@ export default function DashboardPage() {
 
         {activeTab === 'progressi' && (
           <motion.div
+            key="progressi"
             variants={itemVariants}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
             className="w-full"
           >
             <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md">
@@ -1043,12 +1359,12 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col items-center justify-center p-12 text-center">
-                  <LineChartIcon className="h-16 w-16 text-violet-200 dark:text-violet-800 mb-4" />
-                  <h3 className="text-xl font-medium mb-2 text-violet-700 dark:text-white">
+                <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
+                  <LineChartIcon className="h-12 w-12 sm:h-16 sm:w-16 text-violet-200 dark:text-violet-800 mb-4" />
+                  <h3 className="text-lg sm:text-xl font-medium mb-2 text-violet-700 dark:text-white">
                     Funzionalità in sviluppo
                   </h3>
-                  <p className="text-violet-600/80 dark:text-gray-300 max-w-md">
+                  <p className="text-sm text-violet-600/80 dark:text-gray-300 max-w-md">
                     Questa sezione mostrerà i tuoi progressi nel trading nel tempo. Stiamo lavorando per renderla
                     disponibile presto.
                   </p>
@@ -1063,54 +1379,11 @@ export default function DashboardPage() {
       {errore && (
         <motion.div
           variants={itemVariants}
-          className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400"
+          className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400 text-sm"
         >
           {errore}
         </motion.div>
       )}
-
-      {/* Custom animations styles */}
-      <style jsx>{`
-        @keyframes pulse-slow {
-          0%, 100% {
-            opacity: 0.3;
-          }
-          50% {
-            opacity: 0.8;
-          }
-        }
-        @keyframes float-slow {
-          0%, 100% {
-            transform: translateY(0) translateX(0);
-          }
-          33% {
-            transform: translateY(-3px) translateX(2px);
-          }
-          66% {
-            transform: translateY(3px) translateX(-2px);
-          }
-        }
-        @keyframes float-slow-delayed {
-          0%, 100% {
-            transform: translateY(0) translateX(0);
-          }
-          33% {
-            transform: translateY(3px) translateX(-2px);
-          }
-          66% {
-            transform: translateY(-3px) translateX(2px);
-          }
-        }
-        .animate-pulse-slow {
-          animation: pulse-slow 3s infinite;
-        }
-        .animate-float-slow {
-          animation: float-slow 8s ease-in-out infinite;
-        }
-        .animate-float-slow-delayed {
-          animation: float-slow-delayed 9s ease-in-out infinite;
-        }
-      `}</style>
     </motion.div>
   );
 }

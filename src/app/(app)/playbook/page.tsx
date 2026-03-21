@@ -165,12 +165,9 @@ export default function PlaybookPage() {
   // ─── Vista dettaglio ─────────────────────────────────────────────
   if (selectedStrategiaDetail) {
     return (
-      <div className="min-h-screen bg-white dark:bg-[#161622] relative">
-        {/* Tech grid background */}
-        <div className="absolute inset-0 bg-[length:50px_50px] bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.04)_1px,transparent_1px)] pointer-events-none" />
-
+      <div className="min-h-screen relative">
         {/* Header */}
-        <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-[#161622]/90 border-b border-gray-200/80 dark:border-violet-500/20 shadow-sm">
+        <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-[#0a0a0f]/90 border-b border-gray-200/80 dark:border-violet-500/20 shadow-sm">
           <div className="w-full max-w-[98%] mx-auto py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-500/20">
@@ -225,7 +222,7 @@ export default function PlaybookPage() {
 
           {/* Loading overlay */}
           {!isPageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-[#161622]/80 backdrop-blur-sm rounded-xl z-20">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 dark:bg-[#0a0a0f]/80 backdrop-blur-sm rounded-xl z-20">
               <div className="flex flex-col items-center">
                 <div className="h-12 w-12 rounded-full border-3 border-violet-500 border-t-transparent animate-spin" />
                 <span className="mt-3 text-sm font-bold text-gray-700 dark:text-violet-300">
@@ -265,15 +262,9 @@ export default function PlaybookPage() {
 
   // ─── Vista lista strategie ────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white dark:bg-[#161622] relative">
-      {/* Tech grid background */}
-      <div className="absolute inset-0 bg-[length:50px_50px] bg-[linear-gradient(to_right,rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(139,92,246,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,92,246,0.04)_1px,transparent_1px)] pointer-events-none" />
-
-      {/* Radial glows */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_-100px,rgba(139,92,246,0.04),transparent_70%)] dark:bg-[radial-gradient(circle_800px_at_50%_-100px,rgba(109,40,217,0.12),transparent_70%)] pointer-events-none" />
-
+    <div className="min-h-screen relative">
       {/* Header sticky */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-[#161622]/90 border-b border-gray-200/80 dark:border-violet-500/20 shadow-sm">
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-[#0a0a0f]/90 border-b border-gray-200/80 dark:border-violet-500/20 shadow-sm">
         <div className="w-full max-w-[98%] mx-auto py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-500/20">

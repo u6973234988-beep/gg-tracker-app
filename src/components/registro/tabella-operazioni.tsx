@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatValuta, formatData, cn } from '@/lib/utils';
-import { Edit2, Trash2, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
+import { Edit2, Trash2, ChevronDown, ChevronUp, BarChart2, Check, Minus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { OperazioneConDettagli } from '@/hooks/useOperazioni';
 
@@ -23,6 +23,8 @@ interface TabellaOperazioniProps {
   onEdit?: (operazione: OperazioneConDettagli) => void;
   onDelete?: (id: string) => Promise<void>;
   isLoading?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 }
 
 export function TabellaOperazioni({
@@ -30,12 +32,17 @@ export function TabellaOperazioni({
   onEdit,
   onDelete,
   isLoading = false,
+  selectedIds,
+  onSelectionChange,
 }: TabellaOperazioniProps) {
   const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const itemsPerPage = 20;
+
+  const selectionEnabled = !!onSelectionChange;
+  const selected = selectedIds || new Set<string>();
 
   const toggleExpand = (id: string) => {
     const newExpanded = new Set(expandedRows);
@@ -45,6 +52,30 @@ export function TabellaOperazioni({
       newExpanded.add(id);
     }
     setExpandedRows(newExpanded);
+  };
+
+  const toggleSelect = (id: string) => {
+    if (!onSelectionChange) return;
+    const newSelected = new Set(selected);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    onSelectionChange(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (!onSelectionChange) return;
+    const pageIds = paginatedOperazioni.map((op) => op.id);
+    const allSelected = pageIds.every((id) => selected.has(id));
+    const newSelected = new Set(selected);
+    if (allSelected) {
+      pageIds.forEach((id) => newSelected.delete(id));
+    } else {
+      pageIds.forEach((id) => newSelected.add(id));
+    }
+    onSelectionChange(newSelected);
   };
 
   if (isLoading) {
@@ -76,6 +107,10 @@ export function TabellaOperazioni({
   const paginatedOperazioni = operazioni.slice(startIndex, endIndex);
   const totalPages = Math.ceil(operazioni.length / itemsPerPage);
 
+  const pageIds = paginatedOperazioni.map((op) => op.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const somePageSelected = pageIds.some((id) => selected.has(id)) && !allPageSelected;
+
   return (
     <div className="space-y-4">
       <Card>
@@ -83,7 +118,27 @@ export function TabellaOperazioni({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12"></TableHead>
+                <TableHead className="w-12">
+                  {selectionEnabled ? (
+                    <button
+                      onClick={toggleSelectAll}
+                      className={cn(
+                        'flex items-center justify-center w-5 h-5 rounded border-2 transition-all duration-200',
+                        allPageSelected
+                          ? 'bg-violet-500 border-violet-500 text-white shadow-sm shadow-violet-500/30'
+                          : somePageSelected
+                            ? 'bg-violet-500/30 border-violet-400 text-white'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-400'
+                      )}
+                    >
+                      {allPageSelected ? (
+                        <Check className="w-3 h-3" />
+                      ) : somePageSelected ? (
+                        <Minus className="w-3 h-3" />
+                      ) : null}
+                    </button>
+                  ) : null}
+                </TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Ticker</TableHead>
                 <TableHead>Direzione</TableHead>
@@ -102,6 +157,7 @@ export function TabellaOperazioni({
                   const isPositive = pnl >= 0;
                   const isLong = op.direzione === 'LONG';
                   const isExpanded = expandedRows.has(op.id);
+                  const isSelected = selected.has(op.id);
 
                   return (
                     <motion.tr
@@ -110,19 +166,38 @@ export function TabellaOperazioni({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="border-b border-gray-100 dark:border-[#1e1e2e] hover:bg-gray-50 dark:hover:bg-[#1e1e2e]/50"
+                      className={cn(
+                        'border-b border-gray-100 dark:border-[#1e1e2e] transition-colors',
+                        isSelected
+                          ? 'bg-violet-50/60 dark:bg-violet-500/10 hover:bg-violet-100/60 dark:hover:bg-violet-500/15'
+                          : 'hover:bg-gray-50 dark:hover:bg-[#1e1e2e]/50'
+                      )}
                     >
                       <TableCell>
-                        <button
-                          onClick={() => toggleExpand(op.id)}
-                          className="p-1 hover:bg-gray-100 dark:hover:bg-[#2a2a3e] rounded"
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                        </button>
+                        {selectionEnabled ? (
+                          <button
+                            onClick={() => toggleSelect(op.id)}
+                            className={cn(
+                              'flex items-center justify-center w-5 h-5 rounded border-2 transition-all duration-200',
+                              isSelected
+                                ? 'bg-violet-500 border-violet-500 text-white shadow-sm shadow-violet-500/30 scale-105'
+                                : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-400 hover:scale-105'
+                            )}
+                          >
+                            {isSelected && <Check className="w-3 h-3" />}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => toggleExpand(op.id)}
+                            className="p-1 hover:bg-gray-100 dark:hover:bg-[#2a2a3e] rounded"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
                       </TableCell>
                       <TableCell className="font-medium">
                         {formatData(op.data)}

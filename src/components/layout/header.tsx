@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTheme } from 'next-themes';
-import { Search, Sun, Moon, Bell } from 'lucide-react';
+import { Sun, Moon, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 
 const pageLabels: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -37,17 +36,6 @@ export function Header() {
           <h1 className="hidden md:block text-lg md:text-xl font-semibold text-gray-800 dark:text-white">
             {pageTitle}
           </h1>
-
-          <div className="hidden md:flex flex-1 max-w-sm">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-              <Input
-                placeholder="Ricerca..."
-                className="pl-10 bg-gray-50 dark:bg-[#12121a] border-gray-200 dark:border-[#1e1e2e] text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-600"
-                type="search"
-              />
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">

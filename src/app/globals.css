@@ -310,5 +310,32 @@
 
 .high-contrast-text { color: inherit; }
 
+/* ── Sidebar Glass Effect ── */
+.sidebar-glass {
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.dark .sidebar-glass {
+  background: linear-gradient(180deg, rgba(14, 14, 22, 0.98) 0%, rgba(10, 10, 15, 0.99) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Sidebar ping animation for logo */
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  75%, 100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.animate-ping-slow {
+  animation: ping-slow 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 /* Recharts tooltip fixes */
 .recharts-tooltip-wrapper { z-index: 1000 !important; }

@@ -141,7 +141,7 @@ export default function AnalisiOperazionePage() {
     : null;
 
   return (
-    <div className="p-4 md:p-6 space-y-5 min-h-screen">
+    <div className="p-4 md:p-6 space-y-5 min-h-screen relative">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
