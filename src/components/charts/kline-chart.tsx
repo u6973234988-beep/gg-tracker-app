@@ -499,7 +499,11 @@ export function KlineChartComponent({
   className,
 }: KlineChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('1min');
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== 'undefined'
+      ? document.documentElement.classList.contains('dark')
+      : false
+  );
   const [apiInfo, setApiInfo] = useState<{ daily: number; remaining: number } | null>(null);
   // Contatore per forzare remount quando si preme refresh
   const [refreshKey, setRefreshKey] = useState(0);

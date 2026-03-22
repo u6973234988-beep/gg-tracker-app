@@ -42,6 +42,7 @@ import { formatValuta } from '@/lib/utils';
 import { cn } from '@/lib/cn';
 import { KlineChartComponent } from '@/components/charts/kline-chart';
 import type { StrategiaConDettagli } from '@/hooks/usePlaybook';
+import { useConformitaRegole } from '@/hooks/useConformitaRegole';
 
 interface DettaglioStrategiaProps {
   strategia: StrategiaConDettagli | null;
@@ -91,7 +92,8 @@ export function DettaglioStrategia({
   onDelete,
   isLoading = false,
 }: DettaglioStrategiaProps) {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const theme = resolvedTheme;
   const [addingRule, setAddingRule] = React.useState(false);
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   const [ruleSearchQuery, setRuleSearchQuery] = React.useState('');
@@ -1029,8 +1031,8 @@ export function DettaglioStrategia({
                 </div>
               </div>
 
-              {/* ─── Colonna destra: Grafico Kline ─── */}
-              <div className="flex-1 min-w-0">
+              {/* ─── Colonna destra: Grafico Kline + Aderenza ─── */}
+              <div className="flex-1 min-w-0 space-y-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-400" />
@@ -1044,22 +1046,29 @@ export function DettaglioStrategia({
                 </div>
 
                 {selectedOp ? (
-                  <KlineChartComponent
-                    ticker={selectedOp.ticker}
-                    tradeDate={selectedOp.data?.split('T')[0] || selectedOp.data}
-                    trade={{
-                      entryPrice: selectedOp.prezzo_entrata,
-                      exitPrice: selectedOp.prezzo_uscita,
-                      entryTime: selectedOp.ora_entrata || selectedOp.ora,
-                      exitTime: selectedOp.ora_uscita,
-                      direction: selectedOp.direzione,
-                      stopLoss: selectedOp.stop_loss,
-                      takeProfit: selectedOp.take_profit,
-                      pnl: selectedOp.pnl,
-                      quantity: selectedOp.quantita,
-                    }}
-                    height="520px"
-                  />
+                  <>
+                    <KlineChartComponent
+                      ticker={selectedOp.ticker}
+                      tradeDate={selectedOp.data?.split('T')[0] || selectedOp.data}
+                      trade={{
+                        entryPrice: selectedOp.prezzo_entrata,
+                        exitPrice: selectedOp.prezzo_uscita,
+                        entryTime: selectedOp.ora_entrata || selectedOp.ora,
+                        exitTime: selectedOp.ora_uscita,
+                        direction: selectedOp.direzione,
+                        stopLoss: selectedOp.stop_loss,
+                        takeProfit: selectedOp.take_profit,
+                        pnl: selectedOp.pnl,
+                        quantity: selectedOp.quantita,
+                      }}
+                      height="520px"
+                    />
+                    {/* Aderenza Regole per l'operazione selezionata */}
+                    <PlaybookAderenzaPanel
+                      operazioneId={selectedOp.id}
+                      strategiaId={strategia.id}
+                    />
+                  </>
                 ) : (
                   <div className="h-[520px] rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] flex flex-col items-center justify-center">
                     <BarChart2 className="h-12 w-12 text-gray-200 dark:text-gray-700 mb-4" />
@@ -1143,5 +1152,137 @@ export function DettaglioStrategia({
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// ─── Aderenza Regole Panel (nel tab Operazioni) ─────────────────────────
+function PlaybookAderenzaPanel({ operazioneId, strategiaId }: { operazioneId: string; strategiaId: string }) {
+  const { aderenza, loading, toggleRegola } = useConformitaRegole(operazioneId, strategiaId);
+  const [expanded, setExpanded] = React.useState(true);
+
+  if (loading && !aderenza) {
+    return (
+      <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+        <CardContent className="p-4">
+          <p className="text-xs text-gray-400 animate-pulse text-center">Caricamento regole...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!aderenza || aderenza.totali === 0) return null;
+
+  // Raggruppa per gruppo
+  const regoleByGruppo: Record<string, typeof aderenza.regole> = {};
+  aderenza.regole.forEach((r) => {
+    const g = r.gruppo || 'entry';
+    if (!regoleByGruppo[g]) regoleByGruppo[g] = [];
+    regoleByGruppo[g].push(r);
+  });
+
+  const confMap = new Map(aderenza.conformita.map((c) => [c.regola_id, c]));
+
+  const pct = aderenza.percentuale;
+  const pctColor = pct >= 80 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
+  const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
+
+  return (
+    <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+      <CardHeader className="pb-2 pt-3 px-4">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            <BookOpen className="h-3.5 w-3.5 text-violet-500" />
+            Aderenza Regole
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className={cn('text-sm font-bold tabular-nums', pctColor)}>
+              {pct}%
+            </span>
+            <span className="text-[10px] text-gray-400">
+              {aderenza.rispettate}/{aderenza.totali}
+            </span>
+            {expanded ? <ChevronUp className="h-3.5 w-3.5 text-gray-400" /> : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />}
+          </div>
+        </div>
+        {/* Barra progressione */}
+        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-2 overflow-hidden">
+          <div
+            className={cn('h-full rounded-full transition-all duration-500', barColor)}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </CardHeader>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <CardContent className="px-4 pb-4 pt-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Object.entries(regoleByGruppo).map(([gruppo, regole]) => {
+                  const preset = PRESET_GRUPPI.find((p) => p.key === gruppo);
+                  const gLabel = preset?.label || gruppo.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                  const gColor = preset?.color || 'text-gray-600 dark:text-gray-400';
+
+                  return (
+                    <div key={gruppo}>
+                      <p className={cn('text-[10px] font-bold uppercase tracking-wider mb-1.5', gColor)}>
+                        {gLabel}
+                      </p>
+                      <div className="space-y-1">
+                        {regole.map((regola) => {
+                          const conf = confMap.get(regola.id);
+                          const isChecked = conf?.rispettata === true;
+
+                          return (
+                            <button
+                              key={regola.id}
+                              onClick={() => toggleRegola(regola.id, !isChecked)}
+                              className={cn(
+                                'w-full flex items-center gap-2 p-2 rounded-lg border text-left transition-all duration-150',
+                                isChecked
+                                  ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20'
+                                  : 'bg-gray-50/50 dark:bg-[#161622]/30 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                              )}
+                            >
+                              <div className={cn(
+                                'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
+                                isChecked
+                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  : 'border-gray-300 dark:border-gray-600'
+                              )}>
+                                {isChecked && (
+                                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={cn(
+                                'text-xs font-medium',
+                                isChecked ? 'text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400'
+                              )}>
+                                {regola.descrizione}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
   );
 }

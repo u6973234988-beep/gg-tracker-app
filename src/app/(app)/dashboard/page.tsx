@@ -325,7 +325,7 @@ function EquityChart({
   chartType: 'line' | 'bar';
   onChartTypeChange: (type: 'line' | 'bar') => void;
 }) {
-  const { theme } = useTheme();
+  const { resolvedTheme: theme } = useTheme();
 
   if (!equityData || equityData.length === 0) {
     return (
@@ -679,8 +679,16 @@ function StrategieSection({
   equityData: StrategyEquityPoint[];
   equityLines: StrategyLineInfo[];
 }) {
-  const { theme } = useTheme();
-  const [view, setView] = useState<'chart' | 'table'>('chart');
+  const { resolvedTheme: theme } = useTheme();
+  // Track which strategy lines are visible (all visible by default)
+  const [visibleLines, setVisibleLines] = useState<Set<string>>(() => {
+    return new Set(equityLines.map((l) => l.key));
+  });
+
+  // Sync visibleLines when equityLines change
+  useEffect(() => {
+    setVisibleLines(new Set(equityLines.map((l) => l.key)));
+  }, [equityLines]);
 
   const hasEquityData = equityData && equityData.length > 0 && equityLines && equityLines.length > 0;
   const hasPerformanceData = performanceData && performanceData.length > 0;
@@ -719,278 +727,265 @@ function StrategieSection({
     return line?.colore || '#8b5cf6';
   };
 
+  const getStrategyKey = (stratId: string) => {
+    return `s_${stratId.slice(0, 8)}`;
+  };
+
+  const toggleStrategyVisibility = (stratId: string) => {
+    const key = getStrategyKey(stratId);
+    setVisibleLines((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        // Don't allow hiding ALL lines
+        if (next.size > 1) {
+          next.delete(key);
+        }
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   return (
     <motion.div variants={itemVariants}>
       <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-cyan-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-cyan-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
 
         <CardHeader className="relative z-10 pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            {/* Title + icon */}
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 dark:from-violet-500/20 dark:to-purple-500/20">
-                <Target className="h-4.5 w-4.5 text-violet-600 dark:text-violet-300" />
-              </div>
-              <div>
-                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
-                  Strategie
-                </CardTitle>
-                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
-                  {view === 'chart' ? 'Equity cumulativa per strategia' : 'Metriche di performance'}
-                </CardDescription>
-              </div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 dark:from-violet-500/20 dark:to-purple-500/20">
+              <Target className="h-4.5 w-4.5 text-violet-600 dark:text-violet-300" />
             </div>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Strategy legend pills (visible in chart view) */}
-              {view === 'chart' && hasEquityData && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {equityLines.map((line) => (
-                    <span
-                      key={line.key}
-                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-white/60 dark:bg-gray-800/60 border border-violet-200/20 dark:border-violet-700/20 text-violet-700 dark:text-violet-300"
-                    >
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: line.colore }}
-                      />
-                      <span className="truncate max-w-[80px]">{line.nome}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* View toggle */}
-              <div className="flex bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-0.5 border border-violet-200/30 dark:border-violet-700/30">
-                <button
-                  onClick={() => setView('chart')}
-                  className={cn(
-                    'flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-all duration-200',
-                    view === 'chart'
-                      ? 'bg-violet-500 text-white shadow-md'
-                      : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
-                  )}
-                >
-                  <LineChartIcon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Equity</span>
-                </button>
-                <button
-                  onClick={() => setView('table')}
-                  className={cn(
-                    'flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-all duration-200',
-                    view === 'table'
-                      ? 'bg-violet-500 text-white shadow-md'
-                      : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
-                  )}
-                >
-                  <BarChart3 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Tabella</span>
-                </button>
-              </div>
+            <div>
+              <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                Strategie
+              </CardTitle>
+              <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                Equity e performance &mdash; clicca una riga per attivare/disattivare la linea
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="relative z-10 pt-0">
-          <AnimatePresence mode="wait">
-            {view === 'chart' ? (
-              <motion.div
-                key="strategy-chart"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-              >
-                {hasEquityData ? (
-                  <div className="w-full h-72 sm:h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={chartData}
-                        margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+        <CardContent className="relative z-10 pt-0 space-y-4">
+          {/* ── Equity Chart ── */}
+          {hasEquityData ? (
+            <div className="w-full h-56 sm:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={chartData}
+                  margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+                >
+                  <defs>
+                    {equityLines.map((line) => (
+                      <linearGradient
+                        key={`grad_${line.key}`}
+                        id={`grad_${line.key}`}
+                        x1="0" y1="0" x2="0" y2="1"
                       >
-                        <defs>
-                          {equityLines.map((line) => (
-                            <linearGradient
-                              key={`grad_${line.key}`}
-                              id={`grad_${line.key}`}
-                              x1="0" y1="0" x2="0" y2="1"
-                            >
-                              <stop offset="5%" stopColor={line.colore} stopOpacity={0.15} />
-                              <stop offset="95%" stopColor={line.colore} stopOpacity={0} />
-                            </linearGradient>
-                          ))}
-                        </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="rgba(139, 92, 246, 0.08)"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="dateLabel"
-                          tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                          axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={(value) =>
-                            Math.abs(value) >= 1000
-                              ? `€${(value / 1000).toFixed(0)}K`
-                              : `€${value}`
-                          }
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            borderRadius: '0.75rem',
-                            boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
-                            fontSize: '12px',
-                            padding: '10px 14px',
-                          }}
-                          labelStyle={{
-                            color: theme === 'dark' ? '#a78bfa' : '#8b5cf6',
-                            fontWeight: 600,
-                            marginBottom: '6px',
-                          }}
-                          formatter={(value: any, name: any) => {
-                            const lineInfo = equityLines.find((l) => l.key === String(name));
-                            return [
-                              formatValuta(Number(value) || 0),
-                              lineInfo?.nome || String(name),
-                            ];
-                          }}
-                          labelFormatter={(label) => `Data: ${label}`}
-                        />
-                        <ReferenceLine
-                          y={0}
-                          stroke="rgba(139, 92, 246, 0.25)"
-                          strokeDasharray="3 3"
-                        />
-                        {equityLines.map((line) => (
-                          <Line
-                            key={line.key}
-                            type="monotone"
-                            dataKey={line.key}
-                            stroke={line.colore}
-                            strokeWidth={2.5}
-                            dot={false}
-                            activeDot={{
+                        <stop offset="5%" stopColor={line.colore} stopOpacity={0.15} />
+                        <stop offset="95%" stopColor={line.colore} stopOpacity={0} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(139, 92, 246, 0.08)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="dateLabel"
+                    tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                    axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) =>
+                      Math.abs(value) >= 1000
+                        ? `€${(value / 1000).toFixed(0)}K`
+                        : `€${value}`
+                    }
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      borderRadius: '0.75rem',
+                      boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+                      fontSize: '12px',
+                      padding: '10px 14px',
+                    }}
+                    labelStyle={{
+                      color: theme === 'dark' ? '#a78bfa' : '#8b5cf6',
+                      fontWeight: 600,
+                      marginBottom: '6px',
+                    }}
+                    formatter={(value: any, name: any) => {
+                      const lineInfo = equityLines.find((l) => l.key === String(name));
+                      if (!lineInfo || !visibleLines.has(String(name))) return [null, null];
+                      return [
+                        formatValuta(Number(value) || 0),
+                        lineInfo.nome,
+                      ];
+                    }}
+                    labelFormatter={(label) => `Data: ${label}`}
+                  />
+                  <ReferenceLine
+                    y={0}
+                    stroke="rgba(139, 92, 246, 0.25)"
+                    strokeDasharray="3 3"
+                  />
+                  {equityLines.map((line) => (
+                    <Line
+                      key={line.key}
+                      type="monotone"
+                      dataKey={line.key}
+                      stroke={visibleLines.has(line.key) ? line.colore : 'transparent'}
+                      strokeWidth={visibleLines.has(line.key) ? 2.5 : 0}
+                      dot={false}
+                      activeDot={
+                        visibleLines.has(line.key)
+                          ? {
                               r: 5,
                               fill: line.colore,
                               stroke: theme === 'dark' ? '#161622' : '#ffffff',
                               strokeWidth: 2,
-                            }}
-                          />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-violet-600/80 dark:text-gray-300">
-                    <p className="text-sm text-center">
-                      Servono almeno 2 operazioni per strategia per visualizzare il grafico.
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="strategy-table"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-              >
-                {hasPerformanceData ? (
-                  <div className="overflow-x-auto -mx-4 sm:-mx-6">
-                    <div className="inline-block min-w-full px-4 sm:px-6">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-violet-200/40 dark:border-violet-500/20">
-                            <th className="text-left py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
-                              Strategia
-                            </th>
-                            <th className="text-center py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden sm:table-cell">
-                              Op.
-                            </th>
-                            <th className="text-center py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
-                              Win Rate
-                            </th>
-                            <th className="text-center py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden md:table-cell">
-                              PF
-                            </th>
-                            <th className="text-right py-2.5 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
-                              P&L
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {performanceData.map((row) => {
-                            const pnl = row.pnl_totale || 0;
-                            const isPositive = pnl >= 0;
-                            const stratColor = getStrategyColor(row.strategia_id || '');
+                            }
+                          : false
+                      }
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-40 flex items-center justify-center text-violet-600/80 dark:text-gray-300">
+              <p className="text-sm text-center">
+                Servono almeno 2 operazioni per strategia per visualizzare il grafico.
+              </p>
+            </div>
+          )}
 
-                            return (
-                              <tr key={row.strategia_id} className="border-b border-violet-200/20 dark:border-violet-500/10 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-colors">
-                                <td className="py-3 px-3">
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: stratColor }} />
-                                    <span className="text-violet-700 dark:text-white text-sm font-medium truncate max-w-[140px] sm:max-w-none">
-                                      {row.nome_strategia || 'Senza Strategia'}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="text-center py-3 px-3 text-violet-600/80 dark:text-gray-300 hidden sm:table-cell">
-                                  {row.totale_operazioni || 0}
-                                </td>
-                                <td className="text-center py-3 px-3">
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <div className={cn(
-                                      'h-1.5 w-1.5 rounded-full',
-                                      (row.win_rate || 0) >= 50 ? 'bg-emerald-500' : 'bg-red-500'
-                                    )} />
-                                    <span className={cn(
-                                      'font-semibold text-sm',
-                                      (row.win_rate || 0) >= 50 ? 'text-emerald-500' : 'text-red-500'
-                                    )}>
-                                      {row.win_rate ? formatPercentuale(row.win_rate / 100) : '0%'}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="text-center py-3 px-3 hidden md:table-cell">
-                                  <span className={cn(
-                                    'font-semibold text-sm',
-                                    (row.profit_factor || 0) >= 1.5 ? 'text-emerald-500' : 'text-red-500'
-                                  )}>
-                                    {(row.profit_factor || 0).toFixed(2)}
-                                  </span>
-                                </td>
-                                <td className="text-right py-3 px-3">
-                                  <span className={cn(
-                                    'font-bold text-sm',
-                                    isPositive ? 'text-emerald-500' : 'text-red-500'
-                                  )}>
-                                    {isPositive ? '+' : ''}{formatValuta(pnl)}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-violet-600/80 dark:text-gray-300">
-                    Nessuna strategia trovata
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* ── Divider ── */}
+          <div className="border-t border-violet-200/20 dark:border-violet-500/10" />
+
+          {/* ── Performance Table ── */}
+          {hasPerformanceData ? (
+            <div className="overflow-x-auto -mx-4 sm:-mx-6">
+              <div className="inline-block min-w-full px-4 sm:px-6">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-violet-200/40 dark:border-violet-500/20">
+                      <th className="text-left py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                        Strategia
+                      </th>
+                      <th className="text-center py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden sm:table-cell">
+                        Op.
+                      </th>
+                      <th className="text-center py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                        Win Rate
+                      </th>
+                      <th className="text-center py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden md:table-cell">
+                        PF
+                      </th>
+                      <th className="text-right py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                        P&L
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {performanceData.map((row) => {
+                      const pnl = row.pnl_totale || 0;
+                      const isPositive = pnl >= 0;
+                      const stratColor = getStrategyColor(row.strategia_id || '');
+                      const stratKey = getStrategyKey(row.strategia_id || '');
+                      const isVisible = visibleLines.has(stratKey);
+
+                      return (
+                        <tr
+                          key={row.strategia_id}
+                          onClick={() => toggleStrategyVisibility(row.strategia_id || '')}
+                          className={cn(
+                            'border-b border-violet-200/20 dark:border-violet-500/10 transition-all duration-200 cursor-pointer select-none',
+                            isVisible
+                              ? 'hover:bg-violet-50/50 dark:hover:bg-violet-900/10'
+                              : 'opacity-40 hover:opacity-60'
+                          )}
+                        >
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className={cn(
+                                  'w-2.5 h-2.5 rounded-full shrink-0 transition-all duration-200',
+                                  isVisible ? 'scale-100' : 'scale-75 ring-1 ring-gray-400/30'
+                                )}
+                                style={{
+                                  backgroundColor: isVisible ? stratColor : 'transparent',
+                                  borderWidth: isVisible ? 0 : 2,
+                                  borderColor: stratColor,
+                                  borderStyle: 'solid',
+                                }}
+                              />
+                              <span className="text-violet-700 dark:text-white text-sm font-medium truncate max-w-[140px] sm:max-w-none">
+                                {row.nome_strategia || 'Senza Strategia'}
+                              </span>
+                              {!isVisible && (
+                                <span className="text-[10px] text-gray-400 dark:text-gray-600 italic">
+                                  nascosta
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-center py-2.5 px-3 text-violet-600/80 dark:text-gray-300 hidden sm:table-cell">
+                            {row.totale_operazioni || 0}
+                          </td>
+                          <td className="text-center py-2.5 px-3">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <div className={cn(
+                                'h-1.5 w-1.5 rounded-full',
+                                (row.win_rate || 0) >= 50 ? 'bg-emerald-500' : 'bg-red-500'
+                              )} />
+                              <span className={cn(
+                                'font-semibold text-sm',
+                                (row.win_rate || 0) >= 50 ? 'text-emerald-500' : 'text-red-500'
+                              )}>
+                                {row.win_rate ? formatPercentuale(row.win_rate / 100) : '0%'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="text-center py-2.5 px-3 hidden md:table-cell">
+                            <span className={cn(
+                              'font-semibold text-sm',
+                              (row.profit_factor || 0) >= 1.5 ? 'text-emerald-500' : 'text-red-500'
+                            )}>
+                              {(row.profit_factor || 0).toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="text-right py-2.5 px-3">
+                            <span className={cn(
+                              'font-bold text-sm',
+                              isPositive ? 'text-emerald-500' : 'text-red-500'
+                            )}>
+                              {isPositive ? '+' : ''}{formatValuta(pnl)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-violet-600/80 dark:text-gray-300 text-sm">
+              Nessuna strategia trovata
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

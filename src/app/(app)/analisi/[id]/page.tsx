@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KlineChartComponent } from '@/components/charts/kline-chart';
@@ -26,7 +26,12 @@ import {
   Check,
   Save,
   X,
+  Shield,
+  BarChart2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
+import { useConformitaRegole } from '@/hooks/useConformitaRegole';
 import { formatValuta, cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale/it';
@@ -513,6 +518,16 @@ export default function AnalisiOperazionePage() {
             </Card>
           </motion.div>
 
+          {/* Aderenza Regole Card */}
+          {operazione.strategia_id && (
+            <motion.div variants={fadeRight}>
+              <AderenzaRegoleCard
+                operazioneId={operazione.id}
+                strategiaId={operazione.strategia_id}
+              />
+            </motion.div>
+          )}
+
           {/* Notes Card */}
           <motion.div variants={fadeRight}>
             <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
@@ -615,5 +630,155 @@ function DetailRow({
         {value}
       </span>
     </div>
+  );
+}
+
+// ─── Aderenza Regole Card ────────────────────────────────────────────
+// Gruppo icon/label lookup (mirrors dettaglio-strategia preset config)
+const GROUP_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  entry: { label: 'Condizioni di Ingresso', icon: <TrendingUp className="h-3 w-3" />, color: 'text-blue-600 dark:text-blue-400' },
+  stop_loss: { label: 'Stop Loss', icon: <Shield className="h-3 w-3" />, color: 'text-red-600 dark:text-red-400' },
+  take_profit: { label: 'Take Profit', icon: <Target className="h-3 w-3" />, color: 'text-green-600 dark:text-green-400' },
+  condizioni_mercato: { label: 'Condizioni di Mercato', icon: <BarChart2 className="h-3 w-3" />, color: 'text-violet-600 dark:text-violet-400' },
+};
+
+function getGroupLabel(groupKey: string) {
+  const cfg = GROUP_CONFIG[groupKey];
+  if (cfg) return cfg;
+  return {
+    label: groupKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    icon: <BookOpen className="h-3 w-3" />,
+    color: 'text-gray-600 dark:text-gray-400',
+  };
+}
+
+function AderenzaRegoleCard({ operazioneId, strategiaId }: { operazioneId: string; strategiaId: string }) {
+  const { aderenza, loading, toggleRegola } = useConformitaRegole(operazioneId, strategiaId);
+  const [expanded, setExpanded] = React.useState(true);
+
+  if (loading && !aderenza) {
+    return (
+      <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
+        <CardContent className="p-4">
+          <p className="text-xs text-gray-400 animate-pulse text-center">Caricamento regole...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!aderenza || aderenza.totali === 0) return null;
+
+  // Raggruppa le regole per gruppo
+  const regoleByGruppo: Record<string, typeof aderenza.regole> = {};
+  aderenza.regole.forEach((r) => {
+    const g = r.gruppo || 'entry';
+    if (!regoleByGruppo[g]) regoleByGruppo[g] = [];
+    regoleByGruppo[g].push(r);
+  });
+
+  // Mappa conformità per regola_id
+  const confMap = new Map(aderenza.conformita.map((c) => [c.regola_id, c]));
+
+  const pct = aderenza.percentuale;
+  const pctColor = pct >= 80 ? 'text-emerald-600 dark:text-emerald-400' : pct >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
+  const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
+
+  return (
+    <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
+      <CardHeader className="pb-2 pt-4 px-4">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            <BookOpen className="h-3.5 w-3.5 text-violet-500" />
+            Aderenza Regole
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className={cn('text-sm font-bold tabular-nums', pctColor)}>
+              {pct}%
+            </span>
+            <span className="text-[10px] text-gray-400">
+              {aderenza.rispettate}/{aderenza.totali}
+            </span>
+            {expanded ? <ChevronUp className="h-3.5 w-3.5 text-gray-400" /> : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />}
+          </div>
+        </div>
+        {/* Barra progressione */}
+        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-2 overflow-hidden">
+          <div
+            className={cn('h-full rounded-full transition-all duration-500', barColor)}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </CardHeader>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <CardContent className="px-4 pb-4 pt-1 space-y-3">
+              {Object.entries(regoleByGruppo).map(([gruppo, regole]) => {
+                const cfg = getGroupLabel(gruppo);
+                return (
+                  <div key={gruppo}>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className={cfg.color}>{cfg.icon}</span>
+                      <span className={cn('text-[10px] font-bold uppercase tracking-wider', cfg.color)}>
+                        {cfg.label}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {regole.map((regola) => {
+                        const conf = confMap.get(regola.id);
+                        const isChecked = conf?.rispettata === true;
+
+                        return (
+                          <button
+                            key={regola.id}
+                            onClick={() => toggleRegola(regola.id, !isChecked)}
+                            className={cn(
+                              'w-full flex items-center gap-2.5 p-2 rounded-lg border text-left transition-all duration-150',
+                              isChecked
+                                ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20'
+                                : 'bg-gray-50/50 dark:bg-[#161622]/30 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                            )}
+                          >
+                            {/* Checkbox visivo */}
+                            <div className={cn(
+                              'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
+                              isChecked
+                                ? 'bg-emerald-500 border-emerald-500 text-white'
+                                : 'border-gray-300 dark:border-gray-600'
+                            )}>
+                              {isChecked && (
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={cn(
+                              'text-xs font-medium flex-1',
+                              isChecked ? 'text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400'
+                            )}>
+                              {regola.descrizione}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
   );
 }
