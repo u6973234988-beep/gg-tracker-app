@@ -9,7 +9,7 @@ import { FiltriRegistro } from '@/components/registro/filtri-registro';
 import { TabellaOperazioni } from '@/components/registro/tabella-operazioni';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -20,7 +20,6 @@ import {
   List,
   TrendingUp,
   TrendingDown,
-  Percent,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -31,7 +30,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { formatValuta, formatPercentuale, stessoGiorno, cn } from '@/lib/utils';
+import { formatValuta, cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale/it';
 import { toast } from 'sonner';
@@ -45,22 +44,6 @@ const itemVariants = {
   },
 };
 
-const statVariants = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.4 },
-  },
-};
-
-interface StatCard {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  description?: string;
-  color?: string;
-}
 
 export default function RegistroPage() {
   const {
@@ -156,51 +139,6 @@ export default function RegistroPage() {
   const toggleDay = (date: string) => {
     setExpandedDays((prev) => ({ ...prev, [date]: !prev[date] }));
   };
-
-  // Calculate stats for today
-  const todayStats = useMemo(() => {
-    const today = new Date();
-
-    const todayOps = operazioni.filter((op) =>
-      stessoGiorno(new Date(op.data), today)
-    );
-
-    const totalOpsToday = todayOps.length;
-    const pnlToday = todayOps.reduce((sum, op) => sum + (op.pnl || 0), 0);
-
-    const winningTrades = todayOps.filter((op) => (op.pnl || 0) > 0).length;
-    const winRate = totalOpsToday > 0 ? (winningTrades / totalOpsToday) * 100 : 0;
-
-    return {
-      totalOpsToday,
-      pnlToday,
-      winRate,
-    };
-  }, [operazioni]);
-
-  const stats: StatCard[] = [
-    {
-      title: 'Operazioni Oggi',
-      value: todayStats.totalOpsToday,
-      icon: <Calendar className="w-5 h-5" />,
-      description: 'Operazioni chiuse oggi',
-      color: 'text-blue-400',
-    },
-    {
-      title: 'P&L Oggi',
-      value: formatValuta(todayStats.pnlToday),
-      icon: <TrendingUp className="w-5 h-5" />,
-      description: todayStats.pnlToday >= 0 ? 'Profitto' : 'Perdita',
-      color: todayStats.pnlToday >= 0 ? 'text-emerald-400' : 'text-red-400',
-    },
-    {
-      title: 'Win Rate Oggi',
-      value: formatPercentuale(todayStats.winRate / 100),
-      icon: <Percent className="w-5 h-5" />,
-      description: `${todayStats.totalOpsToday > 0 ? Math.round(todayStats.winRate) : 0}% di successo`,
-      color: todayStats.winRate >= 50 ? 'text-emerald-400' : 'text-orange-400',
-    },
-  ];
 
   const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -893,31 +831,50 @@ export default function RegistroPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-                  className="text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
+                  className="h-8 w-8 text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <h3 className="text-lg font-semibold text-violet-700 dark:text-white capitalize">
-                  {format(currentMonth, 'MMMM yyyy', { locale: it })}
-                </h3>
+                <div className="text-center">
+                  <h3 className="text-base font-bold text-violet-700 dark:text-white capitalize">
+                    {format(currentMonth, 'MMMM yyyy', { locale: it })}
+                  </h3>
+                  {(() => {
+                    const mOps = filteredOperazioni.filter((op) => {
+                      const d = new Date(op.data);
+                      return d.getFullYear() === currentMonth.getFullYear() && d.getMonth() === currentMonth.getMonth();
+                    });
+                    const mPnl = mOps.reduce((s, op) => s + (op.pnl || 0), 0);
+                    return mOps.length > 0 ? (
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                        {mOps.length} operazioni · <span className={mPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}>{mPnl >= 0 ? '+' : ''}{formatValuta(mPnl)}</span>
+                      </p>
+                    ) : null;
+                  })()}
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-                  className="text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
+                  className="h-8 w-8 text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
 
               {/* Calendar grid */}
-              <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 overflow-hidden">
+              <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 overflow-hidden">
                 {/* Day of week headers */}
-                <div className="grid grid-cols-7 bg-violet-50/50 dark:bg-violet-900/20 border-b border-violet-200/30 dark:border-violet-500/30">
-                  {weekDays.map((day) => (
+                <div className="grid grid-cols-7 bg-violet-50/40 dark:bg-violet-900/15">
+                  {weekDays.map((day, i) => (
                     <div
                       key={day}
-                      className="py-2 text-center text-xs font-semibold text-violet-600 dark:text-violet-400"
+                      className={cn(
+                        'py-2.5 text-center text-[10px] font-bold uppercase tracking-wider',
+                        i >= 5
+                          ? 'text-violet-400/60 dark:text-violet-500/40'
+                          : 'text-violet-600/80 dark:text-violet-400/80'
+                      )}
                     >
                       {day}
                     </div>
@@ -931,56 +888,81 @@ export default function RegistroPage() {
                       return (
                         <div
                           key={`empty-${idx}`}
-                          className="min-h-[80px] border-b border-r border-violet-200/10 dark:border-violet-500/10 bg-gray-50/30 dark:bg-gray-900/20"
+                          className="min-h-[90px] border-t border-r border-violet-200/8 dark:border-violet-500/5 bg-gray-50/20 dark:bg-gray-900/10 last:border-r-0"
                         />
                       );
                     }
 
-                    const isToday =
-                      cell.dateStr ===
-                      format(new Date(), 'yyyy-MM-dd');
+                    const isToday = cell.dateStr === format(new Date(), 'yyyy-MM-dd');
                     const hasOps = cell.ops > 0;
                     const isPositive = cell.pnl >= 0;
-
-                    let bgClass = 'bg-white/50 dark:bg-gray-900/50';
-                    if (hasOps && isPositive) {
-                      bgClass = 'bg-emerald-50/50 dark:bg-emerald-900/10';
-                    } else if (hasOps && !isPositive) {
-                      bgClass = 'bg-red-50/50 dark:bg-red-900/10';
-                    }
+                    const winRate = cell.ops > 0 ? Math.round((cell.wins / cell.ops) * 100) : 0;
 
                     return (
                       <div
                         key={cell.dateStr}
-                        className={`min-h-[80px] border-b border-r border-violet-200/10 dark:border-violet-500/10 p-1.5 ${bgClass} hover:bg-violet-50/80 dark:hover:bg-violet-900/15 transition-colors relative`}
+                        className={cn(
+                          'min-h-[90px] border-t border-r border-violet-200/8 dark:border-violet-500/5 p-1.5 transition-all duration-150 relative group/cell',
+                          hasOps && isPositive && 'bg-emerald-50/30 dark:bg-emerald-500/[0.03]',
+                          hasOps && !isPositive && 'bg-red-50/30 dark:bg-red-500/[0.03]',
+                          !hasOps && 'bg-white/30 dark:bg-[#161622]/30',
+                          'hover:bg-violet-50/50 dark:hover:bg-violet-900/10',
+                          isToday && 'ring-1 ring-inset ring-violet-400/40 dark:ring-violet-500/30'
+                        )}
                       >
-                        <div className={`text-xs font-medium mb-1 ${
-                          isToday
-                            ? 'text-violet-700 dark:text-violet-300 bg-violet-500/20 rounded-full w-6 h-6 flex items-center justify-center'
-                            : 'text-violet-600/70 dark:text-gray-400'
-                        }`}>
-                          {cell.day}
+                        {/* Day number */}
+                        <div className="flex items-center justify-between mb-0.5">
+                          <div className={cn(
+                            'text-[11px] font-semibold leading-none',
+                            isToday
+                              ? 'text-white bg-violet-500 rounded-full w-5 h-5 flex items-center justify-center text-[10px]'
+                              : hasOps
+                                ? 'text-violet-700 dark:text-white'
+                                : 'text-gray-400 dark:text-gray-600'
+                          )}>
+                            {cell.day}
+                          </div>
+                          {hasOps && (
+                            <button
+                              onClick={() => {
+                                const dayOp = filteredOperazioni.find((op) => op.data === cell.dateStr);
+                                if (dayOp) router.push(`/analisi/${dayOp.id}`);
+                              }}
+                              className="opacity-0 group-hover/cell:opacity-100 p-0.5 rounded hover:bg-violet-200/50 dark:hover:bg-violet-500/20 transition-all"
+                              title="Vai all'analisi"
+                            >
+                              <BarChart2 className="h-3 w-3 text-violet-500" />
+                            </button>
+                          )}
                         </div>
+
                         {hasOps && (
-                          <div className="space-y-0.5">
-                            <p className={`text-xs font-bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {formatValuta(cell.pnl)}
+                          <div className="space-y-1">
+                            {/* P&L */}
+                            <p className={cn(
+                              'text-xs font-bold leading-none',
+                              isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                            )}>
+                              {isPositive ? '+' : ''}{formatValuta(cell.pnl)}
                             </p>
-                            <div className="flex items-center justify-between">
-                              <p className="text-[10px] text-violet-600/60 dark:text-gray-500">
-                                {cell.ops} {cell.ops === 1 ? 'op' : 'ops'} · {cell.wins}W
-                              </p>
-                              <button
-                                onClick={() => {
-                                  const dayOp = filteredOperazioni.find((op) => op.data === cell.dateStr);
-                                  if (dayOp) router.push(`/analisi/${dayOp.id}`);
-                                }}
-                                className="p-0.5 rounded hover:bg-violet-200/50 dark:hover:bg-violet-500/20 transition-colors"
-                                title="Analisi"
-                              >
-                                <BarChart2 className="h-3 w-3 text-violet-500 dark:text-violet-400" />
-                              </button>
+
+                            {/* Mini bar: win/loss ratio */}
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 h-1 bg-gray-200/50 dark:bg-gray-800/50 rounded-full overflow-hidden">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full transition-all',
+                                    winRate >= 60 ? 'bg-emerald-400' : winRate >= 40 ? 'bg-amber-400' : 'bg-red-400'
+                                  )}
+                                  style={{ width: `${winRate}%` }}
+                                />
+                              </div>
                             </div>
+
+                            {/* Count + wins */}
+                            <p className="text-[9px] text-gray-400 dark:text-gray-500 leading-none">
+                              {cell.ops} ops · {cell.wins}W/{cell.ops - cell.wins}L
+                            </p>
                           </div>
                         )}
                       </div>
@@ -989,7 +971,7 @@ export default function RegistroPage() {
                 </div>
               </div>
 
-              {/* Monthly summary */}
+              {/* Monthly summary - compact bar */}
               {(() => {
                 const monthOps = filteredOperazioni.filter((op) => {
                   const opDate = new Date(op.data);
@@ -1002,81 +984,60 @@ export default function RegistroPage() {
                 const monthWins = monthOps.filter((op) => (op.pnl || 0) > 0).length;
                 const monthWinRate = monthOps.length > 0 ? (monthWins / monthOps.length) * 100 : 0;
                 const tradingDays = new Set(monthOps.map((op) => op.data)).size;
+                const avgPnlPerDay = tradingDays > 0 ? monthPnl / tradingDays : 0;
+
+                if (monthOps.length === 0) return null;
 
                 return (
-                  <motion.div variants={itemVariants} className="mt-6 pt-4 border-t border-violet-200/30 dark:border-violet-500/30">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-gradient-to-br from-white/50 to-white/30 dark:from-violet-900/20 dark:to-gray-900/50 p-4 text-center hover:shadow-md transition-all">
-                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">Operazioni</p>
-                        <p className="text-2xl font-bold text-violet-700 dark:text-white">{monthOps.length}</p>
-                        <p className="text-[10px] text-violet-600/50 dark:text-gray-500 mt-1">del mese</p>
-                      </div>
-                      <div className={cn('rounded-lg border p-4 text-center hover:shadow-md transition-all', monthPnl >= 0
-                        ? 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200/30 dark:border-emerald-500/30'
-                        : 'bg-gradient-to-br from-red-50/50 to-red-100/30 dark:from-red-950/30 dark:to-red-900/20 border-red-200/30 dark:border-red-500/30'
-                      )}>
-                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">P&L Mese</p>
-                        <p className={`text-2xl font-bold ${monthPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {monthPnl >= 0 ? '+' : ''}{formatValuta(monthPnl)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-gradient-to-br from-white/50 to-white/30 dark:from-violet-900/20 dark:to-gray-900/50 p-4 text-center hover:shadow-md transition-all">
-                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">Win Rate</p>
-                        <p className={`text-2xl font-bold ${monthWinRate >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-500'}`}>
-                          {Math.round(monthWinRate)}%
-                        </p>
-                        <p className="text-[10px] text-violet-600/50 dark:text-gray-500 mt-1">{monthWins}W / {monthOps.length - monthWins}L</p>
-                      </div>
-                      <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/20 bg-gradient-to-br from-white/50 to-white/30 dark:from-violet-900/20 dark:to-gray-900/50 p-4 text-center hover:shadow-md transition-all">
-                        <p className="text-xs text-violet-600/60 dark:text-gray-400 mb-1 font-medium">Giorni Trading</p>
-                        <p className="text-2xl font-bold text-violet-700 dark:text-white">{tradingDays}</p>
-                        <p className="text-[10px] text-violet-600/50 dark:text-gray-500 mt-1">con operazioni</p>
+                  <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/40 dark:bg-[#161622]/40 overflow-hidden">
+                    {/* Top: P&L totale e barra */}
+                    <div className="flex items-center gap-4 px-4 py-3 border-b border-violet-200/15 dark:border-violet-500/10">
+                      <div className="flex-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className={cn('text-xl font-bold', monthPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                            {monthPnl >= 0 ? '+' : ''}{formatValuta(monthPnl)}
+                          </span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">P&L mese</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-1.5 overflow-hidden">
+                          <div
+                            className={cn('h-full rounded-full transition-all duration-500', monthPnl >= 0 ? 'bg-emerald-500' : 'bg-red-500')}
+                            style={{ width: `${Math.min(Math.abs(monthPnl) / Math.max(Math.abs(monthPnl), 500) * 100, 100)}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
+
+                    {/* Bottom: Stats row */}
+                    <div className="grid grid-cols-4 divide-x divide-violet-200/15 dark:divide-violet-500/10">
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Operazioni</p>
+                        <p className="text-sm font-bold text-violet-700 dark:text-white">{monthOps.length}</p>
+                      </div>
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Win Rate</p>
+                        <p className={cn('text-sm font-bold', monthWinRate >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                          {Math.round(monthWinRate)}%
+                        </p>
+                      </div>
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Giorni</p>
+                        <p className="text-sm font-bold text-violet-700 dark:text-white">{tradingDays}</p>
+                      </div>
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Media/Giorno</p>
+                        <p className={cn('text-sm font-bold', avgPnlPerDay >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                          {avgPnlPerDay >= 0 ? '+' : ''}{formatValuta(avgPnlPerDay)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 );
               })()}
             </motion.div>
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Stats Bar - Below the main container */}
-      <motion.div
-        variants={itemVariants}
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
-        {stats.map((stat, idx) => (
-          <motion.div
-            key={idx}
-            variants={statVariants}
-            transition={{ delay: idx * 0.1 }}
-          >
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                      {stat.title}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {stat.description}
-                    </CardDescription>
-                  </div>
-                  <div className={`p-2 rounded-lg bg-gray-100 dark:bg-[#1e1e2e] ${stat.color}`}>
-                    {stat.icon}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${stat.color}`}>
-                  {stat.value}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </motion.div>
 
       {/* Dialog */}
       <AggiungiOperazioneDialog

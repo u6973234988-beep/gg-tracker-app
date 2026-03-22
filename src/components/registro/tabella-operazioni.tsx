@@ -12,9 +12,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { formatValuta, formatData, cn } from '@/lib/utils';
-import { Edit2, Trash2, ChevronDown, ChevronUp, BarChart2, Check, Minus } from 'lucide-react';
+import { Edit2, Trash2, ChevronDown, ChevronUp, BarChart2, Check, Minus, ChevronLeft, ChevronRight, Clock, Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { OperazioneConDettagli } from '@/hooks/useOperazioni';
 
@@ -80,25 +79,34 @@ export function TabellaOperazioni({
 
   if (isLoading) {
     return (
-      <Card>
-        <div className="p-6 space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+      <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/60 dark:bg-[#161622]/60 overflow-hidden">
+        <div className="p-6 space-y-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded bg-violet-200/30 dark:bg-violet-900/20 animate-pulse" />
+              <div className="h-10 flex-1 bg-violet-200/20 dark:bg-violet-900/10 rounded-lg animate-pulse" />
+            </div>
           ))}
         </div>
-      </Card>
+      </div>
     );
   }
 
   if (operazioni.length === 0) {
     return (
-      <Card>
-        <div className="p-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
-            Nessuna operazione trovata. Aggiungi la tua prima operazione!
+      <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/60 dark:bg-[#161622]/60 overflow-hidden">
+        <div className="p-16 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
+            <BarChart2 className="w-7 h-7 text-violet-400" />
+          </div>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+            Nessuna operazione trovata
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Aggiungi la tua prima operazione per iniziare il tracking
           </p>
         </div>
-      </Card>
+      </div>
     );
   }
 
@@ -112,18 +120,18 @@ export function TabellaOperazioni({
   const somePageSelected = pageIds.some((id) => selected.has(id)) && !allPageSelected;
 
   return (
-    <div className="space-y-4">
-      <Card>
+    <div className="space-y-3">
+      <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/60 dark:bg-[#161622]/60 overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
+              <TableRow className="border-b border-violet-200/20 dark:border-violet-500/10 bg-violet-50/40 dark:bg-violet-900/10">
+                <TableHead className="w-10 pl-3">
                   {selectionEnabled ? (
                     <button
                       onClick={toggleSelectAll}
                       className={cn(
-                        'flex items-center justify-center w-5 h-5 rounded border-2 transition-all duration-200',
+                        'flex items-center justify-center w-[18px] h-[18px] rounded border-2 transition-all duration-200',
                         allPageSelected
                           ? 'bg-violet-500 border-violet-500 text-white shadow-sm shadow-violet-500/30'
                           : somePageSelected
@@ -132,22 +140,22 @@ export function TabellaOperazioni({
                       )}
                     >
                       {allPageSelected ? (
-                        <Check className="w-3 h-3" />
+                        <Check className="w-2.5 h-2.5" />
                       ) : somePageSelected ? (
-                        <Minus className="w-3 h-3" />
+                        <Minus className="w-2.5 h-2.5" />
                       ) : null}
                     </button>
                   ) : null}
                 </TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Ticker</TableHead>
-                <TableHead>Direzione</TableHead>
-                <TableHead>Entrata</TableHead>
-                <TableHead>Uscita</TableHead>
-                <TableHead>Quantità</TableHead>
-                <TableHead>P&L</TableHead>
-                <TableHead>Strategia</TableHead>
-                <TableHead className="text-right">Azioni</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Data</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Ticker</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Dir.</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Entrata</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Uscita</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Qty</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">P&L</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Strategia</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80 text-right pr-3">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -162,65 +170,71 @@ export function TabellaOperazioni({
                   return (
                     <motion.tr
                       key={op.id}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ delay: idx * 0.05 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ delay: idx * 0.02 }}
                       className={cn(
-                        'border-b border-gray-100 dark:border-[#1e1e2e] transition-colors',
+                        'border-b border-violet-200/10 dark:border-violet-500/5 transition-colors group cursor-pointer',
                         isSelected
                           ? 'bg-violet-50/60 dark:bg-violet-500/10 hover:bg-violet-100/60 dark:hover:bg-violet-500/15'
-                          : 'hover:bg-gray-50 dark:hover:bg-[#1e1e2e]/50'
+                          : 'hover:bg-violet-50/30 dark:hover:bg-violet-900/10'
                       )}
+                      onClick={() => {
+                        if (selectionEnabled) toggleSelect(op.id);
+                        else toggleExpand(op.id);
+                      }}
                     >
-                      <TableCell>
+                      <TableCell className="pl-3">
                         {selectionEnabled ? (
                           <button
-                            onClick={() => toggleSelect(op.id)}
+                            onClick={(e) => { e.stopPropagation(); toggleSelect(op.id); }}
                             className={cn(
-                              'flex items-center justify-center w-5 h-5 rounded border-2 transition-all duration-200',
+                              'flex items-center justify-center w-[18px] h-[18px] rounded border-2 transition-all duration-200',
                               isSelected
-                                ? 'bg-violet-500 border-violet-500 text-white shadow-sm shadow-violet-500/30 scale-105'
-                                : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-400 hover:scale-105'
+                                ? 'bg-violet-500 border-violet-500 text-white shadow-sm shadow-violet-500/30'
+                                : 'border-gray-300 dark:border-gray-600 group-hover:border-violet-400 dark:group-hover:border-violet-400'
                             )}
                           >
-                            {isSelected && <Check className="w-3 h-3" />}
+                            {isSelected && <Check className="w-2.5 h-2.5" />}
                           </button>
                         ) : (
-                          <button
-                            onClick={() => toggleExpand(op.id)}
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-[#2a2a3e] rounded"
-                          >
+                          <div className={cn(
+                            'w-5 h-5 rounded flex items-center justify-center transition-colors',
+                            isExpanded ? 'bg-violet-100 dark:bg-violet-500/20' : 'opacity-0 group-hover:opacity-100'
+                          )}>
                             {isExpanded ? (
-                              <ChevronUp className="w-4 h-4" />
+                              <ChevronUp className="w-3 h-3 text-violet-600 dark:text-violet-400" />
                             ) : (
-                              <ChevronDown className="w-4 h-4" />
+                              <ChevronDown className="w-3 h-3 text-violet-600 dark:text-violet-400" />
                             )}
-                          </button>
+                          </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="text-xs font-medium text-gray-600 dark:text-gray-300">
                         {formatData(op.data)}
                       </TableCell>
-                      <TableCell className="font-mono font-semibold">
+                      <TableCell className="font-mono font-bold text-xs text-violet-700 dark:text-white">
                         {op.ticker}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={isLong ? 'success' : 'destructive'}
-                          className="w-fit"
-                        >
-                          {isLong ? 'LONG' : 'SHORT'}
-                        </Badge>
+                        <span className={cn(
+                          'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider',
+                          isLong
+                            ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                            : 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+                        )}>
+                          {isLong ? 'L' : 'S'}
+                        </span>
                       </TableCell>
-                      <TableCell>{op.prezzo_entrata.toFixed(2)}</TableCell>
-                      <TableCell>{op.prezzo_uscita?.toFixed(2) || '-'}</TableCell>
-                      <TableCell>{op.quantita.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs text-gray-600 dark:text-gray-400">{op.prezzo_entrata.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs text-gray-600 dark:text-gray-400">{op.prezzo_uscita?.toFixed(2) || '—'}</TableCell>
+                      <TableCell className="font-mono text-xs text-gray-600 dark:text-gray-400">{op.quantita}</TableCell>
                       <TableCell>
                         <span
                           className={cn(
-                            'font-semibold',
-                            isPositive ? 'text-emerald-400' : 'text-red-400'
+                            'font-mono text-xs font-bold',
+                            isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                           )}
                         >
                           {isPositive ? '+' : ''}{formatValuta(pnl)}
@@ -228,63 +242,63 @@ export function TabellaOperazioni({
                       </TableCell>
                       <TableCell>
                         {op.strategia ? (
-                          <Badge
-                            variant="secondary"
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
                             style={{
                               backgroundColor: op.strategia.colore
-                                ? `${op.strategia.colore}20`
-                                : undefined,
-                              color: op.strategia.colore || undefined,
+                                ? `${op.strategia.colore}15`
+                                : 'rgba(139, 92, 246, 0.08)',
+                              color: op.strategia.colore || '#8b5cf6',
                             }}
                           >
+                            <div
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: op.strategia.colore || '#8b5cf6' }}
+                            />
                             {op.strategia.nome}
-                          </Badge>
+                          </span>
                         ) : (
-                          <span className="text-gray-500">-</span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-600">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
+                      <TableCell className="text-right pr-3">
+                        <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => router.push(`/analisi/${op.id}`)}
-                            className="text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300"
+                            onClick={(e) => { e.stopPropagation(); router.push(`/analisi/${op.id}`); }}
+                            className="h-7 w-7 text-violet-500 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-500/10"
                             title="Analisi"
                           >
-                            <BarChart2 className="w-4 h-4" />
+                            <BarChart2 className="w-3.5 h-3.5" />
                           </Button>
                           {onEdit && (
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => onEdit(op)}
+                              onClick={(e) => { e.stopPropagation(); onEdit(op); }}
+                              className="h-7 w-7 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                              title="Modifica"
                             >
-                              <Edit2 className="w-4 h-4" />
+                              <Edit2 className="w-3.5 h-3.5" />
                             </Button>
                           )}
                           {onDelete && (
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={async () => {
-                                if (
-                                  window.confirm(
-                                    'Sei sicuro di voler eliminare questa operazione?'
-                                  )
-                                ) {
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (window.confirm('Sei sicuro di voler eliminare questa operazione?')) {
                                   setDeletingId(op.id);
-                                  try {
-                                    await onDelete(op.id);
-                                  } finally {
-                                    setDeletingId(null);
-                                  }
+                                  try { await onDelete(op.id); } finally { setDeletingId(null); }
                                 }
                               }}
                               disabled={deletingId === op.id}
-                              className="text-red-400 hover:text-red-300"
+                              className="h-7 w-7 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"
+                              title="Elimina"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           )}
                         </div>
@@ -301,61 +315,76 @@ export function TabellaOperazioni({
                 return (
                   <motion.tr
                     key={`${op.id}-expanded`}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="border-b border-gray-100 dark:border-[#1e1e2e] bg-gray-50 dark:bg-[#0a0a12]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="border-b border-violet-200/10 dark:border-violet-500/5"
                   >
-                    <TableCell colSpan={10}>
-                      <div className="p-4 space-y-3">
-                        {op.note && (
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Note</p>
-                            <p className="text-sm text-gray-800 dark:text-white">{op.note}</p>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">P&L %</p>
-                            <p className={cn(
-                              'font-semibold',
-                              (op.pnl_percentuale || 0) >= 0
-                                ? 'text-emerald-400'
-                                : 'text-red-400'
+                    <TableCell colSpan={10} className="p-0">
+                      <div className="px-4 py-3 bg-violet-50/30 dark:bg-violet-900/5 border-l-2 border-violet-500/30 ml-3">
+                        {/* Row 1: Key metrics */}
+                        <div className="flex flex-wrap items-center gap-4 mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">P&L %</span>
+                            <span className={cn(
+                              'text-xs font-bold',
+                              (op.pnl_percentuale || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                             )}>
                               {(op.pnl_percentuale || 0).toFixed(2)}%
-                            </p>
+                            </span>
                           </div>
-
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Commissione</p>
-                            <p className="text-gray-800 dark:text-white">{formatValuta(op.commissione)}</p>
+                          <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">Comm.</span>
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{formatValuta(op.commissione)}</span>
                           </div>
-
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Stato</p>
-                            <Badge variant="secondary" className="w-fit">
+                          <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">Stato</span>
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-violet-50 dark:bg-violet-500/5 border-violet-200 dark:border-violet-500/20 text-violet-700 dark:text-violet-300">
                               {op.stato}
                             </Badge>
                           </div>
-
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Broker</p>
-                            <p className="text-gray-800 dark:text-white">{op.broker || 'N/A'}</p>
-                          </div>
+                          {op.broker && (
+                            <>
+                              <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">Broker</span>
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{op.broker}</span>
+                              </div>
+                            </>
+                          )}
+                          {(op.ora_entrata || op.ora_uscita) && (
+                            <>
+                              <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-3 h-3 text-gray-400" />
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {op.ora_entrata || '—'} → {op.ora_uscita || '—'}
+                                </span>
+                              </div>
+                            </>
+                          )}
                         </div>
 
-                        {op.tags && op.tags.length > 0 && (
-                          <div>
-                            <p className="text-xs text-gray-400 mb-2">Tag</p>
-                            <div className="flex flex-wrap gap-2">
-                              {op.tags.map((tag) => (
-                                <Badge key={tag.id} variant="outline">
-                                  {tag.nome}
-                                </Badge>
-                              ))}
-                            </div>
+                        {/* Row 2: Notes + Tags */}
+                        {(op.note || (op.tags && op.tags.length > 0)) && (
+                          <div className="flex flex-wrap items-start gap-3">
+                            {op.note && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 italic max-w-lg">
+                                &ldquo;{op.note}&rdquo;
+                              </p>
+                            )}
+                            {op.tags && op.tags.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Tag className="w-3 h-3 text-gray-400" />
+                                {op.tags.map((tag) => (
+                                  <Badge key={tag.id} variant="outline" className="text-[10px] h-4 px-1.5">
+                                    {tag.nome}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -366,34 +395,60 @@ export function TabellaOperazioni({
             </TableBody>
           </Table>
         </div>
-      </Card>
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Mostrando {startIndex + 1} a {Math.min(endIndex, operazioni.length)} di{' '}
-            {operazioni.length} operazioni
+        <div className="flex items-center justify-between px-1">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+            {startIndex + 1}–{Math.min(endIndex, operazioni.length)} di {operazioni.length}
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1">
             <Button
-              variant="secondary"
-              size="sm"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-500/10"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              Precedente
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
-            <div className="px-3 py-1 rounded bg-gray-100 dark:bg-[#1e1e2e] text-sm flex items-center text-gray-700 dark:text-white">
-              {currentPage} / {totalPages}
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let page: number;
+                if (totalPages <= 5) {
+                  page = i + 1;
+                } else if (currentPage <= 3) {
+                  page = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i;
+                } else {
+                  page = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={cn(
+                      'h-7 w-7 rounded text-xs font-medium transition-all',
+                      currentPage === page
+                        ? 'bg-violet-500 text-white shadow-sm shadow-violet-500/20'
+                        : 'text-gray-500 dark:text-gray-400 hover:bg-violet-50 dark:hover:bg-violet-500/10'
+                    )}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
             </div>
             <Button
-              variant="secondary"
-              size="sm"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-500/10"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >
-              Successivo
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
