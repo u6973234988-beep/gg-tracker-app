@@ -66,6 +66,7 @@ export default function RegistroPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isAssigning, setIsAssigning] = useState(false);
   const [showStrategyDropdown, setShowStrategyDropdown] = useState(false);
@@ -830,7 +831,7 @@ export default function RegistroPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                  onClick={() => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)); setSelectedCalendarDay(null); }}
                   className="h-8 w-8 text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -839,28 +840,87 @@ export default function RegistroPage() {
                   <h3 className="text-base font-bold text-violet-700 dark:text-white capitalize">
                     {format(currentMonth, 'MMMM yyyy', { locale: it })}
                   </h3>
-                  {(() => {
-                    const mOps = filteredOperazioni.filter((op) => {
-                      const d = new Date(op.data);
-                      return d.getFullYear() === currentMonth.getFullYear() && d.getMonth() === currentMonth.getMonth();
-                    });
-                    const mPnl = mOps.reduce((s, op) => s + (op.pnl || 0), 0);
-                    return mOps.length > 0 ? (
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                        {mOps.length} operazioni · <span className={mPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}>{mPnl >= 0 ? '+' : ''}{formatValuta(mPnl)}</span>
-                      </p>
-                    ) : null;
-                  })()}
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                  onClick={() => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedCalendarDay(null); }}
                   className="h-8 w-8 text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Monthly summary - ABOVE the calendar grid */}
+              {(() => {
+                const monthOps = filteredOperazioni.filter((op) => {
+                  const opDate = new Date(op.data);
+                  return (
+                    opDate.getFullYear() === currentMonth.getFullYear() &&
+                    opDate.getMonth() === currentMonth.getMonth()
+                  );
+                });
+                const monthPnl = monthOps.reduce((sum, op) => sum + (op.pnl || 0), 0);
+                const monthWins = monthOps.filter((op) => (op.pnl || 0) > 0).length;
+                const monthWinRate = monthOps.length > 0 ? (monthWins / monthOps.length) * 100 : 0;
+                const tradingDays = new Set(monthOps.map((op) => op.data)).size;
+                const avgPnlPerDay = tradingDays > 0 ? monthPnl / tradingDays : 0;
+                const monthComm = monthOps.reduce((sum, op) => sum + (op.commissione || 0), 0);
+
+                return (
+                  <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/40 dark:bg-[#161622]/40 overflow-hidden">
+                    {/* Top: P&L totale e barra */}
+                    <div className="flex items-center gap-4 px-4 py-3 border-b border-violet-200/15 dark:border-violet-500/10">
+                      <div className="flex-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className={cn('text-xl font-bold', monthOps.length === 0 ? 'text-gray-400 dark:text-gray-500' : monthPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                            {monthOps.length === 0 ? '€0,00' : `${monthPnl >= 0 ? '+' : ''}${formatValuta(monthPnl)}`}
+                          </span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">P&L mese</span>
+                        </div>
+                        {monthOps.length > 0 && (
+                          <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-1.5 overflow-hidden">
+                            <div
+                              className={cn('h-full rounded-full transition-all duration-500', monthPnl >= 0 ? 'bg-emerald-500' : 'bg-red-500')}
+                              style={{ width: `${Math.min(Math.abs(monthPnl) / Math.max(Math.abs(monthPnl), 500) * 100, 100)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom: Stats row */}
+                    <div className="grid grid-cols-5 divide-x divide-violet-200/15 dark:divide-violet-500/10">
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Operazioni</p>
+                        <p className="text-sm font-bold text-violet-700 dark:text-white">{monthOps.length}</p>
+                      </div>
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Win Rate</p>
+                        <p className={cn('text-sm font-bold', monthOps.length === 0 ? 'text-gray-400 dark:text-gray-500' : monthWinRate >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                          {monthOps.length === 0 ? '—' : `${Math.round(monthWinRate)}%`}
+                        </p>
+                      </div>
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Giorni</p>
+                        <p className="text-sm font-bold text-violet-700 dark:text-white">{tradingDays}</p>
+                      </div>
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Media/Giorno</p>
+                        <p className={cn('text-sm font-bold', monthOps.length === 0 ? 'text-gray-400 dark:text-gray-500' : avgPnlPerDay >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                          {monthOps.length === 0 ? '—' : `${avgPnlPerDay >= 0 ? '+' : ''}${formatValuta(avgPnlPerDay)}`}
+                        </p>
+                      </div>
+                      <div className="px-3 py-2.5 text-center">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Commissioni</p>
+                        <p className="text-sm font-bold text-red-500 dark:text-red-400">
+                          {monthOps.length === 0 ? '—' : `-${formatValuta(monthComm)}`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Calendar grid */}
               <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 overflow-hidden">
@@ -897,17 +957,25 @@ export default function RegistroPage() {
                     const hasOps = cell.ops > 0;
                     const isPositive = cell.pnl >= 0;
                     const winRate = cell.ops > 0 ? Math.round((cell.wins / cell.ops) * 100) : 0;
+                    const isSelectedDay = selectedCalendarDay === cell.dateStr;
 
                     return (
                       <div
                         key={cell.dateStr}
+                        onClick={() => {
+                          if (hasOps) {
+                            setSelectedCalendarDay(isSelectedDay ? null : cell.dateStr);
+                          }
+                        }}
                         className={cn(
                           'min-h-[90px] border-t border-r border-violet-200/8 dark:border-violet-500/5 p-1.5 transition-all duration-150 relative group/cell',
-                          hasOps && isPositive && 'bg-emerald-50/30 dark:bg-emerald-500/[0.03]',
-                          hasOps && !isPositive && 'bg-red-50/30 dark:bg-red-500/[0.03]',
+                          hasOps && 'cursor-pointer',
+                          hasOps && isPositive && !isSelectedDay && 'bg-emerald-50/30 dark:bg-emerald-500/[0.03]',
+                          hasOps && !isPositive && !isSelectedDay && 'bg-red-50/30 dark:bg-red-500/[0.03]',
                           !hasOps && 'bg-white/30 dark:bg-[#161622]/30',
-                          'hover:bg-violet-50/50 dark:hover:bg-violet-900/10',
-                          isToday && 'ring-1 ring-inset ring-violet-400/40 dark:ring-violet-500/30'
+                          hasOps && !isSelectedDay && 'hover:bg-violet-50/50 dark:hover:bg-violet-900/10',
+                          isToday && !isSelectedDay && 'ring-1 ring-inset ring-violet-400/40 dark:ring-violet-500/30',
+                          isSelectedDay && 'ring-2 ring-inset ring-violet-500 dark:ring-violet-400 bg-violet-50/60 dark:bg-violet-500/10'
                         )}
                       >
                         {/* Day number */}
@@ -924,7 +992,8 @@ export default function RegistroPage() {
                           </div>
                           {hasOps && (
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const dayOp = filteredOperazioni.find((op) => op.data === cell.dateStr);
                                 if (dayOp) router.push(`/analisi/${dayOp.id}`);
                               }}
@@ -971,69 +1040,126 @@ export default function RegistroPage() {
                 </div>
               </div>
 
-              {/* Monthly summary - compact bar */}
-              {(() => {
-                const monthOps = filteredOperazioni.filter((op) => {
-                  const opDate = new Date(op.data);
+              {/* Selected day operations panel */}
+              <AnimatePresence>
+                {selectedCalendarDay && (() => {
+                  const dayOps = filteredOperazioni.filter((op) => op.data === selectedCalendarDay);
+                  if (dayOps.length === 0) return null;
+
+                  const dayPnl = dayOps.reduce((sum, op) => sum + (op.pnl || 0), 0);
+                  const dayWins = dayOps.filter((op) => (op.pnl || 0) > 0).length;
+                  const dayWinRate = dayOps.length > 0 ? (dayWins / dayOps.length) * 100 : 0;
+                  const dayComm = dayOps.reduce((sum, op) => sum + (op.commissione || 0), 0);
+
+                  let formattedDate = selectedCalendarDay;
+                  try {
+                    formattedDate = format(new Date(selectedCalendarDay + 'T12:00:00'), 'EEEE d MMMM yyyy', { locale: it });
+                    formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+                  } catch { /* fallback */ }
+
                   return (
-                    opDate.getFullYear() === currentMonth.getFullYear() &&
-                    opDate.getMonth() === currentMonth.getMonth()
+                    <motion.div
+                      key={selectedCalendarDay}
+                      initial={{ opacity: 0, y: -10, height: 0 }}
+                      animate={{ opacity: 1, y: 0, height: 'auto' }}
+                      exit={{ opacity: 0, y: -10, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/50 dark:bg-[#161622]/50 overflow-hidden"
+                    >
+                      {/* Day header */}
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-violet-200/20 dark:border-violet-500/10 bg-violet-50/30 dark:bg-violet-900/10">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            'w-2 h-8 rounded-full',
+                            dayPnl >= 0 ? 'bg-emerald-500' : 'bg-red-500'
+                          )} />
+                          <div>
+                            <h4 className="text-sm font-bold text-violet-700 dark:text-white">{formattedDate}</h4>
+                            <div className="flex items-center gap-3 mt-0.5">
+                              <span className={cn('text-xs font-bold', dayPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                                {dayPnl >= 0 ? '+' : ''}{formatValuta(dayPnl)}
+                              </span>
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                {dayOps.length} {dayOps.length === 1 ? 'operazione' : 'operazioni'}
+                              </span>
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                WR {Math.round(dayWinRate)}%
+                              </span>
+                              {dayComm > 0 && (
+                                <span className="text-[10px] text-red-400 dark:text-red-500">
+                                  Comm. -{formatValuta(dayComm)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setSelectedCalendarDay(null)}
+                          className="p-1.5 rounded-lg hover:bg-violet-100/50 dark:hover:bg-violet-500/10 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Operations list */}
+                      <div className="divide-y divide-violet-200/10 dark:divide-violet-500/5 max-h-80 overflow-y-auto">
+                        {dayOps.map((op) => {
+                          const pnl = op.pnl || 0;
+                          const isLong = op.direzione === 'LONG';
+
+                          return (
+                            <div
+                              key={op.id}
+                              className="flex items-center justify-between px-4 py-2.5 hover:bg-violet-50/40 dark:hover:bg-violet-900/5 transition-colors cursor-pointer group"
+                              onClick={() => router.push(`/analisi/${op.id}`)}
+                            >
+                              <div className="flex items-center gap-3 flex-grow min-w-0">
+                                <span className={cn(
+                                  'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0',
+                                  isLong
+                                    ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+                                )}>
+                                  {isLong ? 'L' : 'S'}
+                                </span>
+                                <span className="font-mono font-bold text-xs text-violet-700 dark:text-white flex-shrink-0">
+                                  {op.ticker}
+                                </span>
+                                <span className="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">
+                                  {op.quantita} @ {op.prezzo_entrata?.toFixed(2)} → {op.prezzo_uscita?.toFixed(2) || '—'}
+                                </span>
+                                {op.strategia && (
+                                  <span
+                                    className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex-shrink-0"
+                                    style={{
+                                      backgroundColor: op.strategia.colore ? `${op.strategia.colore}15` : 'rgba(139, 92, 246, 0.08)',
+                                      color: op.strategia.colore || '#8b5cf6',
+                                    }}
+                                  >
+                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: op.strategia.colore || '#8b5cf6' }} />
+                                    {op.strategia.nome}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {(op.ora_entrata || op.ora_uscita) && (
+                                  <span className="text-[10px] text-gray-400 dark:text-gray-500 hidden sm:inline">
+                                    {op.ora_entrata || ''}{op.ora_entrata && op.ora_uscita ? ' → ' : ''}{op.ora_uscita || ''}
+                                  </span>
+                                )}
+                                <span className={cn('text-xs font-bold flex-shrink-0', pnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                                  {pnl >= 0 ? '+' : ''}{formatValuta(pnl)}
+                                </span>
+                                <BarChart2 className="h-3.5 w-3.5 text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
                   );
-                });
-                const monthPnl = monthOps.reduce((sum, op) => sum + (op.pnl || 0), 0);
-                const monthWins = monthOps.filter((op) => (op.pnl || 0) > 0).length;
-                const monthWinRate = monthOps.length > 0 ? (monthWins / monthOps.length) * 100 : 0;
-                const tradingDays = new Set(monthOps.map((op) => op.data)).size;
-                const avgPnlPerDay = tradingDays > 0 ? monthPnl / tradingDays : 0;
-
-                if (monthOps.length === 0) return null;
-
-                return (
-                  <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/40 dark:bg-[#161622]/40 overflow-hidden">
-                    {/* Top: P&L totale e barra */}
-                    <div className="flex items-center gap-4 px-4 py-3 border-b border-violet-200/15 dark:border-violet-500/10">
-                      <div className="flex-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className={cn('text-xl font-bold', monthPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
-                            {monthPnl >= 0 ? '+' : ''}{formatValuta(monthPnl)}
-                          </span>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">P&L mese</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-1.5 overflow-hidden">
-                          <div
-                            className={cn('h-full rounded-full transition-all duration-500', monthPnl >= 0 ? 'bg-emerald-500' : 'bg-red-500')}
-                            style={{ width: `${Math.min(Math.abs(monthPnl) / Math.max(Math.abs(monthPnl), 500) * 100, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom: Stats row */}
-                    <div className="grid grid-cols-4 divide-x divide-violet-200/15 dark:divide-violet-500/10">
-                      <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Operazioni</p>
-                        <p className="text-sm font-bold text-violet-700 dark:text-white">{monthOps.length}</p>
-                      </div>
-                      <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Win Rate</p>
-                        <p className={cn('text-sm font-bold', monthWinRate >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
-                          {Math.round(monthWinRate)}%
-                        </p>
-                      </div>
-                      <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Giorni</p>
-                        <p className="text-sm font-bold text-violet-700 dark:text-white">{tradingDays}</p>
-                      </div>
-                      <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Media/Giorno</p>
-                        <p className={cn('text-sm font-bold', avgPnlPerDay >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
-                          {avgPnlPerDay >= 0 ? '+' : ''}{formatValuta(avgPnlPerDay)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
+                })()}
+              </AnimatePresence>
             </motion.div>
           </TabsContent>
         </Tabs>
