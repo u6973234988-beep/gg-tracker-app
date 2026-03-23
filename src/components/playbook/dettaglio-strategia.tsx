@@ -157,23 +157,36 @@ export function DettaglioStrategia({
     }
   };
 
+  // Ref per evitare stale closure — sempre aggiornato
+  const screenshotsRef = React.useRef(screenshots);
+  React.useEffect(() => { screenshotsRef.current = screenshots; }, [screenshots]);
+
   // Screenshot handlers
+  const MAX_SCREENSHOTS = 20; // Limite per evitare crescita illimitata JSONB
   const handleAddScreenshot = React.useCallback((screenshot: ScreenshotData) => {
-    setScreenshots((prev) => [screenshot, ...prev]);
-    // Auto-save after adding
-    (async () => {
-      if (!strategia) return;
-      setSavingScreenshots(true);
-      try {
-        const updated = [screenshot, ...screenshots];
-        await onEditSave(strategia.id, { screenshots: updated });
-        setScreenshotsSaved(true);
-        setTimeout(() => setScreenshotsSaved(false), 2000);
-      } finally {
-        setSavingScreenshots(false);
+    setScreenshots((prev) => {
+      if (prev.length >= MAX_SCREENSHOTS) {
+        alert(`Puoi salvare al massimo ${MAX_SCREENSHOTS} screenshot per strategia. Elimina quelli vecchi prima di aggiungerne altri.`);
+        return prev;
       }
-    })();
-  }, [strategia, screenshots, onEditSave]);
+      const updated = [screenshot, ...prev];
+      // Auto-save con la lista aggiornata (no stale closure)
+      (async () => {
+        if (!strategia) return;
+        setSavingScreenshots(true);
+        try {
+          await onEditSave(strategia.id, { screenshots: updated });
+          setScreenshotsSaved(true);
+          setTimeout(() => setScreenshotsSaved(false), 2000);
+        } catch (err) {
+          console.error('Errore salvataggio screenshot:', err);
+        } finally {
+          setSavingScreenshots(false);
+        }
+      })();
+      return updated;
+    });
+  }, [strategia, onEditSave]);
 
   const handleDeleteScreenshot = async (id: string) => {
     if (!strategia) return;
@@ -196,7 +209,8 @@ export function DettaglioStrategia({
     if (!strategia) return;
     setSavingScreenshots(true);
     try {
-      await onEditSave(strategia.id, { screenshots });
+      // Usa screenshotsRef per avere il valore più aggiornato
+      await onEditSave(strategia.id, { screenshots: screenshotsRef.current });
       setEditingScreenshot(null);
       setScreenshotsSaved(true);
       setTimeout(() => setScreenshotsSaved(false), 2000);

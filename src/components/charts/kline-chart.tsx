@@ -643,14 +643,41 @@ export function KlineChartComponent({
         useCORS: true,
         logging: false,
       });
-      const dataUrl = canvas.toDataURL('image/png');
 
       if (mode === 'download') {
+        // Download: full quality PNG
+        const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.download = `chart-${ticker}-${tradeDate}-${timeframe}.png`;
         link.href = dataUrl;
         link.click();
       } else if (mode === 'strategy' && onScreenshotToStrategy) {
+        // Strategy: JPEG compressed, max ~500KB per screenshot
+        // Start at quality 0.7, reduce if still too large
+        const MAX_SIZE_BYTES = 500 * 1024; // 500KB
+        let quality = 0.7;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        // Iteratively reduce quality if image is too large
+        while (dataUrl.length > MAX_SIZE_BYTES * 1.37 && quality > 0.2) {
+          // base64 is ~37% larger than raw bytes, so multiply threshold by 1.37
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        // If still too large, scale down the canvas
+        if (dataUrl.length > MAX_SIZE_BYTES * 1.37) {
+          const scaledCanvas = document.createElement('canvas');
+          const scaleFactor = 0.5;
+          scaledCanvas.width = canvas.width * scaleFactor;
+          scaledCanvas.height = canvas.height * scaleFactor;
+          const ctx = scaledCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+            dataUrl = scaledCanvas.toDataURL('image/jpeg', 0.6);
+          }
+        }
+
         onScreenshotToStrategy({
           id: crypto.randomUUID(),
           imageData: dataUrl,

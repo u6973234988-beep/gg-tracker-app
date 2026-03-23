@@ -273,7 +273,8 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, screenshot
         if (shot.imageData && shot.imageData.startsWith('data:image/')) {
           const imgWidth = 170;
           const imgHeight = 70;
-          doc.addImage(shot.imageData, 'PNG', 20, y, imgWidth, imgHeight);
+          const imgFormat = shot.imageData.includes('image/jpeg') ? 'JPEG' : 'PNG';
+          doc.addImage(shot.imageData, imgFormat, 20, y, imgWidth, imgHeight);
           y += imgHeight + 5;
         }
       } catch (err) {
