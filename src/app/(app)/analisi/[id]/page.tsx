@@ -269,7 +269,7 @@ export default function AnalisiOperazionePage() {
               pnl: operazione.pnl,
               quantity: operazione.quantita,
             }}
-            height="560px"
+            height="500px"
           />
         </motion.div>
 

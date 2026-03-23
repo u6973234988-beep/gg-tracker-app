@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { init, dispose, registerOverlay, Chart } from 'klinecharts';
+import { init, dispose, registerOverlay, registerIndicator, Chart } from 'klinecharts';
 import { getOHLCData, getApiUsageInfo } from '@/lib/massive-data-service';
 import type { Timeframe } from '@/lib/massive-data-service';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,48 @@ interface KlineChartProps {
   trade: TradeMarker;
   height?: string;
   className?: string;
+}
+
+// ─── Registra indicatore volume pulito (senza MA) ───────────────────
+
+let volRegistered = false;
+
+function registerCleanVolume() {
+  if (volRegistered) return;
+  volRegistered = true;
+
+  registerIndicator({
+    name: 'CLEAN_VOL',
+    shortName: 'Vol',
+    precision: 0,
+    calcParams: [],
+    shouldOhlc: false,
+    shouldFormatBigNumber: true,
+    series: 'volume' as any,
+    figures: [
+      {
+        key: 'volume',
+        title: 'VOL: ',
+        type: 'bar',
+        baseValue: 0,
+        styles: (data: any) => {
+          const kLineData = data.current?.kLineData;
+          if (kLineData) {
+            const isUp = kLineData.close >= kLineData.open;
+            return {
+              color: isUp ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+            };
+          }
+          return { color: 'rgba(150, 150, 150, 0.25)' };
+        },
+      },
+    ],
+    calc: (kLineDataList: any[]) => {
+      return kLineDataList.map((kLineData) => ({
+        volume: kLineData.volume,
+      }));
+    },
+  });
 }
 
 // ─── Registra overlay custom per marker entry/exit ───────────────────
@@ -303,8 +345,17 @@ function ChartInner({
               },
             },
           },
+          separator: {
+            size: 1,
+            color: axisLineColor,
+            activeBackgroundColor: isDark ? 'rgba(139, 92, 246, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+          } as any,
           indicator: {
             lastValueMark: { show: false },
+            tooltip: {
+              showName: false,
+              showParams: false,
+            },
           },
           xAxis: {
             show: true,
@@ -366,7 +417,12 @@ function ChartInner({
       }
 
       chart.applyNewData(chartData);
-      chart.createIndicator('VOL', false, { id: 'candle_pane' });
+
+      // Volume pulito in un pane dedicato piccolo (senza MA lines)
+      chart.createIndicator('CLEAN_VOL', false, {
+        height: 60,
+        minHeight: 40,
+      } as any);
 
       // ── Markers ──
       let entryTs: number | null = null;
@@ -473,6 +529,7 @@ function ChartInner({
   }, [ticker, tradeDate, timeframe, isDark]);
 
   useEffect(() => {
+    registerCleanVolume();
     registerTradeMarkerOverlay();
     loadChart();
     return () => {
