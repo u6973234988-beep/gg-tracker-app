@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft,
@@ -48,6 +47,7 @@ import { cn } from '@/lib/cn';
 import { KlineChartComponent } from '@/components/charts/kline-chart';
 import type { StrategiaConDettagli } from '@/hooks/usePlaybook';
 import { useConformitaRegole } from '@/hooks/useConformitaRegole';
+import { RichTextEditor, RichTextViewer } from '@/components/editor/rich-text-editor';
 
 interface DettaglioStrategiaProps {
   strategia: StrategiaConDettagli | null;
@@ -475,227 +475,164 @@ export function DettaglioStrategia({
         {/* ═══════════════════════════════════════════════════════════
             TAB PERFORMANCE
             ═══════════════════════════════════════════════════════════ */}
-        <TabsContent value="performance" className="px-6 py-5 space-y-5">
-          {/* Stats grid — 5 colonne: P&L, Win Rate, PF, R:R Medio, Expectancy */}
-          {performanceData && (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {[
-                { label: 'P&L Totale', value: formatValuta(performanceData.totalPnl), positive: performanceData.totalPnl >= 0 },
-                { label: 'Win Rate', value: `${winRate.toFixed(1)}%`, positive: winRate >= 50 },
-                { label: 'Profit Factor', value: profitFactor.toFixed(2), positive: profitFactor >= 1 },
-                { label: 'R:R Medio', value: performanceData.rrCount > 0 ? `${performanceData.avgRR.toFixed(2)}` : 'N/A', positive: performanceData.avgRR >= 1 },
-                { label: 'Expectancy', value: formatValuta(performanceData.expectancy), positive: performanceData.expectancy >= 0 },
-              ].map((stat, idx) => (
-                <motion.div key={idx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}>
-                  <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-                    <CardContent className="p-3">
-                      <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">{stat.label}</p>
-                      <p className={cn('text-lg font-bold tracking-tight', stat.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{stat.value}</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {/* Dettagli aggiuntivi: Media Win/Loss, Best/Worst, Operazioni */}
-          {performanceData && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: 'Media Vincita', value: formatValuta(performanceData.avgWin), positive: true },
-                { label: 'Media Perdita', value: formatValuta(performanceData.avgLoss), positive: false },
-                { label: 'Miglior Trade', value: formatValuta(performanceData.bestTrade), positive: performanceData.bestTrade >= 0 },
-                { label: 'Peggior Trade', value: formatValuta(performanceData.worstTrade), positive: performanceData.worstTrade >= 0 },
-              ].map((stat, idx) => (
-                <motion.div key={`detail-${idx}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + idx * 0.04 }}>
-                  <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-                    <CardContent className="p-3">
-                      <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">{stat.label}</p>
-                      <p className={cn('text-base font-bold tracking-tight', stat.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{stat.value}</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {/* Aderenza Media Regole — calcolata sulle operazioni con conformità */}
-          {opCount > 0 && (
-            <PlaybookAderenzaMediaCard strategiaId={strategia.id} operazioni={operazioni} />
-          )}
-
-          {/* Win/Loss bar */}
-          {opCount > 0 && performanceData && (
-            <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="text-sm text-green-600 dark:text-green-400 font-bold w-16">{performanceData.winningTrades.length} win</div>
-                  <div className="flex-1 h-6 bg-gray-100 dark:bg-gray-800/60 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500" style={{ width: `${winRate}%` }} />
+        <TabsContent value="performance" className="px-6 py-5">
+          {opCount > 0 && performanceData ? (
+            <div className="flex gap-5">
+              {/* ═══ COLONNA SINISTRA — Grafici ═══ */}
+              <div className="flex-1 min-w-0 space-y-4">
+                {/* Win/Loss bar compatta */}
+                <div className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-600 dark:text-green-400 font-bold w-14">{performanceData.winningTrades.length} win</span>
+                    <div className="flex-1 h-4 bg-gray-100 dark:bg-gray-800/60 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500" style={{ width: `${winRate}%` }} />
+                    </div>
+                    <span className="text-xs text-red-600 dark:text-red-400 font-bold w-14 text-right">{performanceData.losingTrades.length} loss</span>
                   </div>
-                  <div className="text-sm text-red-600 dark:text-red-400 font-bold w-16 text-right">{performanceData.losingTrades.length} loss</div>
-                </div>
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400 font-medium">{winRate.toFixed(1)}% tasso di vincita su {operazioni.length} operazioni</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Chart view toggle */}
-          {equityChartData.length > 0 && (
-            <>
-              <div className="flex items-center justify-between">
-                <div className="bg-gray-100 dark:bg-gray-800/60 p-1 rounded-lg border border-gray-200 dark:border-violet-500/20 flex">
-                  <button
-                    onClick={() => setChartView('equity')}
-                    className={cn('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200',
-                      chartView === 'equity'
-                        ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
-                    )}
-                  >
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    Curva Equity
-                  </button>
-                  <button
-                    onClick={() => setChartView('distribuzione')}
-                    className={cn('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200',
-                      chartView === 'distribuzione'
-                        ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
-                    )}
-                  >
-                    <BarChart2 className="h-3.5 w-3.5" />
-                    Distribuzione Trade
-                  </button>
                 </div>
 
-                {chartView === 'distribuzione' && (
-                  <div className="bg-gray-100 dark:bg-gray-800/60 p-1 rounded-lg border border-gray-200 dark:border-violet-500/20 flex">
-                    {(['oraria', 'giornaliera', 'mensile'] as DistributionView[]).map((view) => (
-                      <button
-                        key={view}
-                        onClick={() => setDistributionView(view)}
-                        className={cn('rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200',
-                          distributionView === view
-                            ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
-                        )}
-                      >
-                        {view.charAt(0).toUpperCase() + view.slice(1)}
-                      </button>
-                    ))}
-                  </div>
+                {/* Chart toggle */}
+                {equityChartData.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="bg-gray-100 dark:bg-gray-800/60 p-0.5 rounded-lg border border-gray-200 dark:border-violet-500/20 flex">
+                        <button onClick={() => setChartView('equity')} className={cn('flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all', chartView === 'equity' ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
+                          <TrendingUp className="h-3 w-3" /> Equity
+                        </button>
+                        <button onClick={() => setChartView('distribuzione')} className={cn('flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all', chartView === 'distribuzione' ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
+                          <BarChart2 className="h-3 w-3" /> Distribuzione
+                        </button>
+                      </div>
+                      {chartView === 'distribuzione' && (
+                        <div className="bg-gray-100 dark:bg-gray-800/60 p-0.5 rounded-lg border border-gray-200 dark:border-violet-500/20 flex">
+                          {(['oraria', 'giornaliera', 'mensile'] as DistributionView[]).map((view) => (
+                            <button key={view} onClick={() => setDistributionView(view)} className={cn('rounded-md px-2 py-1 text-[11px] font-medium transition-all', distributionView === view ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
+                              {view.charAt(0).toUpperCase() + view.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Equity Chart */}
+                    {chartView === 'equity' && (
+                      <div className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] p-4">
+                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                          <TrendingUp className="h-3.5 w-3.5 text-violet-500" /> Curva Equity
+                        </p>
+                        <div className="h-[280px]">
+                          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <AreaChart data={equityChartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                              <defs>
+                                <linearGradient id={`colorEquityStrat-${strategia.id}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={borderColor} stopOpacity={0.3} />
+                                  <stop offset="95%" stopColor={borderColor} stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
+                              <XAxis dataKey="date" tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }} tickLine={false} />
+                              <YAxis tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => Math.abs(v) >= 1000 ? `€${(v / 1000).toFixed(0)}K` : `€${v}`} />
+                              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }} formatter={(value: any) => [formatValuta(Number(value) || 0), 'Equity']} labelFormatter={(l) => `Data: ${l}`} />
+                              <ReferenceLine y={0} stroke="rgba(139, 92, 246, 0.3)" strokeDasharray="3 3" />
+                              <Area type="monotone" dataKey="equity" stroke={borderColor} strokeWidth={2.5} fillOpacity={1} fill={`url(#colorEquityStrat-${strategia.id})`} animationDuration={1200} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Distribution Chart */}
+                    {chartView === 'distribuzione' && (
+                      <div className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] p-4">
+                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                          <BarChart2 className="h-3.5 w-3.5 text-violet-500" /> Distribuzione — {distributionView}
+                        </p>
+                        <div className="h-[280px]">
+                          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <BarChart data={distributionData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
+                              <XAxis dataKey="label" tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }} tickLine={false} />
+                              <YAxis tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }} formatter={(value: any) => [`${value} trade`, 'Frequenza']} />
+                              <Bar dataKey="trades" radius={[6, 6, 0, 0]} animationDuration={800}>
+                                {distributionData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.trades > 0 ? borderColor : 'rgba(139, 92, 246, 0.1)'} fillOpacity={0.7 + (entry.trades / Math.max(...distributionData.map(d => d.trades), 1)) * 0.3} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
+
+                {/* Aderenza Media Regole */}
+                <PlaybookAderenzaMediaCard strategiaId={strategia.id} operazioni={operazioni} />
               </div>
 
-              {/* Equity Curve Chart */}
-              {chartView === 'equity' && (
-                <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                      Curva Equity — {strategia.nome}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-72 md:h-80">
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <AreaChart data={equityChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                          <defs>
-                            <linearGradient id={`colorEquityStrat-${strategia.id}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={borderColor} stopOpacity={0.3} />
-                              <stop offset="95%" stopColor={borderColor} stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
-                          <XAxis
-                            dataKey="date"
-                            tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                            axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
-                            tickLine={false}
-                          />
-                          <YAxis
-                            tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(value) =>
-                              Math.abs(value) >= 1000 ? `€${(value / 1000).toFixed(0)}K` : `€${value}`
-                            }
-                          />
-                          <Tooltip
-                            contentStyle={tooltipStyle}
-                            labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
-                            formatter={(value: any) => [formatValuta(Number(value) || 0), 'Equity']}
-                            labelFormatter={(label) => `Data: ${label}`}
-                          />
-                          <ReferenceLine y={0} stroke="rgba(139, 92, 246, 0.3)" strokeDasharray="3 3" />
-                          <Area
-                            type="monotone"
-                            dataKey="equity"
-                            stroke={borderColor}
-                            strokeWidth={2.5}
-                            fillOpacity={1}
-                            fill={`url(#colorEquityStrat-${strategia.id})`}
-                            animationDuration={1200}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {/* ═══ COLONNA DESTRA — Metriche ═══ */}
+              <div className="w-[280px] shrink-0 space-y-2.5">
+                {/* P&L Totale — Hero card */}
+                <div className={cn(
+                  'rounded-xl p-4 border',
+                  performanceData.totalPnl >= 0
+                    ? 'bg-gradient-to-br from-green-50 to-emerald-50/50 dark:from-green-500/10 dark:to-emerald-500/5 border-green-200 dark:border-green-500/20'
+                    : 'bg-gradient-to-br from-red-50 to-rose-50/50 dark:from-red-500/10 dark:to-rose-500/5 border-red-200 dark:border-red-500/20'
+                )}>
+                  <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">P&L Totale</p>
+                  <p className={cn('text-2xl font-bold tracking-tight', performanceData.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                    {formatValuta(performanceData.totalPnl)}
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{operazioni.length} operazioni totali</p>
+                </div>
 
-              {/* Distribution Histogram */}
-              {chartView === 'distribuzione' && (
-                <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                      <BarChart2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                      Distribuzione Trade — Frequenza {distributionView}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-72 md:h-80">
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={distributionData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
-                          <XAxis
-                            dataKey="label"
-                            tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                            axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
-                            tickLine={false}
-                          />
-                          <YAxis
-                            tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                            axisLine={false}
-                            tickLine={false}
-                            allowDecimals={false}
-                          />
-                          <Tooltip
-                            contentStyle={tooltipStyle}
-                            labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
-                            formatter={(value: any) => [`${value} trade`, 'Frequenza']}
-                          />
-                          <Bar dataKey="trades" radius={[6, 6, 0, 0]} animationDuration={800}>
-                            {distributionData.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={entry.trades > 0 ? borderColor : 'rgba(139, 92, 246, 0.1)'}
-                                fillOpacity={0.7 + (entry.trades / Math.max(...distributionData.map(d => d.trades), 1)) * 0.3}
-                              />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
+                {/* Metriche griglia compatta */}
+                {[
+                  { label: 'Win Rate', value: `${winRate.toFixed(1)}%`, positive: winRate >= 50, icon: <Percent className="h-3 w-3" /> },
+                  { label: 'Profit Factor', value: profitFactor.toFixed(2), positive: profitFactor >= 1, icon: <TrendingUp className="h-3 w-3" /> },
+                  { label: 'R:R Medio', value: performanceData.rrCount > 0 ? performanceData.avgRR.toFixed(2) : 'N/A', positive: performanceData.avgRR >= 1, icon: <Target className="h-3 w-3" /> },
+                  { label: 'Expectancy', value: formatValuta(performanceData.expectancy), positive: performanceData.expectancy >= 0, icon: <DollarSign className="h-3 w-3" /> },
+                ].map((stat, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 dark:text-gray-500">{stat.icon}</span>
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{stat.label}</span>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          )}
+                    <span className={cn('text-sm font-bold tracking-tight tabular-nums', stat.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                      {stat.value}
+                    </span>
+                  </div>
+                ))}
 
-          {/* Empty state */}
-          {opCount === 0 && (
+                {/* Separatore */}
+                <div className="border-t border-gray-100 dark:border-violet-500/10 my-1" />
+
+                {/* Media Win/Loss */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                    <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Media Win</p>
+                    <p className="text-sm font-bold text-green-600 dark:text-green-400 tracking-tight">{formatValuta(performanceData.avgWin)}</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                    <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Media Loss</p>
+                    <p className="text-sm font-bold text-red-600 dark:text-red-400 tracking-tight">{formatValuta(performanceData.avgLoss)}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                    <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Best Trade</p>
+                    <p className={cn('text-sm font-bold tracking-tight', performanceData.bestTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{formatValuta(performanceData.bestTrade)}</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                    <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Worst Trade</p>
+                    <p className={cn('text-sm font-bold tracking-tight', performanceData.worstTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{formatValuta(performanceData.worstTrade)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Empty state */
             <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
               <CardContent className="py-12 text-center">
                 <BarChart2 className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -1146,118 +1083,98 @@ export function DettaglioStrategia({
         </TabsContent>
 
         {/* ═══════════════════════════════════════════════════════════
-            TAB DESCRIZIONE
+            TAB DESCRIZIONE — Rich Text Editor
             ═══════════════════════════════════════════════════════════ */}
         <TabsContent value="description" className="px-6 py-5 space-y-5">
-          {/* Info rapida */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#161622]/80 border border-gray-200 dark:border-violet-500/15">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Colore</p>
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded-lg border border-gray-200 dark:border-violet-500/30" style={{ backgroundColor: borderColor }} />
-                <span className="text-gray-800 dark:text-white font-mono font-bold text-sm">{borderColor}</span>
-              </div>
+          {/* Info strip compatta */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#161622]/80 border border-gray-200 dark:border-violet-500/15">
+              <div className="h-4 w-4 rounded-md border border-gray-200 dark:border-violet-500/30" style={{ backgroundColor: borderColor }} />
+              <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{strategia.nome}</span>
             </div>
-            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#161622]/80 border border-gray-200 dark:border-violet-500/15">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Stato</p>
-              <Badge variant="outline" className={strategia.attiva ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20 font-bold' : 'border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-400 font-bold'}>
-                {strategia.attiva ? 'Attiva' : 'Inattiva'}
-              </Badge>
-            </div>
+            <Badge variant="outline" className={cn('text-xs font-bold', strategia.attiva ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' : 'border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-400')}>
+              {strategia.attiva ? 'Attiva' : 'Inattiva'}
+            </Badge>
             {strategia.rischio_max_importo && (
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                <div className="flex items-center gap-1 mb-1">
-                  <DollarSign className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /><span className="text-xs font-bold text-amber-600 dark:text-amber-400">Rischio Max</span>
-                </div>
-                <span className="text-base font-bold tracking-tight text-amber-700 dark:text-amber-400">{formatValuta(strategia.rischio_max_importo)}</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                <DollarSign className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Max {formatValuta(strategia.rischio_max_importo)}</span>
               </div>
             )}
             {strategia.rischio_max_percentuale && (
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                <div className="flex items-center gap-1 mb-1">
-                  <Percent className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /><span className="text-xs font-bold text-amber-600 dark:text-amber-400">Rischio Max %</span>
-                </div>
-                <span className="text-base font-bold tracking-tight text-amber-700 dark:text-amber-400">{strategia.rischio_max_percentuale}%</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                <Percent className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Max {strategia.rischio_max_percentuale}%</span>
               </div>
             )}
           </div>
 
-          {/* Descrizione breve */}
+          {/* Sommario breve (solo se presente) */}
           {strategia.descrizione && (
-            <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-              <CardContent className="p-4">
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Sommario</p>
-                <p className="text-gray-800 dark:text-white text-sm leading-relaxed">{strategia.descrizione}</p>
-              </CardContent>
-            </Card>
+            <div className="px-4 py-3 rounded-xl bg-violet-50/50 dark:bg-violet-500/5 border border-violet-100 dark:border-violet-500/10">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{strategia.descrizione}</p>
+            </div>
           )}
 
-          {/* Descrizione dettagliata — editabile inline */}
-          <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  Descrizione Dettagliata
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  {descriptionSaved && (
-                    <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400">
-                      <Check className="h-3.5 w-3.5" /> Salvato
-                    </motion.span>
-                  )}
-                  {editingDescription ? (
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => { setEditingDescription(false); setDescriptionText(strategia.descrizione_dettagliata || ''); }} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 h-8 text-xs px-3">
-                        Annulla
-                      </Button>
-                      <Button size="sm" onClick={handleSaveDescription} disabled={savingDescription} className="h-8 bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold text-xs px-4">
-                        <Save className="h-3.5 w-3.5 mr-1.5" />
-                        {savingDescription ? 'Salvataggio...' : 'Salva'}
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => setEditingDescription(true)} className="h-8 text-xs px-3 border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-600 dark:text-gray-300">
-                      <Edit2 className="h-3.5 w-3.5 mr-1.5" />
-                      Modifica
+          {/* Rich Text Editor */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                Documento Strategia
+              </h3>
+              <div className="flex items-center gap-2">
+                {descriptionSaved && (
+                  <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400">
+                    <Check className="h-3.5 w-3.5" /> Salvato
+                  </motion.span>
+                )}
+                {editingDescription ? (
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => { setEditingDescription(false); setDescriptionText(strategia.descrizione_dettagliata || ''); }} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 h-8 text-xs px-3">
+                      Annulla
                     </Button>
-                  )}
-                </div>
+                    <Button size="sm" onClick={handleSaveDescription} disabled={savingDescription} className="h-8 bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold text-xs px-4">
+                      <Save className="h-3.5 w-3.5 mr-1.5" />
+                      {savingDescription ? 'Salvataggio...' : 'Salva'}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={() => setEditingDescription(true)} className="h-8 text-xs px-3 border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-600 dark:text-gray-300">
+                    <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                    Modifica
+                  </Button>
+                )}
               </div>
-            </CardHeader>
-            <CardContent>
-              {editingDescription ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={descriptionText}
-                    onChange={(e) => setDescriptionText(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveDescription(); }}
-                    placeholder="Scrivi una descrizione dettagliata della tua strategia... Includi setup, condizioni di mercato ideali, timeframe, indicatori utilizzati, logica di entry/exit, gestione del rischio e qualsiasi altro dettaglio utile."
-                    className="min-h-[200px] max-h-[500px] text-sm leading-relaxed border-gray-200 dark:border-violet-500/30 bg-gray-50 dark:bg-[#0a0a0f]/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500/20 resize-y"
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] font-mono border border-gray-200 dark:border-gray-700">Ctrl+Enter</kbd> per salvare rapidamente
-                  </p>
-                </div>
-              ) : descriptionText ? (
-                <div
-                  className="text-sm text-gray-800 dark:text-white leading-relaxed whitespace-pre-wrap cursor-pointer hover:bg-gray-50 dark:hover:bg-violet-500/5 p-3 -m-1 rounded-lg transition-colors"
-                  onClick={() => setEditingDescription(true)}
-                  title="Clicca per modificare"
-                >
-                  {descriptionText}
-                </div>
-              ) : (
-                <div
-                  className="text-sm text-gray-400 dark:text-gray-500 italic cursor-pointer hover:bg-gray-50 dark:hover:bg-violet-500/5 p-4 -m-1 rounded-lg transition-colors border border-dashed border-gray-200 dark:border-violet-500/15 text-center"
-                  onClick={() => setEditingDescription(true)}
-                >
-                  Clicca per aggiungere una descrizione dettagliata della strategia...
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+
+            {editingDescription ? (
+              <RichTextEditor
+                content={descriptionText}
+                onChange={setDescriptionText}
+                placeholder="Descrivi la tua strategia in dettaglio... Setup, condizioni di mercato, timeframe, indicatori, logica entry/exit, gestione del rischio..."
+                editable={true}
+                minHeight="300px"
+              />
+            ) : descriptionText && descriptionText !== '<p></p>' ? (
+              <div
+                className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#161622] p-5 cursor-pointer hover:border-violet-300 dark:hover:border-violet-500/30 transition-colors"
+                onClick={() => setEditingDescription(true)}
+                title="Clicca per modificare"
+              >
+                <RichTextViewer content={descriptionText} />
+              </div>
+            ) : (
+              <div
+                className="rounded-xl border-2 border-dashed border-gray-200 dark:border-violet-500/15 bg-gray-50/50 dark:bg-[#161622]/50 p-8 text-center cursor-pointer hover:border-violet-300 dark:hover:border-violet-500/30 transition-all"
+                onClick={() => setEditingDescription(true)}
+              >
+                <FileText className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Clicca per creare il documento della strategia</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Usa titoli, liste, immagini e formattazione per strutturare il tuo playbook</p>
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
