@@ -8,7 +8,6 @@ import { useOperazioni } from '@/hooks/useOperazioni';
 import { usePlaybook } from '@/hooks/usePlaybook';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import {
   ArrowLeft,
@@ -138,7 +137,7 @@ export default function AnalisiOperazionePage() {
   try {
     formattedDate = format(new Date(operazione.data + 'T12:00:00'), 'EEEE d MMMM yyyy', { locale: it });
     formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
-  } catch {}
+  } catch { /* fallback */ }
 
   // Calcolo R:R se disponibili SL e TP
   const riskReward = operazione.stop_loss && operazione.take_profit && operazione.prezzo_entrata
@@ -146,8 +145,8 @@ export default function AnalisiOperazionePage() {
     : null;
 
   return (
-    <div className="p-4 md:p-6 space-y-5 min-h-screen relative">
-      {/* Header */}
+    <div className="p-4 md:p-6 space-y-4 min-h-screen relative">
+      {/* Compact Header */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -159,35 +158,43 @@ export default function AnalisiOperazionePage() {
             variant="ghost"
             size="icon"
             onClick={() => router.push('/registro')}
-            className="text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-xl"
+            className="text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-xl h-9 w-9"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
 
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                 {operazione.ticker}
               </h1>
               <Badge
                 className={cn(
-                  'text-xs font-bold px-2 py-0.5 rounded-md',
+                  'text-[10px] font-bold px-1.5 py-0.5 rounded-md',
                   isLong
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                 )}
               >
-                {isLong ? <TrendingUp className="h-3 w-3 mr-1 inline" /> : <TrendingDown className="h-3 w-3 mr-1 inline" />}
+                {isLong ? <TrendingUp className="h-3 w-3 mr-0.5 inline" /> : <TrendingDown className="h-3 w-3 mr-0.5 inline" />}
                 {operazione.direzione}
               </Badge>
               <span className={cn(
-                'text-xl font-bold tabular-nums',
+                'text-lg font-bold tabular-nums',
                 isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
               )}>
                 {isPositive ? '+' : ''}{formatValuta(pnl)}
               </span>
+              {operazione.pnl_percentuale != null && (
+                <span className={cn(
+                  'text-xs font-semibold tabular-nums',
+                  isPositive ? 'text-emerald-500/70 dark:text-emerald-400/60' : 'text-red-500/70 dark:text-red-400/60'
+                )}>
+                  ({isPositive ? '+' : ''}{operazione.pnl_percentuale.toFixed(2)}%)
+                </span>
+              )}
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {formattedDate}
               {operazione.ora_entrata && (
                 <span className="font-mono ml-2 text-gray-400 dark:text-gray-500">
@@ -202,8 +209,8 @@ export default function AnalisiOperazionePage() {
         {/* Navigation */}
         {sameDayOps.length > 1 && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium tabular-nums">
-              {currentIndex + 1} / {sameDayOps.length}
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium tabular-nums">
+              {currentIndex + 1}/{sameDayOps.length}
             </span>
             <div className="flex items-center bg-gray-100 dark:bg-[#1e1e30] rounded-lg p-0.5">
               <Button
@@ -230,8 +237,8 @@ export default function AnalisiOperazionePage() {
       </motion.div>
 
       {/* Main Content: Chart + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-        {/* Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Chart — full width on mobile, 3/4 on desktop */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -261,55 +268,16 @@ export default function AnalisiOperazionePage() {
           variants={stagger}
           initial="initial"
           animate="animate"
-          className="space-y-4"
+          className="space-y-3"
         >
-          {/* P&L Hero Card */}
+          {/* Trade Details — compact grid */}
           <motion.div variants={fadeRight}>
-            <Card className={cn(
-              'border-0 shadow-md overflow-hidden',
-              isPositive
-                ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-900/5'
-                : 'bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/20 dark:to-red-900/5'
-            )}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">P&L</span>
-                  {operazione.pnl_percentuale != null && (
-                    <Badge className={cn(
-                      'text-[10px] font-bold rounded-md',
-                      isPositive
-                        ? 'bg-emerald-200/60 text-emerald-700 dark:bg-emerald-800/40 dark:text-emerald-300'
-                        : 'bg-red-200/60 text-red-700 dark:bg-red-800/40 dark:text-red-300'
-                    )}>
-                      {isPositive ? '+' : ''}{operazione.pnl_percentuale.toFixed(2)}%
-                    </Badge>
-                  )}
-                </div>
-                <p className={cn(
-                  'text-2xl font-bold tabular-nums',
-                  isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                )}>
-                  {isPositive ? '+' : ''}{formatValuta(pnl)}
-                </p>
-                {riskReward && (
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                    R:R {riskReward.toFixed(1)}:1
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Trade Details */}
-          <motion.div variants={fadeRight}>
-            <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
-              <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Dettagli Trade
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4 pb-4">
-                {/* Entry/Exit prices */}
+            <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+              <div className="px-4 pt-3 pb-2">
+                <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Dettagli Trade</h3>
+              </div>
+              <div className="px-4 pb-3 space-y-2">
+                {/* Entry/Exit prices side-by-side */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-[#161622] border border-gray-100 dark:border-violet-500/10">
                     <div className="flex items-center gap-1 mb-1">
@@ -337,66 +305,96 @@ export default function AnalisiOperazionePage() {
                   </div>
                 </div>
 
-                {/* Stats list */}
-                <div className="space-y-2">
-                  <DetailRow icon={Hash} label="Quantita" value={String(operazione.quantita)} />
+                {/* Key metrics row */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Quantity */}
+                  <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-gray-50/50 dark:bg-[#161622]/50">
+                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                      <Hash className="h-3 w-3" />
+                      <span className="text-[10px]">Qty</span>
+                    </div>
+                    <span className="text-[11px] font-mono font-semibold text-gray-900 dark:text-white">{operazione.quantita}</span>
+                  </div>
 
-                  {operazione.commissione > 0 && (
-                    <DetailRow
-                      icon={DollarSign}
-                      label="Commissioni"
-                      value={`-${formatValuta(operazione.commissione)}`}
-                      valueColor="text-red-500"
-                    />
-                  )}
-
-                  {operazione.stop_loss && (
-                    <DetailRow
-                      icon={ShieldAlert}
-                      label="Stop Loss"
-                      value={`$${operazione.stop_loss.toFixed(2)}`}
-                      valueColor="text-red-500"
-                    />
-                  )}
-
-                  {operazione.take_profit && (
-                    <DetailRow
-                      icon={TrendingUp}
-                      label="Take Profit"
-                      value={`$${operazione.take_profit.toFixed(2)}`}
-                      valueColor="text-emerald-500"
-                    />
-                  )}
-
+                  {/* Duration */}
                   {operazione.durata_minuti != null && operazione.durata_minuti > 0 && (
-                    <DetailRow
-                      icon={Clock}
-                      label="Durata"
-                      value={operazione.durata_minuti >= 60
-                        ? `${Math.floor(operazione.durata_minuti / 60)}h ${operazione.durata_minuti % 60}m`
-                        : `${operazione.durata_minuti}m`
-                      }
-                    />
-                  )}
-
-                  <DetailRow label="Stato" value={operazione.stato} />
-
-                  {operazione.broker && (
-                    <DetailRow label="Broker" value={operazione.broker} />
+                    <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-gray-50/50 dark:bg-[#161622]/50">
+                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-[10px]">Durata</span>
+                      </div>
+                      <span className="text-[11px] font-mono font-semibold text-gray-900 dark:text-white">
+                        {operazione.durata_minuti >= 60
+                          ? `${Math.floor(operazione.durata_minuti / 60)}h ${operazione.durata_minuti % 60}m`
+                          : `${operazione.durata_minuti}m`
+                        }
+                      </span>
+                    </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+
+                {/* SL / TP / R:R / Commissions */}
+                <div className="space-y-1">
+                  {operazione.stop_loss && (
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                        <ShieldAlert className="h-3 w-3 text-red-400" />
+                        <span className="text-[10px]">Stop Loss</span>
+                      </div>
+                      <span className="text-[11px] font-mono font-medium text-red-500">${operazione.stop_loss.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {operazione.take_profit && (
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                        <TrendingUp className="h-3 w-3 text-emerald-400" />
+                        <span className="text-[10px]">Take Profit</span>
+                      </div>
+                      <span className="text-[11px] font-mono font-medium text-emerald-500">${operazione.take_profit.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {riskReward && (
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                        <Target className="h-3 w-3 text-violet-400" />
+                        <span className="text-[10px]">Risk/Reward</span>
+                      </div>
+                      <span className="text-[11px] font-mono font-semibold text-violet-600 dark:text-violet-400">{riskReward.toFixed(1)}:1</span>
+                    </div>
+                  )}
+                  {operazione.commissione > 0 && (
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                        <DollarSign className="h-3 w-3 text-red-400" />
+                        <span className="text-[10px]">Commissioni</span>
+                      </div>
+                      <span className="text-[11px] font-mono font-medium text-red-500">-{formatValuta(operazione.commissione)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">Stato</span>
+                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-medium">{operazione.stato}</Badge>
+                  </div>
+                  {operazione.broker && (
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">Broker</span>
+                      <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">{operazione.broker}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </motion.div>
 
-          {/* Strategia Card */}
+          {/* Unified Strategia + Regole/Condizioni Card */}
           <motion.div variants={fadeRight}>
-            <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
-              <CardHeader className="pb-2 pt-4 px-4">
+            <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+              {/* Strategy header + selector */}
+              <div className="px-4 pt-3 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Strategia
-                  </CardTitle>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    Strategia & Regole
+                  </h3>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -407,17 +405,21 @@ export default function AnalisiOperazionePage() {
                     <span className="ml-1">{showStrategiaSelector ? 'Chiudi' : strategia ? 'Cambia' : 'Associa'}</span>
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                {/* Current strategia */}
+              </div>
+
+              <div className="px-4 pb-3 space-y-2">
+                {/* Current strategia display */}
                 {strategia && !showStrategiaSelector && (
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-[#161622] border border-gray-100 dark:border-violet-500/10">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <div
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: strategia.colore || '#8b5cf6' }}
+                        className="w-3 h-3 rounded-full shadow-sm"
+                        style={{
+                          backgroundColor: strategia.colore || '#8b5cf6',
+                          boxShadow: `0 0 0 2px white, 0 0 0 3px ${strategia.colore || '#8b5cf6'}40`,
+                        }}
                       />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{strategia.nome}</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{strategia.nome}</span>
                     </div>
                     <Button
                       variant="ghost"
@@ -432,12 +434,12 @@ export default function AnalisiOperazionePage() {
                 )}
 
                 {!strategia && !showStrategiaSelector && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 italic py-1">
                     Nessuna strategia associata
                   </p>
                 )}
 
-                {/* Selector */}
+                {/* Strategy selector dropdown */}
                 <AnimatePresence>
                   {showStrategiaSelector && (
                     <motion.div
@@ -496,8 +498,6 @@ export default function AnalisiOperazionePage() {
                                 </button>
                               );
                             })}
-
-                            {/* Remove strategy option */}
                             {operazione.strategia_id && (
                               <button
                                 onClick={() => handleAssociaStrategia(null)}
@@ -514,74 +514,69 @@ export default function AnalisiOperazionePage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </CardContent>
-            </Card>
+
+                {/* Divider + Rules section (if strategy is set) */}
+                {operazione.strategia_id && !showStrategiaSelector && (
+                  <>
+                    <div className="border-t border-gray-100 dark:border-violet-500/10 my-1" />
+                    <AderenzaRegoleInline
+                      operazioneId={operazione.id}
+                      strategiaId={operazione.strategia_id}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
           </motion.div>
 
-          {/* Aderenza Regole Card */}
-          {operazione.strategia_id && (
-            <motion.div variants={fadeRight}>
-              <AderenzaRegoleCard
-                operazioneId={operazione.id}
-                strategiaId={operazione.strategia_id}
-              />
-            </motion.div>
-          )}
-
-          {/* Notes Card */}
+          {/* Notes Card — below strategy */}
           <motion.div variants={fadeRight}>
-            <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
-              <CardHeader className="pb-2 pt-4 px-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Note
-                  </CardTitle>
-                  <AnimatePresence mode="wait">
-                    {savingNote && (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-[10px] text-violet-500 flex items-center gap-1"
-                      >
-                        <Save className="h-3 w-3 animate-pulse" /> Salvando...
-                      </motion.span>
-                    )}
-                    {noteSaved && !savingNote && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-[10px] text-emerald-500 flex items-center gap-1"
-                      >
-                        <Check className="h-3 w-3" /> Salvato
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
+            <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+              <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+                <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Note</h3>
+                <AnimatePresence mode="wait">
+                  {savingNote && (
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-[10px] text-violet-500 flex items-center gap-1"
+                    >
+                      <Save className="h-3 w-3 animate-pulse" /> Salvando...
+                    </motion.span>
+                  )}
+                  {noteSaved && !savingNote && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-[10px] text-emerald-500 flex items-center gap-1"
+                    >
+                      <Check className="h-3 w-3" /> Salvato
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+              <div className="px-4 pb-3">
                 <Textarea
                   placeholder="Aggiungi note sull'operazione... Cosa hai fatto bene? Cosa puoi migliorare?"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   onBlur={saveNote}
-                  className="min-h-[90px] text-sm bg-gray-50 dark:bg-[#161622] border-gray-200 dark:border-violet-500/10 resize-none rounded-lg focus:ring-violet-500/30"
+                  className="min-h-[80px] text-xs bg-gray-50 dark:bg-[#161622] border-gray-200 dark:border-violet-500/10 resize-none rounded-lg focus:ring-violet-500/30"
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </motion.div>
 
           {/* Tags */}
           {operazione.tags && operazione.tags.length > 0 && (
             <motion.div variants={fadeRight}>
-              <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Tag
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
+              <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+                <div className="px-4 pt-3 pb-2">
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Tag</h3>
+                </div>
+                <div className="px-4 pb-3">
                   <div className="flex flex-wrap gap-1.5">
                     {operazione.tags.map((tag: any) => (
                       <Badge
@@ -598,8 +593,8 @@ export default function AnalisiOperazionePage() {
                       </Badge>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </motion.div>
           )}
         </motion.div>
@@ -608,33 +603,7 @@ export default function AnalisiOperazionePage() {
   );
 }
 
-// ─── Detail Row Component ────────────────────────────────────────────
-function DetailRow({
-  icon: Icon,
-  label,
-  value,
-  valueColor,
-}: {
-  icon?: any;
-  label: string;
-  value: string;
-  valueColor?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between py-1">
-      <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-        {Icon && <Icon className="h-3 w-3" />}
-        <span className="text-[11px]">{label}</span>
-      </div>
-      <span className={cn('text-[11px] font-mono font-medium text-gray-900 dark:text-white', valueColor)}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-// ─── Aderenza Regole Card ────────────────────────────────────────────
-// Gruppo icon/label lookup (mirrors dettaglio-strategia preset config)
+// ─── Inline Aderenza Regole (no Card wrapper — lives inside Strategia card) ──
 const GROUP_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   entry: { label: 'Condizioni di Ingresso', icon: <TrendingUp className="h-3 w-3" />, color: 'text-blue-600 dark:text-blue-400' },
   stop_loss: { label: 'Stop Loss', icon: <Shield className="h-3 w-3" />, color: 'text-red-600 dark:text-red-400' },
@@ -652,23 +621,18 @@ function getGroupLabel(groupKey: string) {
   };
 }
 
-function AderenzaRegoleCard({ operazioneId, strategiaId }: { operazioneId: string; strategiaId: string }) {
+function AderenzaRegoleInline({ operazioneId, strategiaId }: { operazioneId: string; strategiaId: string }) {
   const { aderenza, loading, toggleRegola } = useConformitaRegole(operazioneId, strategiaId);
   const [expanded, setExpanded] = React.useState(true);
 
   if (loading && !aderenza) {
-    return (
-      <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
-        <CardContent className="p-4">
-          <p className="text-xs text-gray-400 animate-pulse text-center">Caricamento regole...</p>
-        </CardContent>
-      </Card>
-    );
+    return <p className="text-xs text-gray-400 animate-pulse text-center py-2">Caricamento regole...</p>;
   }
 
-  if (!aderenza || aderenza.totali === 0) return null;
+  if (!aderenza || aderenza.totali === 0) {
+    return <p className="text-xs text-gray-400 dark:text-gray-500 italic py-1">Nessuna regola definita</p>;
+  }
 
-  // Raggruppa le regole per gruppo
   const regoleByGruppo: Record<string, typeof aderenza.regole> = {};
   aderenza.regole.forEach((r) => {
     const g = r.gruppo || 'entry';
@@ -676,7 +640,6 @@ function AderenzaRegoleCard({ operazioneId, strategiaId }: { operazioneId: strin
     regoleByGruppo[g].push(r);
   });
 
-  // Mappa conformità per regola_id
   const confMap = new Map(aderenza.conformita.map((c) => [c.regola_id, c]));
 
   const pct = aderenza.percentuale;
@@ -684,35 +647,36 @@ function AderenzaRegoleCard({ operazioneId, strategiaId }: { operazioneId: strin
   const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm">
-      <CardHeader className="pb-2 pt-4 px-4">
-        <div
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => setExpanded(!expanded)}
-        >
-          <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-            <BookOpen className="h-3.5 w-3.5 text-violet-500" />
-            Aderenza Regole
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <span className={cn('text-sm font-bold tabular-nums', pctColor)}>
-              {pct}%
-            </span>
-            <span className="text-[10px] text-gray-400">
-              {aderenza.rispettate}/{aderenza.totali}
-            </span>
-            {expanded ? <ChevronUp className="h-3.5 w-3.5 text-gray-400" /> : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />}
-          </div>
+    <div className="space-y-2">
+      {/* Adherence header */}
+      <div
+        className="flex items-center justify-between cursor-pointer py-1"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center gap-1.5">
+          <BookOpen className="h-3 w-3 text-violet-500" />
+          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aderenza Regole</span>
         </div>
-        {/* Barra progressione */}
-        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-2 overflow-hidden">
-          <div
-            className={cn('h-full rounded-full transition-all duration-500', barColor)}
-            style={{ width: `${pct}%` }}
-          />
+        <div className="flex items-center gap-2">
+          <span className={cn('text-xs font-bold tabular-nums', pctColor)}>
+            {pct}%
+          </span>
+          <span className="text-[10px] text-gray-400">
+            {aderenza.rispettate}/{aderenza.totali}
+          </span>
+          {expanded ? <ChevronUp className="h-3 w-3 text-gray-400" /> : <ChevronDown className="h-3 w-3 text-gray-400" />}
         </div>
-      </CardHeader>
+      </div>
 
+      {/* Progress bar */}
+      <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all duration-500', barColor)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Expandable rules list */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -720,65 +684,62 @@ function AderenzaRegoleCard({ operazioneId, strategiaId }: { operazioneId: strin
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            className="overflow-hidden space-y-2.5"
           >
-            <CardContent className="px-4 pb-4 pt-1 space-y-3">
-              {Object.entries(regoleByGruppo).map(([gruppo, regole]) => {
-                const cfg = getGroupLabel(gruppo);
-                return (
-                  <div key={gruppo}>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className={cfg.color}>{cfg.icon}</span>
-                      <span className={cn('text-[10px] font-bold uppercase tracking-wider', cfg.color)}>
-                        {cfg.label}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      {regole.map((regola) => {
-                        const conf = confMap.get(regola.id);
-                        const isChecked = conf?.rispettata === true;
-
-                        return (
-                          <button
-                            key={regola.id}
-                            onClick={() => toggleRegola(regola.id, !isChecked)}
-                            className={cn(
-                              'w-full flex items-center gap-2.5 p-2 rounded-lg border text-left transition-all duration-150',
-                              isChecked
-                                ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20'
-                                : 'bg-gray-50/50 dark:bg-[#161622]/30 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
-                            )}
-                          >
-                            {/* Checkbox visivo */}
-                            <div className={cn(
-                              'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
-                              isChecked
-                                ? 'bg-emerald-500 border-emerald-500 text-white'
-                                : 'border-gray-300 dark:border-gray-600'
-                            )}>
-                              {isChecked && (
-                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                            <span className={cn(
-                              'text-xs font-medium flex-1',
-                              isChecked ? 'text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400'
-                            )}>
-                              {regola.descrizione}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+            {Object.entries(regoleByGruppo).map(([gruppo, regole]) => {
+              const cfg = getGroupLabel(gruppo);
+              return (
+                <div key={gruppo}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className={cfg.color}>{cfg.icon}</span>
+                    <span className={cn('text-[10px] font-bold uppercase tracking-wider', cfg.color)}>
+                      {cfg.label}
+                    </span>
                   </div>
-                );
-              })}
-            </CardContent>
+                  <div className="space-y-1">
+                    {regole.map((regola) => {
+                      const conf = confMap.get(regola.id);
+                      const isChecked = conf?.rispettata === true;
+
+                      return (
+                        <button
+                          key={regola.id}
+                          onClick={() => toggleRegola(regola.id, !isChecked)}
+                          className={cn(
+                            'w-full flex items-center gap-2 p-2 rounded-lg border text-left transition-all duration-150',
+                            isChecked
+                              ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20'
+                              : 'bg-gray-50/50 dark:bg-[#161622]/30 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                          )}
+                        >
+                          <div className={cn(
+                            'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
+                            isChecked
+                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              : 'border-gray-300 dark:border-gray-600'
+                          )}>
+                            {isChecked && (
+                              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className={cn(
+                            'text-xs font-medium flex-1',
+                            isChecked ? 'text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400'
+                          )}>
+                            {regola.descrizione}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>
-    </Card>
+    </div>
   );
 }

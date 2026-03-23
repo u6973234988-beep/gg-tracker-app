@@ -366,7 +366,7 @@ function ChartInner({
       }
 
       chart.applyNewData(chartData);
-      chart.createIndicator('VOL', false);
+      chart.createIndicator('VOL', false, { id: 'candle_pane' });
 
       // ── Markers ──
       let entryTs: number | null = null;
@@ -419,23 +419,46 @@ function ChartInner({
         });
       }
 
-      // ── Auto-scroll ──
-      const scrollTargetTs = timeframe === '1day'
-        ? findBestCandleForTime(chartData, tradeDate, null, '1day')
-        : entryTs;
+      // ── Auto-scroll & zoom to trade position ──
+      if (timeframe === '1min' && entryTs && chartData.length > 0) {
+        // For 1-min: zoom tightly around entry/exit markers
+        const entryIdx = findCandleIndex(chartData, entryTs);
+        const exitTs = trade.exitPrice
+          ? findBestCandleForTime(chartData, tradeDate, trade.exitTime, timeframe)
+          : null;
+        const exitIdx = exitTs ? findCandleIndex(chartData, exitTs) : entryIdx;
 
-      if (scrollTargetTs && chartData.length > 0) {
-        const targetIdx = findCandleIndex(chartData, scrollTargetTs);
-        const totalCandles = chartData.length;
-        const visibleCount = timeframe === '1day' ? 40 : 60;
-        const halfVisible = Math.floor(visibleCount / 2);
-        const scrollTo = Math.max(0, Math.min(targetIdx - halfVisible, totalCandles - visibleCount));
+        const markerSpan = Math.abs(exitIdx - entryIdx);
+        // Show padding of ~30 candles before entry and after exit, or at least 50 candles total
+        const padding = Math.max(30, Math.floor(markerSpan * 0.5));
+        const rangeStart = Math.max(0, Math.min(entryIdx, exitIdx) - padding);
+        const rangeEnd = Math.min(chartData.length - 1, Math.max(entryIdx, exitIdx) + padding);
+        const visibleCount = rangeEnd - rangeStart + 1;
 
         setTimeout(() => {
           if (chartRef.current) {
-            chartRef.current.scrollToDataIndex?.(scrollTo);
+            // Zoom level: total candles / visible candles
+            const zoomLevel = chartData.length / Math.max(visibleCount, 40);
+            if (zoomLevel > 1.2) {
+              chartRef.current.zoomAtDataIndex?.(zoomLevel, entryIdx, 0);
+            }
+            chartRef.current.scrollToDataIndex?.(rangeStart);
           }
-        }, 50);
+        }, 80);
+      } else if (timeframe === '1day' && chartData.length > 0) {
+        const scrollTargetTs = findBestCandleForTime(chartData, tradeDate, null, '1day');
+        if (scrollTargetTs) {
+          const targetIdx = findCandleIndex(chartData, scrollTargetTs);
+          const totalCandles = chartData.length;
+          const visibleCount = 40;
+          const halfVisible = Math.floor(visibleCount / 2);
+          const scrollTo = Math.max(0, Math.min(targetIdx - halfVisible, totalCandles - visibleCount));
+          setTimeout(() => {
+            if (chartRef.current) {
+              chartRef.current.scrollToDataIndex?.(scrollTo);
+            }
+          }, 50);
+        }
       }
 
     } catch (err: any) {
