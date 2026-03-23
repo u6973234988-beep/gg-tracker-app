@@ -212,6 +212,7 @@ export default function PlaybookPage() {
                 operazioni={operazioniDetail}
                 onBack={handleBackFromDetail}
                 onEdit={handleEditStrategia}
+                onEditSave={handleEditSaveStrategia}
                 onAddRule={handleAddRule}
                 onDeleteRule={handleDeleteRule}
                 onDelete={handleDeleteStrategia}

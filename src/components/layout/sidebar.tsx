@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
@@ -15,7 +16,6 @@ import {
   Menu,
   X,
   Clock,
-  Zap,
   Activity,
 } from 'lucide-react';
 
@@ -129,8 +129,15 @@ export function Sidebar() {
           isCollapsed ? 'justify-center px-2' : 'justify-between px-5'
         )}>
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 transition-all duration-300 group-hover:scale-105">
-              <Zap className="h-5 w-5 text-white relative z-10" />
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 transition-all duration-300 group-hover:scale-105">
+              <Image
+                src="/logo.png"
+                alt="GG Tracker"
+                width={40}
+                height={40}
+                className="object-cover"
+                priority
+              />
               <div className="absolute inset-0 rounded-xl bg-violet-400/20 animate-ping-slow" />
             </div>
             {!isCollapsed && (

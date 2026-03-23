@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft,
@@ -22,6 +23,10 @@ import {
   DollarSign,
   Percent,
   Search,
+  FileText,
+  Save,
+  Check,
+  Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -49,6 +54,7 @@ interface DettaglioStrategiaProps {
   operazioni: any[];
   onBack: () => void;
   onEdit: (strategia: StrategiaConDettagli) => void;
+  onEditSave: (id: string, updates: any) => Promise<void>;
   onAddRule: (strategiaId: string, regola: any) => Promise<void>;
   onDeleteRule: (regolaId: string) => Promise<void>;
   onDelete: (strategia: StrategiaConDettagli) => void;
@@ -87,6 +93,7 @@ export function DettaglioStrategia({
   operazioni,
   onBack,
   onEdit,
+  onEditSave,
   onAddRule,
   onDeleteRule,
   onDelete,
@@ -105,6 +112,34 @@ export function DettaglioStrategia({
   const [newRuleInGroupText, setNewRuleInGroupText] = React.useState('');
   // Gruppi aggiunti localmente (possono essere vuoti, senza regole nel DB)
   const [localGroups, setLocalGroups] = React.useState<string[]>([]);
+
+  // PDF export state
+  const [showExportModal, setShowExportModal] = React.useState(false);
+  const [selectedExportOps, setSelectedExportOps] = React.useState<Set<string>>(new Set());
+  const [exportingPdf, setExportingPdf] = React.useState(false);
+
+  // Description editing state
+  const [editingDescription, setEditingDescription] = React.useState(false);
+  const [descriptionText, setDescriptionText] = React.useState(strategia?.descrizione_dettagliata || '');
+  const [savingDescription, setSavingDescription] = React.useState(false);
+  const [descriptionSaved, setDescriptionSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    setDescriptionText(strategia?.descrizione_dettagliata || '');
+  }, [strategia?.id, strategia?.descrizione_dettagliata]);
+
+  const handleSaveDescription = async () => {
+    if (!strategia) return;
+    setSavingDescription(true);
+    try {
+      await onEditSave(strategia.id, { descrizione_dettagliata: descriptionText });
+      setDescriptionSaved(true);
+      setEditingDescription(false);
+      setTimeout(() => setDescriptionSaved(false), 2000);
+    } finally {
+      setSavingDescription(false);
+    }
+  };
 
   // Performance state
   const [chartView, setChartView] = React.useState<ChartView>('equity');
@@ -193,7 +228,21 @@ export function DettaglioStrategia({
     const bestTrade = Math.max(...operazioni.map((op: any) => op.pnl || 0));
     const worstTrade = Math.min(...operazioni.map((op: any) => op.pnl || 0));
 
-    return { winningTrades, losingTrades, totalPnl, avgWin, avgLoss, expectancy, bestTrade, worstTrade };
+    // Calcolo R:R medio (Risk/Reward) basato su prezzo entrata, stop loss, take profit
+    const rrValues: number[] = [];
+    operazioni.forEach((op: any) => {
+      const entry = op.prezzo_entrata;
+      const sl = op.stop_loss;
+      const tp = op.take_profit;
+      if (entry && sl && tp) {
+        const risk = Math.abs(entry - sl);
+        const reward = Math.abs(tp - entry);
+        if (risk > 0) rrValues.push(reward / risk);
+      }
+    });
+    const avgRR = rrValues.length > 0 ? rrValues.reduce((s, v) => s + v, 0) / rrValues.length : 0;
+
+    return { winningTrades, losingTrades, totalPnl, avgWin, avgLoss, expectancy, bestTrade, worstTrade, avgRR, rrCount: rrValues.length };
   }, [operazioni]);
 
   // ─── Equity curve data ─────────────────────────────────────
@@ -390,6 +439,9 @@ export function DettaglioStrategia({
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)} className="border-violet-200 dark:border-violet-500/30 hover:border-violet-400 text-violet-600 dark:text-violet-400 font-medium">
+              <Download className="h-4 w-4 mr-2" />Esporta PDF
+            </Button>
             <Button variant="outline" size="sm" onClick={() => onEdit(strategia)} className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-700 dark:text-gray-300 font-medium">
               <Edit2 className="h-4 w-4 mr-2" />Modifica
             </Button>
@@ -399,40 +451,23 @@ export function DettaglioStrategia({
           </div>
         </div>
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-          {[
-            { label: 'Operazioni', value: opCount.toString(), icon: <BarChart2 className="h-4 w-4" />, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/20' },
-            { label: 'Win Rate', value: `${winRate.toFixed(1)}%`, icon: <Activity className="h-4 w-4" />, color: winRate >= 50 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400', bg: winRate >= 50 ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20' : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20' },
-            { label: 'Profit Factor', value: profitFactor.toFixed(2), icon: <TrendingUp className="h-4 w-4" />, color: profitFactor >= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400', bg: profitFactor >= 1 ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20' : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20' },
-            { label: 'Regole', value: totalRules.toString(), icon: <BookOpen className="h-4 w-4" />, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20' },
-          ].map((stat, idx) => (
-            <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className={cn('rounded-xl p-3 border', stat.bg)}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className={stat.color}>{stat.icon}</span>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{stat.label}</span>
-              </div>
-              <div className={cn('text-xl font-bold tracking-tight', stat.color)}>{stat.value}</div>
-            </motion.div>
-          ))}
-        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="performance" className="w-full">
+      {/* Tabs — Ordine: Descrizione → Regole → Performance → Operazioni */}
+      <Tabs defaultValue="description" className="w-full">
         <div className="px-6 pt-4 border-b border-gray-100 dark:border-violet-500/15">
           <TabsList className="bg-gray-100 dark:bg-gray-800/60 p-1 border border-gray-200 dark:border-violet-500/20">
-            <TabsTrigger value="performance" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
-              <BarChart2 className="h-4 w-4 mr-2" />Performance
+            <TabsTrigger value="description" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
+              <Edit2 className="h-4 w-4 mr-2" />Descrizione
             </TabsTrigger>
             <TabsTrigger value="rules" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
               <BookOpen className="h-4 w-4 mr-2" />Regole / Condizioni ({totalRules})
             </TabsTrigger>
+            <TabsTrigger value="performance" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
+              <BarChart2 className="h-4 w-4 mr-2" />Performance
+            </TabsTrigger>
             <TabsTrigger value="trades" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
               <Activity className="h-4 w-4 mr-2" />Operazioni ({operazioni.length})
-            </TabsTrigger>
-            <TabsTrigger value="description" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
-              <Edit2 className="h-4 w-4 mr-2" />Descrizione
             </TabsTrigger>
           </TabsList>
         </div>
@@ -441,29 +476,52 @@ export function DettaglioStrategia({
             TAB PERFORMANCE
             ═══════════════════════════════════════════════════════════ */}
         <TabsContent value="performance" className="px-6 py-5 space-y-5">
-          {/* Stats grid */}
+          {/* Stats grid — 5 colonne: P&L, Win Rate, PF, R:R Medio, Expectancy */}
           {performanceData && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
                 { label: 'P&L Totale', value: formatValuta(performanceData.totalPnl), positive: performanceData.totalPnl >= 0 },
                 { label: 'Win Rate', value: `${winRate.toFixed(1)}%`, positive: winRate >= 50 },
                 { label: 'Profit Factor', value: profitFactor.toFixed(2), positive: profitFactor >= 1 },
+                { label: 'R:R Medio', value: performanceData.rrCount > 0 ? `${performanceData.avgRR.toFixed(2)}` : 'N/A', positive: performanceData.avgRR >= 1 },
                 { label: 'Expectancy', value: formatValuta(performanceData.expectancy), positive: performanceData.expectancy >= 0 },
-                { label: 'Media Vincita', value: formatValuta(performanceData.avgWin), positive: true },
-                { label: 'Media Perdita', value: formatValuta(performanceData.avgLoss), positive: false },
-                { label: 'Miglior Trade', value: formatValuta(performanceData.bestTrade), positive: performanceData.bestTrade >= 0 },
-                { label: 'Peggior Trade', value: formatValuta(performanceData.worstTrade), positive: performanceData.worstTrade >= 0 },
               ].map((stat, idx) => (
-                <motion.div key={idx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+                <motion.div key={idx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}>
                   <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-                    <CardContent className="p-4">
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{stat.label}</p>
+                    <CardContent className="p-3">
+                      <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">{stat.label}</p>
                       <p className={cn('text-lg font-bold tracking-tight', stat.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{stat.value}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
               ))}
             </div>
+          )}
+
+          {/* Dettagli aggiuntivi: Media Win/Loss, Best/Worst, Operazioni */}
+          {performanceData && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'Media Vincita', value: formatValuta(performanceData.avgWin), positive: true },
+                { label: 'Media Perdita', value: formatValuta(performanceData.avgLoss), positive: false },
+                { label: 'Miglior Trade', value: formatValuta(performanceData.bestTrade), positive: performanceData.bestTrade >= 0 },
+                { label: 'Peggior Trade', value: formatValuta(performanceData.worstTrade), positive: performanceData.worstTrade >= 0 },
+              ].map((stat, idx) => (
+                <motion.div key={`detail-${idx}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + idx * 0.04 }}>
+                  <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                    <CardContent className="p-3">
+                      <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">{stat.label}</p>
+                      <p className={cn('text-base font-bold tracking-tight', stat.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{stat.value}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* Aderenza Media Regole — calcolata sulle operazioni con conformità */}
+          {opCount > 0 && (
+            <PlaybookAderenzaMediaCard strategiaId={strategia.id} operazioni={operazioni} />
           )}
 
           {/* Win/Loss bar */}
@@ -1091,67 +1149,368 @@ export function DettaglioStrategia({
             TAB DESCRIZIONE
             ═══════════════════════════════════════════════════════════ */}
         <TabsContent value="description" className="px-6 py-5 space-y-5">
-          <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
-            <CardHeader><CardTitle className="text-base font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2"><BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />Informazioni Strategia</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Colore</p>
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg border border-gray-200 dark:border-violet-500/30" style={{ backgroundColor: borderColor }} />
-                    <span className="text-gray-800 dark:text-white font-mono font-bold text-sm">{borderColor}</span>
-                  </div>
+          {/* Info rapida */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#161622]/80 border border-gray-200 dark:border-violet-500/15">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Colore</p>
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg border border-gray-200 dark:border-violet-500/30" style={{ backgroundColor: borderColor }} />
+                <span className="text-gray-800 dark:text-white font-mono font-bold text-sm">{borderColor}</span>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#161622]/80 border border-gray-200 dark:border-violet-500/15">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Stato</p>
+              <Badge variant="outline" className={strategia.attiva ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20 font-bold' : 'border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-400 font-bold'}>
+                {strategia.attiva ? 'Attiva' : 'Inattiva'}
+              </Badge>
+            </div>
+            {strategia.rischio_max_importo && (
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                <div className="flex items-center gap-1 mb-1">
+                  <DollarSign className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /><span className="text-xs font-bold text-amber-600 dark:text-amber-400">Rischio Max</span>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Stato</p>
-                  <Badge variant="outline" className={strategia.attiva ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20 font-bold' : 'border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-400 font-bold'}>
-                    {strategia.attiva ? 'Attiva' : 'Inattiva'}
-                  </Badge>
+                <span className="text-base font-bold tracking-tight text-amber-700 dark:text-amber-400">{formatValuta(strategia.rischio_max_importo)}</span>
+              </div>
+            )}
+            {strategia.rischio_max_percentuale && (
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                <div className="flex items-center gap-1 mb-1">
+                  <Percent className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /><span className="text-xs font-bold text-amber-600 dark:text-amber-400">Rischio Max %</span>
+                </div>
+                <span className="text-base font-bold tracking-tight text-amber-700 dark:text-amber-400">{strategia.rischio_max_percentuale}%</span>
+              </div>
+            )}
+          </div>
+
+          {/* Descrizione breve */}
+          {strategia.descrizione && (
+            <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+              <CardContent className="p-4">
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Sommario</p>
+                <p className="text-gray-800 dark:text-white text-sm leading-relaxed">{strategia.descrizione}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Descrizione dettagliata — editabile inline */}
+          <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  Descrizione Dettagliata
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {descriptionSaved && (
+                    <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400">
+                      <Check className="h-3.5 w-3.5" /> Salvato
+                    </motion.span>
+                  )}
+                  {editingDescription ? (
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => { setEditingDescription(false); setDescriptionText(strategia.descrizione_dettagliata || ''); }} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 h-8 text-xs px-3">
+                        Annulla
+                      </Button>
+                      <Button size="sm" onClick={handleSaveDescription} disabled={savingDescription} className="h-8 bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold text-xs px-4">
+                        <Save className="h-3.5 w-3.5 mr-1.5" />
+                        {savingDescription ? 'Salvataggio...' : 'Salva'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => setEditingDescription(true)} className="h-8 text-xs px-3 border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-600 dark:text-gray-300">
+                      <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                      Modifica
+                    </Button>
+                  )}
                 </div>
               </div>
-
-              {strategia.descrizione && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Descrizione</p>
-                  <p className="text-gray-800 dark:text-white bg-gray-50 dark:bg-[#161622]/80 p-4 rounded-xl border border-gray-200 dark:border-violet-500/15">{strategia.descrizione}</p>
+            </CardHeader>
+            <CardContent>
+              {editingDescription ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={descriptionText}
+                    onChange={(e) => setDescriptionText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveDescription(); }}
+                    placeholder="Scrivi una descrizione dettagliata della tua strategia... Includi setup, condizioni di mercato ideali, timeframe, indicatori utilizzati, logica di entry/exit, gestione del rischio e qualsiasi altro dettaglio utile."
+                    className="min-h-[200px] max-h-[500px] text-sm leading-relaxed border-gray-200 dark:border-violet-500/30 bg-gray-50 dark:bg-[#0a0a0f]/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500/20 resize-y"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] font-mono border border-gray-200 dark:border-gray-700">Ctrl+Enter</kbd> per salvare rapidamente
+                  </p>
                 </div>
-              )}
-
-              {strategia.descrizione_dettagliata && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Descrizione Dettagliata</p>
-                  <div className="text-gray-800 dark:text-white bg-gray-50 dark:bg-[#161622]/80 p-4 rounded-xl border border-gray-200 dark:border-violet-500/15 prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: strategia.descrizione_dettagliata }} />
+              ) : descriptionText ? (
+                <div
+                  className="text-sm text-gray-800 dark:text-white leading-relaxed whitespace-pre-wrap cursor-pointer hover:bg-gray-50 dark:hover:bg-violet-500/5 p-3 -m-1 rounded-lg transition-colors"
+                  onClick={() => setEditingDescription(true)}
+                  title="Clicca per modificare"
+                >
+                  {descriptionText}
                 </div>
-              )}
-
-              {(strategia.rischio_max_importo || strategia.rischio_max_percentuale) && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Impostazioni Rischio</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    {strategia.rischio_max_importo && (
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                        <div className="flex items-center gap-2 mb-1">
-                          <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" /><span className="text-xs font-bold text-amber-600 dark:text-amber-400">Rischio Max</span>
-                        </div>
-                        <span className="text-lg font-bold tracking-tight text-amber-700 dark:text-amber-400">{formatValuta(strategia.rischio_max_importo)}</span>
-                      </div>
-                    )}
-                    {strategia.rischio_max_percentuale && (
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Percent className="h-4 w-4 text-amber-600 dark:text-amber-400" /><span className="text-xs font-bold text-amber-600 dark:text-amber-400">Rischio Max %</span>
-                        </div>
-                        <span className="text-lg font-bold tracking-tight text-amber-700 dark:text-amber-400">{strategia.rischio_max_percentuale}%</span>
-                      </div>
-                    )}
-                  </div>
+              ) : (
+                <div
+                  className="text-sm text-gray-400 dark:text-gray-500 italic cursor-pointer hover:bg-gray-50 dark:hover:bg-violet-500/5 p-4 -m-1 rounded-lg transition-colors border border-dashed border-gray-200 dark:border-violet-500/15 text-center"
+                  onClick={() => setEditingDescription(true)}
+                >
+                  Clicca per aggiungere una descrizione dettagliata della strategia...
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ═══════════════════════════════════════════════════════════
+          MODAL EXPORT PDF
+          ═══════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showExportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => !exportingPdf && setShowExportModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-[#1e1e30] rounded-2xl border border-gray-200 dark:border-violet-500/20 shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 dark:border-violet-500/15">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-500/20">
+                      <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Esporta Playbook PDF</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Seleziona fino a 4 operazioni da includere</p>
+                    </div>
+                  </div>
+                  <button onClick={() => !exportingPdf && setShowExportModal(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-violet-500/10 transition-colors">
+                    <span className="text-gray-400 text-lg">✕</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Il PDF includerà */}
+              <div className="p-6 space-y-4">
+                <div className="bg-gray-50 dark:bg-[#161622]/80 rounded-xl p-4 border border-gray-200 dark:border-violet-500/15">
+                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Il PDF includerà</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['Descrizione', 'Regole/Condizioni', 'Performance', 'Operazioni selezionate'].map((item) => (
+                      <span key={item} className="px-2.5 py-1 rounded-lg bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 text-xs font-bold border border-violet-200 dark:border-violet-500/20">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Selezione operazioni */}
+                <div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+                    Seleziona operazioni ({selectedExportOps.size}/4)
+                  </p>
+                  {operazioni.length > 0 ? (
+                    <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+                      {operazioni.map((op: any) => {
+                        const pnl = op.pnl || 0;
+                        const isWin = pnl > 0;
+                        const isSelected = selectedExportOps.has(op.id);
+                        const canSelect = selectedExportOps.size < 4 || isSelected;
+
+                        return (
+                          <button
+                            key={op.id}
+                            onClick={() => {
+                              setSelectedExportOps((prev) => {
+                                const newSet = new Set(prev);
+                                if (newSet.has(op.id)) {
+                                  newSet.delete(op.id);
+                                } else if (newSet.size < 4) {
+                                  newSet.add(op.id);
+                                }
+                                return newSet;
+                              });
+                            }}
+                            disabled={!canSelect}
+                            className={cn(
+                              'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
+                              isSelected
+                                ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/40 shadow-sm'
+                                : canSelect
+                                  ? 'bg-white dark:bg-[#161622]/50 border-gray-200 dark:border-violet-500/10 hover:border-violet-200 dark:hover:border-violet-500/25'
+                                  : 'bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800 opacity-50 cursor-not-allowed'
+                            )}
+                          >
+                            {/* Checkbox */}
+                            <div className={cn(
+                              'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
+                              isSelected ? 'bg-violet-600 border-violet-600 text-white' : 'border-gray-300 dark:border-gray-600'
+                            )}>
+                              {isSelected && (
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            {/* Info operazione */}
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium w-[75px]">
+                              {new Date(op.data).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </span>
+                            <span className="font-bold text-sm text-gray-900 dark:text-white tracking-tight">{op.ticker}</span>
+                            <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 font-bold',
+                              isWin
+                                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'
+                                : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+                            )}>
+                              {isWin ? 'Win' : 'Loss'}
+                            </Badge>
+                            <span className="ml-auto">
+                              <span className={cn('text-sm font-bold tracking-tight', isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                                {pnl !== 0 ? formatValuta(pnl) : '-'}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Nessuna operazione disponibile</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-100 dark:border-violet-500/15 flex items-center justify-between">
+                <Button variant="outline" onClick={() => !exportingPdf && setShowExportModal(false)} disabled={exportingPdf} className="border-gray-200 dark:border-violet-500/30 text-gray-600 dark:text-gray-400">
+                  Annulla
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setExportingPdf(true);
+                    try {
+                      const { generatePlaybookPdf } = await import('@/lib/pdf-export');
+                      const selectedOps = operazioni.filter((op: any) => selectedExportOps.has(op.id));
+                      await generatePlaybookPdf(strategia, selectedOps);
+                    } catch (err) {
+                      console.error('Errore export PDF:', err);
+                    } finally {
+                      setExportingPdf(false);
+                      setShowExportModal(false);
+                    }
+                  }}
+                  disabled={exportingPdf}
+                  className="bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold shadow-lg shadow-violet-500/25"
+                >
+                  {exportingPdf ? (
+                    <><span className="animate-spin mr-2">⏳</span> Generazione...</>
+                  ) : (
+                    <><Download className="h-4 w-4 mr-2" /> Genera PDF</>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// ─── Aderenza Media Card (nel tab Performance) ─────────────────────────
+function PlaybookAderenzaMediaCard({ strategiaId, operazioni }: { strategiaId: string; operazioni: any[] }) {
+  const [aderenzaMedia, setAderenzaMedia] = React.useState<number | null>(null);
+  const [aderenzaLoading, setAderenzaLoading] = React.useState(true);
+  const [aderenzaDettagli, setAderenzaDettagli] = React.useState<{ totOp: number; opConAderenza: number }>({ totOp: 0, opConAderenza: 0 });
+
+  React.useEffect(() => {
+    const fetchMedia = async () => {
+      setAderenzaLoading(true);
+      try {
+        const supabase = (await import('@/utils/supabase/client')).createClient();
+        // Fetch regole della strategia
+        const { data: regole } = await (supabase as any).from('regole_strategia').select('id').eq('strategia_id', strategiaId);
+        if (!regole || regole.length === 0) { setAderenzaMedia(null); setAderenzaLoading(false); return; }
+        const regolaIds = new Set(regole.map((r: any) => r.id));
+        const totalRegole = regole.length;
+
+        // Per ogni operazione, calcola percentuale aderenza
+        const percentuali: number[] = [];
+        for (const op of operazioni) {
+          const { data: conf } = await (supabase as any).from('conformita_regole').select('regola_id, rispettata').eq('operazione_id', op.id);
+          if (conf && conf.length > 0) {
+            const relevantConf = conf.filter((c: any) => regolaIds.has(c.regola_id));
+            if (relevantConf.length > 0) {
+              const rispettate = relevantConf.filter((c: any) => c.rispettata).length;
+              percentuali.push(Math.round((rispettate / totalRegole) * 100));
+            }
+          }
+        }
+
+        if (percentuali.length > 0) {
+          setAderenzaMedia(Math.round(percentuali.reduce((s, v) => s + v, 0) / percentuali.length));
+          setAderenzaDettagli({ totOp: operazioni.length, opConAderenza: percentuali.length });
+        } else {
+          setAderenzaMedia(null);
+        }
+      } catch (err) {
+        console.error('Errore calcolo aderenza media:', err);
+      } finally {
+        setAderenzaLoading(false);
+      }
+    };
+    if (operazioni.length > 0 && strategiaId) fetchMedia();
+    else { setAderenzaMedia(null); setAderenzaLoading(false); }
+  }, [strategiaId, operazioni]);
+
+  if (aderenzaLoading) {
+    return (
+      <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+        <CardContent className="p-4 text-center">
+          <p className="text-xs text-gray-400 animate-pulse">Calcolo aderenza media...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (aderenzaMedia === null) return null;
+
+  const pctColor = aderenzaMedia >= 80 ? 'text-emerald-600 dark:text-emerald-400' : aderenzaMedia >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
+  const barColor = aderenzaMedia >= 80 ? 'bg-emerald-500' : aderenzaMedia >= 50 ? 'bg-amber-500' : 'bg-red-500';
+  const bgGlow = aderenzaMedia >= 80 ? 'from-emerald-500/5 to-transparent' : aderenzaMedia >= 50 ? 'from-amber-500/5 to-transparent' : 'from-red-500/5 to-transparent';
+
+  return (
+    <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] overflow-hidden">
+      <div className={`absolute inset-0 bg-gradient-to-br ${bgGlow} pointer-events-none`} />
+      <CardContent className="p-4 relative">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <span className="text-sm font-bold text-gray-900 dark:text-white">Aderenza Media alle Regole</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={cn('text-2xl font-bold tabular-nums', pctColor)}>
+              {aderenzaMedia}%
+            </span>
+          </div>
+        </div>
+        <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
+          <div
+            className={cn('h-full rounded-full transition-all duration-700', barColor)}
+            style={{ width: `${aderenzaMedia}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Basato su {aderenzaDettagli.opConAderenza} operazioni con aderenza registrata su {aderenzaDettagli.totOp} totali
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
