@@ -29,6 +29,8 @@ import {
   BarChart2,
   ChevronDown,
   ChevronUp,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react';
 import { useConformitaRegole } from '@/hooks/useConformitaRegole';
 import { formatValuta, cn } from '@/lib/utils';
@@ -144,6 +146,14 @@ export default function AnalisiOperazionePage() {
     ? Math.abs(operazione.take_profit - operazione.prezzo_entrata) / Math.abs(operazione.prezzo_entrata - operazione.stop_loss)
     : null;
 
+  // Price movement calculation
+  const priceChange = operazione.prezzo_entrata && operazione.prezzo_uscita
+    ? operazione.prezzo_uscita - operazione.prezzo_entrata
+    : null;
+  const priceChangePct = priceChange && operazione.prezzo_entrata
+    ? (priceChange / operazione.prezzo_entrata) * 100
+    : null;
+
   return (
     <div className="p-4 md:p-6 space-y-4 min-h-screen relative">
       {/* Compact Header */}
@@ -164,7 +174,7 @@ export default function AnalisiOperazionePage() {
           </Button>
 
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                 {operazione.ticker}
               </h1>
@@ -209,8 +219,8 @@ export default function AnalisiOperazionePage() {
         {/* Navigation */}
         {sameDayOps.length > 1 && (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium tabular-nums">
-              {currentIndex + 1}/{sameDayOps.length}
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium tabular-nums hidden sm:inline">
+              {currentIndex + 1}/{sameDayOps.length} oggi
             </span>
             <div className="flex items-center bg-gray-100 dark:bg-[#1e1e30] rounded-lg p-0.5">
               <Button
@@ -259,7 +269,7 @@ export default function AnalisiOperazionePage() {
               pnl: operazione.pnl,
               quantity: operazione.quantita,
             }}
-            height="520px"
+            height="560px"
           />
         </motion.div>
 
@@ -270,6 +280,56 @@ export default function AnalisiOperazionePage() {
           animate="animate"
           className="space-y-3"
         >
+          {/* P&L Summary mini card */}
+          <motion.div variants={fadeRight}>
+            <div className={cn(
+              'rounded-xl border shadow-sm overflow-hidden p-3',
+              isPositive
+                ? 'bg-gradient-to-br from-emerald-50 to-emerald-50/30 dark:from-emerald-900/15 dark:to-emerald-900/5 border-emerald-200/60 dark:border-emerald-500/20'
+                : 'bg-gradient-to-br from-red-50 to-red-50/30 dark:from-red-900/15 dark:to-red-900/5 border-red-200/60 dark:border-red-500/20'
+            )}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Risultato</p>
+                  <p className={cn(
+                    'text-2xl font-bold tabular-nums tracking-tight mt-0.5',
+                    isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                  )}>
+                    {isPositive ? '+' : ''}{formatValuta(pnl)}
+                  </p>
+                </div>
+                <div className={cn(
+                  'flex items-center justify-center w-10 h-10 rounded-xl',
+                  isPositive
+                    ? 'bg-emerald-100 dark:bg-emerald-500/15'
+                    : 'bg-red-100 dark:bg-red-500/15'
+                )}>
+                  {isPositive
+                    ? <ArrowUpRight className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    : <ArrowDownRight className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  }
+                </div>
+              </div>
+              {(operazione.pnl_percentuale != null || priceChangePct != null) && (
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-200/50 dark:border-white/5">
+                  {operazione.pnl_percentuale != null && (
+                    <span className={cn(
+                      'text-xs font-semibold tabular-nums',
+                      isPositive ? 'text-emerald-600/80 dark:text-emerald-400/70' : 'text-red-600/80 dark:text-red-400/70'
+                    )}>
+                      {isPositive ? '+' : ''}{operazione.pnl_percentuale.toFixed(2)}% portafoglio
+                    </span>
+                  )}
+                  {priceChangePct != null && (
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                      {priceChangePct >= 0 ? '+' : ''}{priceChangePct.toFixed(2)}% prezzo
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
           {/* Trade Details — compact grid */}
           <motion.div variants={fadeRight}>
             <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
@@ -334,9 +394,9 @@ export default function AnalisiOperazionePage() {
                 </div>
 
                 {/* SL / TP / R:R / Commissions */}
-                <div className="space-y-1">
+                <div className="space-y-0.5 pt-1 border-t border-gray-100 dark:border-violet-500/10">
                   {operazione.stop_loss && (
-                    <div className="flex items-center justify-between py-1">
+                    <div className="flex items-center justify-between py-1.5">
                       <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
                         <ShieldAlert className="h-3 w-3 text-red-400" />
                         <span className="text-[10px]">Stop Loss</span>
@@ -345,7 +405,7 @@ export default function AnalisiOperazionePage() {
                     </div>
                   )}
                   {operazione.take_profit && (
-                    <div className="flex items-center justify-between py-1">
+                    <div className="flex items-center justify-between py-1.5">
                       <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
                         <TrendingUp className="h-3 w-3 text-emerald-400" />
                         <span className="text-[10px]">Take Profit</span>
@@ -354,29 +414,31 @@ export default function AnalisiOperazionePage() {
                     </div>
                   )}
                   {riskReward && (
-                    <div className="flex items-center justify-between py-1">
+                    <div className="flex items-center justify-between py-1.5">
                       <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
                         <Target className="h-3 w-3 text-violet-400" />
                         <span className="text-[10px]">Risk/Reward</span>
                       </div>
-                      <span className="text-[11px] font-mono font-semibold text-violet-600 dark:text-violet-400">{riskReward.toFixed(1)}:1</span>
+                      <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 h-5 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/30">
+                        {riskReward.toFixed(1)}:1
+                      </Badge>
                     </div>
                   )}
                   {operazione.commissione > 0 && (
-                    <div className="flex items-center justify-between py-1">
+                    <div className="flex items-center justify-between py-1.5">
                       <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
-                        <DollarSign className="h-3 w-3 text-red-400" />
+                        <DollarSign className="h-3 w-3 text-amber-400" />
                         <span className="text-[10px]">Commissioni</span>
                       </div>
-                      <span className="text-[11px] font-mono font-medium text-red-500">-{formatValuta(operazione.commissione)}</span>
+                      <span className="text-[11px] font-mono font-medium text-amber-600 dark:text-amber-400">-{formatValuta(operazione.commissione)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center justify-between py-1.5">
                     <span className="text-[10px] text-gray-400 dark:text-gray-500">Stato</span>
-                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-medium">{operazione.stato}</Badge>
+                    <Badge variant="outline" className="text-[9px] h-5 px-1.5 font-medium">{operazione.stato}</Badge>
                   </div>
                   {operazione.broker && (
-                    <div className="flex items-center justify-between py-1">
+                    <div className="flex items-center justify-between py-1.5">
                       <span className="text-[10px] text-gray-400 dark:text-gray-500">Broker</span>
                       <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">{operazione.broker}</span>
                     </div>
@@ -537,6 +599,7 @@ export default function AnalisiOperazionePage() {
                 <AnimatePresence mode="wait">
                   {savingNote && (
                     <motion.span
+                      key="saving"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -547,6 +610,7 @@ export default function AnalisiOperazionePage() {
                   )}
                   {noteSaved && !savingNote && (
                     <motion.span
+                      key="saved"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0 }}
@@ -555,16 +619,36 @@ export default function AnalisiOperazionePage() {
                       <Check className="h-3 w-3" /> Salvato
                     </motion.span>
                   )}
+                  {!savingNote && !noteSaved && note !== (operazione.note || '') && (
+                    <motion.span
+                      key="unsaved"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-[10px] text-amber-500 dark:text-amber-400/70"
+                    >
+                      Non salvato
+                    </motion.span>
+                  )}
                 </AnimatePresence>
               </div>
-              <div className="px-4 pb-3">
+              <div className="px-4 pb-3 space-y-1.5">
                 <Textarea
-                  placeholder="Aggiungi note sull'operazione... Cosa hai fatto bene? Cosa puoi migliorare?"
+                  placeholder="Cosa hai fatto bene? Cosa puoi migliorare?"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   onBlur={saveNote}
-                  className="min-h-[80px] text-xs bg-gray-50 dark:bg-[#161622] border-gray-200 dark:border-violet-500/10 resize-none rounded-lg focus:ring-violet-500/30"
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      saveNote();
+                    }
+                  }}
+                  className="min-h-[100px] text-xs bg-gray-50 dark:bg-[#161622] border-gray-200 dark:border-violet-500/10 resize-none rounded-lg focus:ring-violet-500/30 placeholder:text-gray-300 dark:placeholder:text-gray-600"
                 />
+                <p className="text-[9px] text-gray-300 dark:text-gray-600">
+                  Salvataggio automatico al click fuori, oppure <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-mono">Ctrl+Enter</kbd>
+                </p>
               </div>
             </div>
           </motion.div>
