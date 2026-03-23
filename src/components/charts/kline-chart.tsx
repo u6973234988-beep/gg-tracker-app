@@ -6,7 +6,7 @@ import { getOHLCData, getApiUsageInfo } from '@/lib/massive-data-service';
 import type { Timeframe } from '@/lib/massive-data-service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, AlertTriangle, Info, BarChart3, Calendar } from 'lucide-react';
+import { Loader2, RefreshCw, AlertTriangle, Info, BarChart3, Calendar, Camera, Download as DownloadIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TradeMarker {
@@ -21,12 +21,24 @@ interface TradeMarker {
   quantity?: number;
 }
 
+export interface ScreenshotData {
+  id: string;
+  imageData: string; // base64 data URL
+  data: string;      // date
+  asset: string;     // ticker
+  entrata: string;   // entry price
+  uscita: string;    // exit price
+  direzione: string; // LONG/SHORT
+  timestamp: number; // creation timestamp
+}
+
 interface KlineChartProps {
   ticker: string;
   tradeDate: string;
   trade: TradeMarker;
   height?: string;
   className?: string;
+  onScreenshotToStrategy?: (screenshot: ScreenshotData) => void;
 }
 
 // ─── Registra indicatore volume pulito (senza MA) ───────────────────
@@ -606,6 +618,7 @@ export function KlineChartComponent({
   trade,
   height = '500px',
   className,
+  onScreenshotToStrategy,
 }: KlineChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('1min');
   const [isDark, setIsDark] = useState(() =>
@@ -616,6 +629,45 @@ export function KlineChartComponent({
   const [apiInfo, setApiInfo] = useState<{ daily: number; remaining: number } | null>(null);
   // Contatore per forzare remount quando si preme refresh
   const [refreshKey, setRefreshKey] = useState(0);
+  const [capturing, setCapturing] = useState(false);
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
+
+  const captureScreenshot = useCallback(async (mode: 'download' | 'strategy') => {
+    if (!chartWrapperRef.current) return;
+    setCapturing(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(chartWrapperRef.current, {
+        backgroundColor: isDark ? '#161622' : '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+
+      if (mode === 'download') {
+        const link = document.createElement('a');
+        link.download = `chart-${ticker}-${tradeDate}-${timeframe}.png`;
+        link.href = dataUrl;
+        link.click();
+      } else if (mode === 'strategy' && onScreenshotToStrategy) {
+        onScreenshotToStrategy({
+          id: crypto.randomUUID(),
+          imageData: dataUrl,
+          data: tradeDate,
+          asset: ticker,
+          entrata: trade.entryPrice?.toString() || '',
+          uscita: trade.exitPrice?.toString() || '',
+          direzione: trade.direction,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (err) {
+      console.error('Errore cattura screenshot:', err);
+    } finally {
+      setCapturing(false);
+    }
+  }, [isDark, ticker, tradeDate, trade, timeframe, onScreenshotToStrategy]);
 
   useEffect(() => {
     const checkDark = () => {
@@ -640,6 +692,32 @@ export function KlineChartComponent({
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Screenshot buttons */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400"
+            onClick={() => captureScreenshot('download')}
+            disabled={capturing}
+            title="Scarica screenshot"
+          >
+            <DownloadIcon className="h-3.5 w-3.5" />
+          </Button>
+          {onScreenshotToStrategy && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400"
+              onClick={() => captureScreenshot('strategy')}
+              disabled={capturing}
+              title="Aggiungi screenshot alla strategia"
+            >
+              <Camera className="h-3.5 w-3.5" />
+            </Button>
+          )}
+
+          <div className="w-px h-5 bg-gray-200 dark:bg-violet-500/20 mx-1.5" />
+
           {/* Timeframe buttons */}
           <div className="flex items-center bg-gray-200/60 dark:bg-[#161622]/60 rounded-lg p-0.5">
             <button
@@ -676,6 +754,8 @@ export function KlineChartComponent({
         </div>
       </div>
 
+      {/* Wrapper for screenshot capture */}
+      <div ref={chartWrapperRef}>
       {/* Chart - key forces full remount on timeframe or refresh change */}
       <ChartInner
         key={`${timeframe}-${refreshKey}`}
@@ -736,6 +816,15 @@ export function KlineChartComponent({
           </div>
         )}
       </div>
+      </div>{/* /chartWrapperRef */}
+
+      {/* Capturing overlay */}
+      {capturing && (
+        <div className="flex items-center justify-center py-1.5 bg-violet-50 dark:bg-violet-500/10 border-t border-violet-200 dark:border-violet-500/20">
+          <Loader2 className="h-3 w-3 animate-spin text-violet-600 mr-2" />
+          <span className="text-xs font-medium text-violet-600 dark:text-violet-400">Cattura in corso...</span>
+        </div>
+      )}
     </div>
   );
 }

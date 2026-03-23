@@ -64,6 +64,7 @@ export interface Database {
           rischio_max_importo: number | null;
           rischio_max_percentuale: number | null;
           attiva: boolean;
+          screenshots: Json | null;
           creato_il: string;
           aggiornato_il: string;
         };
@@ -77,6 +78,7 @@ export interface Database {
           rischio_max_importo?: number | null;
           rischio_max_percentuale?: number | null;
           attiva?: boolean;
+          screenshots?: Json | null;
           creato_il?: string;
           aggiornato_il?: string;
         };
@@ -90,6 +92,7 @@ export interface Database {
           rischio_max_importo?: number | null;
           rischio_max_percentuale?: number | null;
           attiva?: boolean;
+          screenshots?: Json | null;
           creato_il?: string;
           aggiornato_il?: string;
         };

@@ -1,6 +1,6 @@
 /**
  * PDF Export per Playbook Trading
- * Genera un PDF professionale con descrizione, regole, performance e grafici operazioni
+ * Genera un PDF professionale con descrizione, regole, performance e screenshot grafici
  */
 import jsPDF from 'jspdf';
 
@@ -16,6 +16,17 @@ interface PlaybookPdfData {
   operazioniCount?: number;
   winRate?: number;
   profitFactor?: number;
+}
+
+interface ScreenshotPdfData {
+  id: string;
+  imageData: string;
+  data: string;
+  asset: string;
+  entrata: string;
+  uscita: string;
+  direzione: string;
+  timestamp: number;
 }
 
 // Colori tema
@@ -34,35 +45,30 @@ const COLORS = {
 };
 
 function addHeader(doc: jsPDF, nome: string, colore: string) {
-  // Barra viola in alto
   doc.setFillColor(...COLORS.primary);
   doc.rect(0, 0, 210, 28, 'F');
 
-  // Pallino colore strategia
   const [r, g, b] = hexToRgb(colore || '#7F00FF');
   doc.setFillColor(r, g, b);
   doc.circle(22, 14, 4, 'F');
 
-  // Nome strategia
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(255, 255, 255);
   doc.text(nome, 32, 17);
 
-  // Sottotitolo
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(200, 200, 220);
   doc.text('Trading Playbook — GG Tracker', 32, 23);
 
-  // Data export
   const dateStr = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
   doc.setFontSize(8);
   doc.setTextColor(200, 200, 220);
   doc.text(dateStr, 195, 17, { align: 'right' });
 }
 
-function addSectionTitle(doc: jsPDF, y: number, title: string, icon?: string): number {
+function addSectionTitle(doc: jsPDF, y: number, title: string): number {
   doc.setFillColor(...COLORS.bgLight);
   doc.roundedRect(14, y - 5, 182, 10, 2, 2, 'F');
   doc.setDrawColor(...COLORS.border);
@@ -72,7 +78,7 @@ function addSectionTitle(doc: jsPDF, y: number, title: string, icon?: string): n
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.primary);
-  doc.text(`${icon ? icon + '  ' : ''}${title}`, 20, y + 1);
+  doc.text(title, 20, y + 1);
   return y + 12;
 }
 
@@ -97,7 +103,7 @@ function hexToRgb(hex: string): [number, number, number] {
     : [127, 0, 255];
 }
 
-export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOps: any[]) {
+export async function generatePlaybookPdf(strategia: PlaybookPdfData, screenshots: ScreenshotPdfData[]) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -112,7 +118,6 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
   // ─── SEZIONE 1: DESCRIZIONE ──────────────────
   y = addSectionTitle(doc, y, 'Descrizione');
 
-  // Descrizione breve
   if (strategia.descrizione) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -121,9 +126,7 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
     y += 4;
   }
 
-  // Descrizione dettagliata
   if (strategia.descrizione_dettagliata) {
-    // Rimuovi tag HTML per il PDF
     const cleanText = strategia.descrizione_dettagliata.replace(/<[^>]*>/g, '').trim();
     if (cleanText) {
       doc.setFont('helvetica', 'normal');
@@ -135,7 +138,6 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
     }
   }
 
-  // Info rischio
   if (strategia.rischio_max_importo || strategia.rischio_max_percentuale) {
     y = checkPageBreak(doc, y, 15);
     doc.setFont('helvetica', 'bold');
@@ -154,7 +156,6 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
     y = checkPageBreak(doc, y, 20);
     y = addSectionTitle(doc, y, `Regole / Condizioni (${regole.length})`);
 
-    // Raggruppa per gruppo
     const grouped: Record<string, any[]> = {};
     regole.forEach((r: any) => {
       const g = r.gruppo || 'entry';
@@ -183,7 +184,6 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
         doc.setTextColor(...COLORS.text);
-        // Bullet
         doc.setFillColor(...COLORS.primaryLight);
         doc.circle(22, y - 1.2, 1, 'F');
         const wrappedY = addWrappedText(doc, rule.descrizione || '', 26, y, 164, 4.2);
@@ -203,7 +203,6 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
     { label: 'Profit Factor', value: (strategia.profitFactor || 0).toFixed(2) },
   ];
 
-  // Stats boxes
   const boxWidth = 55;
   stats.forEach((stat, idx) => {
     const bx = 20 + idx * (boxWidth + 5);
@@ -224,70 +223,69 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
   });
   y += 22;
 
-  // ─── SEZIONE 4: OPERAZIONI SELEZIONATE ───────
-  if (selectedOps.length > 0) {
+  // ─── SEZIONE 4: SCREENSHOT GRAFICI ────────────
+  if (screenshots && screenshots.length > 0) {
     y = checkPageBreak(doc, y, 20);
-    y = addSectionTitle(doc, y, `Operazioni Selezionate (${selectedOps.length})`);
+    y = addSectionTitle(doc, y, `Screenshot Grafici (${screenshots.length})`);
 
-    for (const op of selectedOps) {
-      y = checkPageBreak(doc, y, 40);
-      const pnl = op.pnl || 0;
-      const isWin = pnl > 0;
+    for (const shot of screenshots) {
+      // Each screenshot needs ~80mm (image) + ~15mm (metadata)
+      y = checkPageBreak(doc, y, 95);
 
-      // Riga operazione
-      doc.setFillColor(isWin ? 240 : 255, isWin ? 255 : 240, isWin ? 240 : 240);
-      doc.roundedRect(20, y - 3, 170, 14, 2, 2, 'F');
-      doc.setDrawColor(isWin ? 180 : 230, isWin ? 230 : 180, isWin ? 180 : 180);
+      // Metadata strip above image
+      doc.setFillColor(...COLORS.bgLight);
+      doc.roundedRect(20, y - 3, 170, 12, 2, 2, 'F');
+      doc.setDrawColor(...COLORS.border);
       doc.setLineWidth(0.3);
-      doc.roundedRect(20, y - 3, 170, 14, 2, 2, 'S');
+      doc.roundedRect(20, y - 3, 170, 12, 2, 2, 'S');
 
-      // Data
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.textLight);
-      const dateStr = new Date(op.data).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      doc.text(dateStr, 24, y + 3);
-
-      // Ticker
+      // Asset + Direction
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(...COLORS.text);
-      doc.text(op.ticker || '-', 50, y + 3);
+      doc.text(shot.asset, 24, y + 4);
 
       // Direction badge
+      const isLong = shot.direzione === 'LONG';
+      const dirColor = isLong ? COLORS.green : COLORS.red;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7);
-      doc.setTextColor(...COLORS.primaryLight);
-      doc.text(op.direzione || '', 80, y + 3);
+      doc.setTextColor(dirColor[0], dirColor[1], dirColor[2]);
+      doc.text(shot.direzione, 50, y + 4);
 
-      // P&L
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      const pnlColor = isWin ? COLORS.green : COLORS.red;
-      doc.setTextColor(pnlColor[0], pnlColor[1], pnlColor[2]);
-      doc.text(`€${pnl.toFixed(2)}`, 185, y + 3, { align: 'right' });
-
-      // Badge Win/Loss
-      const badgeText = isWin ? 'WIN' : 'LOSS';
-      doc.setFontSize(6);
-      doc.text(badgeText, 130, y + 3);
-
-      // Dettagli sotto
-      y += 9;
+      // Date
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(...COLORS.textLight);
-      const details: string[] = [];
-      if (op.prezzo_entrata) details.push(`Entry: $${op.prezzo_entrata}`);
-      if (op.prezzo_uscita) details.push(`Exit: $${op.prezzo_uscita}`);
-      if (op.stop_loss) details.push(`SL: $${op.stop_loss}`);
-      if (op.take_profit) details.push(`TP: $${op.take_profit}`);
-      if (op.quantita) details.push(`Qty: ${op.quantita}`);
-      if (details.length > 0) {
-        doc.text(details.join('   |   '), 24, y);
+      doc.text(shot.data, 75, y + 4);
+
+      // Entry/Exit
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.text);
+      const entryExitText = `Entry: $${shot.entrata || '-'}  |  Exit: $${shot.uscita || '-'}`;
+      doc.text(entryExitText, 185, y + 4, { align: 'right' });
+
+      y += 13;
+
+      // Image
+      try {
+        if (shot.imageData && shot.imageData.startsWith('data:image/')) {
+          const imgWidth = 170;
+          const imgHeight = 70;
+          doc.addImage(shot.imageData, 'PNG', 20, y, imgWidth, imgHeight);
+          y += imgHeight + 5;
+        }
+      } catch (err) {
+        // If image fails, skip it
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.textLight);
+        doc.text('[Immagine non disponibile]', 20, y + 5);
+        y += 12;
       }
 
-      y += 10;
+      y += 3;
     }
   }
 
@@ -300,7 +298,6 @@ export async function generatePlaybookPdf(strategia: PlaybookPdfData, selectedOp
     doc.setTextColor(...COLORS.textLight);
     doc.text(`GG Tracker — ${strategia.nome} — Pagina ${i}/${pageCount}`, 105, 290, { align: 'center' });
 
-    // Linea separatore footer
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.2);
     doc.line(20, 286, 190, 286);

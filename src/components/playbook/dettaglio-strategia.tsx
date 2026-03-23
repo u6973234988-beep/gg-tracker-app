@@ -26,6 +26,9 @@ import {
   Save,
   Check,
   Download,
+  Image as ImageIcon,
+  X,
+  Camera,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -44,7 +47,7 @@ import {
 import { useTheme } from 'next-themes';
 import { formatValuta } from '@/lib/utils';
 import { cn } from '@/lib/cn';
-import { KlineChartComponent } from '@/components/charts/kline-chart';
+import { KlineChartComponent, type ScreenshotData } from '@/components/charts/kline-chart';
 import type { StrategiaConDettagli } from '@/hooks/usePlaybook';
 import { useConformitaRegole } from '@/hooks/useConformitaRegole';
 import { RichTextEditor, RichTextViewer } from '@/components/editor/rich-text-editor';
@@ -114,8 +117,6 @@ export function DettaglioStrategia({
   const [localGroups, setLocalGroups] = React.useState<string[]>([]);
 
   // PDF export state
-  const [showExportModal, setShowExportModal] = React.useState(false);
-  const [selectedExportOps, setSelectedExportOps] = React.useState<Set<string>>(new Set());
   const [exportingPdf, setExportingPdf] = React.useState(false);
 
   // Description editing state
@@ -124,8 +125,23 @@ export function DettaglioStrategia({
   const [savingDescription, setSavingDescription] = React.useState(false);
   const [descriptionSaved, setDescriptionSaved] = React.useState(false);
 
+  // Screenshots state
+  const [screenshots, setScreenshots] = React.useState<ScreenshotData[]>(() => {
+    try {
+      const raw = (strategia as any)?.screenshots;
+      return Array.isArray(raw) ? raw : [];
+    } catch { return []; }
+  });
+  const [editingScreenshot, setEditingScreenshot] = React.useState<string | null>(null);
+  const [savingScreenshots, setSavingScreenshots] = React.useState(false);
+  const [screenshotsSaved, setScreenshotsSaved] = React.useState(false);
+
   React.useEffect(() => {
     setDescriptionText(strategia?.descrizione_dettagliata || '');
+    try {
+      const raw = (strategia as any)?.screenshots;
+      setScreenshots(Array.isArray(raw) ? raw : []);
+    } catch { setScreenshots([]); }
   }, [strategia?.id, strategia?.descrizione_dettagliata]);
 
   const handleSaveDescription = async () => {
@@ -138,6 +154,54 @@ export function DettaglioStrategia({
       setTimeout(() => setDescriptionSaved(false), 2000);
     } finally {
       setSavingDescription(false);
+    }
+  };
+
+  // Screenshot handlers
+  const handleAddScreenshot = React.useCallback((screenshot: ScreenshotData) => {
+    setScreenshots((prev) => [screenshot, ...prev]);
+    // Auto-save after adding
+    (async () => {
+      if (!strategia) return;
+      setSavingScreenshots(true);
+      try {
+        const updated = [screenshot, ...screenshots];
+        await onEditSave(strategia.id, { screenshots: updated });
+        setScreenshotsSaved(true);
+        setTimeout(() => setScreenshotsSaved(false), 2000);
+      } finally {
+        setSavingScreenshots(false);
+      }
+    })();
+  }, [strategia, screenshots, onEditSave]);
+
+  const handleDeleteScreenshot = async (id: string) => {
+    if (!strategia) return;
+    const updated = screenshots.filter((s) => s.id !== id);
+    setScreenshots(updated);
+    setSavingScreenshots(true);
+    try {
+      await onEditSave(strategia.id, { screenshots: updated });
+    } finally {
+      setSavingScreenshots(false);
+    }
+  };
+
+  const handleUpdateScreenshotMeta = async (id: string, field: keyof ScreenshotData, value: string) => {
+    const updated = screenshots.map((s) => s.id === id ? { ...s, [field]: value } : s);
+    setScreenshots(updated);
+  };
+
+  const handleSaveScreenshotMeta = async (_id: string) => {
+    if (!strategia) return;
+    setSavingScreenshots(true);
+    try {
+      await onEditSave(strategia.id, { screenshots });
+      setEditingScreenshot(null);
+      setScreenshotsSaved(true);
+      setTimeout(() => setScreenshotsSaved(false), 2000);
+    } finally {
+      setSavingScreenshots(false);
     }
   };
 
@@ -439,8 +503,28 @@ export function DettaglioStrategia({
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)} className="border-violet-200 dark:border-violet-500/30 hover:border-violet-400 text-violet-600 dark:text-violet-400 font-medium">
-              <Download className="h-4 w-4 mr-2" />Esporta PDF
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exportingPdf}
+              onClick={async () => {
+                setExportingPdf(true);
+                try {
+                  const { generatePlaybookPdf } = await import('@/lib/pdf-export');
+                  await generatePlaybookPdf(strategia, screenshots);
+                } catch (err) {
+                  console.error('Errore export PDF:', err);
+                } finally {
+                  setExportingPdf(false);
+                }
+              }}
+              className="border-violet-200 dark:border-violet-500/30 hover:border-violet-400 text-violet-600 dark:text-violet-400 font-medium"
+            >
+              {exportingPdf ? (
+                <><span className="animate-spin mr-2">⏳</span>Generazione...</>
+              ) : (
+                <><Download className="h-4 w-4 mr-2" />Esporta PDF</>
+              )}
             </Button>
             <Button variant="outline" size="sm" onClick={() => onEdit(strategia)} className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-700 dark:text-gray-300 font-medium">
               <Edit2 className="h-4 w-4 mr-2" />Modifica
@@ -1057,6 +1141,7 @@ export function DettaglioStrategia({
                         quantity: selectedOp.quantita,
                       }}
                       height="520px"
+                      onScreenshotToStrategy={handleAddScreenshot}
                     />
                     {/* Aderenza Regole per l'operazione selezionata */}
                     <PlaybookAderenzaPanel
@@ -1175,167 +1260,156 @@ export function DettaglioStrategia({
               </div>
             )}
           </div>
+
+          {/* ─── Screenshot Gallery ─── */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Camera className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                Immagini dal Grafico
+                {screenshots.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] font-bold border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                    {screenshots.length}
+                  </Badge>
+                )}
+              </h3>
+              <div className="flex items-center gap-2">
+                {screenshotsSaved && (
+                  <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400">
+                    <Check className="h-3.5 w-3.5" /> Salvato
+                  </motion.span>
+                )}
+                {savingScreenshots && (
+                  <span className="text-xs text-gray-400 animate-pulse">Salvataggio...</span>
+                )}
+              </div>
+            </div>
+
+            {screenshots.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {screenshots.map((shot) => {
+                  const isEditing = editingScreenshot === shot.id;
+                  return (
+                    <motion.div
+                      key={shot.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] overflow-hidden group"
+                    >
+                      {/* Screenshot image */}
+                      <div className="relative aspect-video bg-gray-100 dark:bg-[#0e0e1a] overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={shot.imageData} alt={`${shot.asset} ${shot.data}`} className="w-full h-full object-contain" />
+                        {/* Overlay actions */}
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.download = `chart-${shot.asset}-${shot.data}.png`;
+                              link.href = shot.imageData;
+                              link.click();
+                            }}
+                            className="p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors"
+                            title="Scarica"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteScreenshot(shot.id)}
+                            className="p-1.5 rounded-lg bg-red-500/80 text-white hover:bg-red-600 transition-colors"
+                            title="Elimina"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Metadata */}
+                      <div className="p-3 space-y-2">
+                        {isEditing ? (
+                          <>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Data</label>
+                                <Input
+                                  value={shot.data}
+                                  onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'data', e.target.value)}
+                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Asset</label>
+                                <Input
+                                  value={shot.asset}
+                                  onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'asset', e.target.value)}
+                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Entrata</label>
+                                <Input
+                                  value={shot.entrata}
+                                  onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'entrata', e.target.value)}
+                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">Uscita</label>
+                                <Input
+                                  value={shot.uscita}
+                                  onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'uscita', e.target.value)}
+                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-1">
+                              <Button variant="ghost" size="sm" onClick={() => setEditingScreenshot(null)} className="h-7 text-xs text-gray-400">
+                                Annulla
+                              </Button>
+                              <Button size="sm" onClick={() => handleSaveScreenshotMeta(shot.id)} className="h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold px-3">
+                                <Save className="h-3 w-3 mr-1" /> Salva
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <div
+                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-violet-500/5 -mx-3 -my-2 p-3 rounded-b-xl transition-colors"
+                            onClick={() => setEditingScreenshot(shot.id)}
+                            title="Clicca per modificare i dettagli"
+                          >
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className="text-xs font-bold text-gray-900 dark:text-white">{shot.asset}</span>
+                              <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 font-bold', shot.direzione === 'LONG' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20')}>
+                                {shot.direzione}
+                              </Badge>
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500">{shot.data}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                              <span>E: {shot.entrata ? `$${parseFloat(shot.entrata).toFixed(2)}` : '-'}</span>
+                              <span>U: {shot.uscita ? `$${parseFloat(shot.uscita).toFixed(2)}` : '-'}</span>
+                              <Edit2 className="h-3 w-3 text-gray-300 dark:text-gray-600" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-violet-500/15 bg-gray-50/50 dark:bg-[#161622]/50 p-6 text-center">
+                <ImageIcon className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Nessuno screenshot</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Vai nella tab Operazioni, seleziona un trade e clicca <Camera className="h-3 w-3 inline-block mx-0.5" /> per catturare il grafico
+                </p>
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
-      {/* ═══════════════════════════════════════════════════════════
-          MODAL EXPORT PDF
-          ═══════════════════════════════════════════════════════════ */}
-      <AnimatePresence>
-        {showExportModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            onClick={() => !exportingPdf && setShowExportModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-[#1e1e30] rounded-2xl border border-gray-200 dark:border-violet-500/20 shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-gray-100 dark:border-violet-500/15">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-500/20">
-                      <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Esporta Playbook PDF</h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Seleziona fino a 4 operazioni da includere</p>
-                    </div>
-                  </div>
-                  <button onClick={() => !exportingPdf && setShowExportModal(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-violet-500/10 transition-colors">
-                    <span className="text-gray-400 text-lg">✕</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Il PDF includerà */}
-              <div className="p-6 space-y-4">
-                <div className="bg-gray-50 dark:bg-[#161622]/80 rounded-xl p-4 border border-gray-200 dark:border-violet-500/15">
-                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Il PDF includerà</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['Descrizione', 'Regole/Condizioni', 'Performance', 'Operazioni selezionate'].map((item) => (
-                      <span key={item} className="px-2.5 py-1 rounded-lg bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 text-xs font-bold border border-violet-200 dark:border-violet-500/20">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Selezione operazioni */}
-                <div>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">
-                    Seleziona operazioni ({selectedExportOps.size}/4)
-                  </p>
-                  {operazioni.length > 0 ? (
-                    <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
-                      {operazioni.map((op: any) => {
-                        const pnl = op.pnl || 0;
-                        const isWin = pnl > 0;
-                        const isSelected = selectedExportOps.has(op.id);
-                        const canSelect = selectedExportOps.size < 4 || isSelected;
-
-                        return (
-                          <button
-                            key={op.id}
-                            onClick={() => {
-                              setSelectedExportOps((prev) => {
-                                const newSet = new Set(prev);
-                                if (newSet.has(op.id)) {
-                                  newSet.delete(op.id);
-                                } else if (newSet.size < 4) {
-                                  newSet.add(op.id);
-                                }
-                                return newSet;
-                              });
-                            }}
-                            disabled={!canSelect}
-                            className={cn(
-                              'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-                              isSelected
-                                ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/40 shadow-sm'
-                                : canSelect
-                                  ? 'bg-white dark:bg-[#161622]/50 border-gray-200 dark:border-violet-500/10 hover:border-violet-200 dark:hover:border-violet-500/25'
-                                  : 'bg-gray-50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800 opacity-50 cursor-not-allowed'
-                            )}
-                          >
-                            {/* Checkbox */}
-                            <div className={cn(
-                              'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
-                              isSelected ? 'bg-violet-600 border-violet-600 text-white' : 'border-gray-300 dark:border-gray-600'
-                            )}>
-                              {isSelected && (
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                            {/* Info operazione */}
-                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium w-[75px]">
-                              {new Date(op.data).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                            </span>
-                            <span className="font-bold text-sm text-gray-900 dark:text-white tracking-tight">{op.ticker}</span>
-                            <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 font-bold',
-                              isWin
-                                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'
-                                : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
-                            )}>
-                              {isWin ? 'Win' : 'Loss'}
-                            </Badge>
-                            <span className="ml-auto">
-                              <span className={cn('text-sm font-bold tracking-tight', isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-                                {pnl !== 0 ? formatValuta(pnl) : '-'}
-                              </span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Nessuna operazione disponibile</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-6 border-t border-gray-100 dark:border-violet-500/15 flex items-center justify-between">
-                <Button variant="outline" onClick={() => !exportingPdf && setShowExportModal(false)} disabled={exportingPdf} className="border-gray-200 dark:border-violet-500/30 text-gray-600 dark:text-gray-400">
-                  Annulla
-                </Button>
-                <Button
-                  onClick={async () => {
-                    setExportingPdf(true);
-                    try {
-                      const { generatePlaybookPdf } = await import('@/lib/pdf-export');
-                      const selectedOps = operazioni.filter((op: any) => selectedExportOps.has(op.id));
-                      await generatePlaybookPdf(strategia, selectedOps);
-                    } catch (err) {
-                      console.error('Errore export PDF:', err);
-                    } finally {
-                      setExportingPdf(false);
-                      setShowExportModal(false);
-                    }
-                  }}
-                  disabled={exportingPdf}
-                  className="bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold shadow-lg shadow-violet-500/25"
-                >
-                  {exportingPdf ? (
-                    <><span className="animate-spin mr-2">⏳</span> Generazione...</>
-                  ) : (
-                    <><Download className="h-4 w-4 mr-2" /> Genera PDF</>
-                  )}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* No more export modal — direct export with screenshots */}
     </div>
   );
 }
