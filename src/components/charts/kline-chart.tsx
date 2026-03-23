@@ -475,47 +475,76 @@ function ChartInner({
         });
       }
 
-      // ── Auto-scroll & zoom to trade position ──
-      if (timeframe === '1min' && entryTs && chartData.length > 0) {
-        // For 1-min: zoom tightly around entry/exit markers
-        const entryIdx = findCandleIndex(chartData, entryTs);
-        const exitTs = trade.exitPrice
-          ? findBestCandleForTime(chartData, tradeDate, trade.exitTime, timeframe)
-          : null;
-        const exitIdx = exitTs ? findCandleIndex(chartData, exitTs) : entryIdx;
+      // ── Auto-scroll & zoom: CENTRA il grafico sui marker dell'operazione ──
+      // Strategia: prima scroll all'entry per posizionarlo, poi zoom per mostrare
+      // solo l'area entry-exit con un po' di padding. Funziona per ENTRAMBI i timeframe.
+      const centerOnMarkers = () => {
+        if (!chartRef.current || chartData.length === 0) return;
+        const c = chartRef.current;
 
-        const markerSpan = Math.abs(exitIdx - entryIdx);
-        // Show padding of ~30 candles before entry and after exit, or at least 50 candles total
-        const padding = Math.max(30, Math.floor(markerSpan * 0.5));
-        const rangeStart = Math.max(0, Math.min(entryIdx, exitIdx) - padding);
-        const rangeEnd = Math.min(chartData.length - 1, Math.max(entryIdx, exitIdx) + padding);
-        const visibleCount = rangeEnd - rangeStart + 1;
+        if (timeframe === '1min' && entryTs) {
+          const entryIdx = findCandleIndex(chartData, entryTs);
+          const exitTsLocal = trade.exitPrice
+            ? findBestCandleForTime(chartData, tradeDate, trade.exitTime, timeframe)
+            : null;
+          const exitIdx = exitTsLocal ? findCandleIndex(chartData, exitTsLocal) : entryIdx;
 
-        setTimeout(() => {
-          if (chartRef.current) {
-            // Zoom level: total candles / visible candles
-            const zoomLevel = chartData.length / Math.max(visibleCount, 40);
-            if (zoomLevel > 1.2) {
-              chartRef.current.zoomAtDataIndex?.(zoomLevel, entryIdx, 0);
-            }
-            chartRef.current.scrollToDataIndex?.(rangeStart);
+          const minIdx = Math.min(entryIdx, exitIdx);
+          const maxIdx = Math.max(entryIdx, exitIdx);
+          const markerSpan = maxIdx - minIdx;
+
+          // Vogliamo mostrare ~80-120 candele centrate sull'operazione
+          const desiredVisible = Math.max(80, markerSpan + 60);
+          const centerIdx = Math.round((minIdx + maxIdx) / 2);
+
+          // Step 1: scroll per portare l'entry/center nella viewport
+          // scrollToDataIndex posiziona quell'indice all'inizio della vista,
+          // quindi dobbiamo sottrarre metà delle candele visibili
+          const halfView = Math.floor(desiredVisible / 2);
+          const scrollTarget = Math.max(0, centerIdx - halfView);
+
+          // Step 2: calcola zoom per mostrare solo desiredVisible candele
+          // Il default mostra circa tutte le candele, quindi zoomLevel = total/desired
+          const zoomLevel = chartData.length / desiredVisible;
+
+          if (zoomLevel > 1.1) {
+            c.zoomAtDataIndex?.(zoomLevel, centerIdx, 0);
           }
-        }, 80);
-      } else if (timeframe === '1day' && chartData.length > 0) {
-        const scrollTargetTs = findBestCandleForTime(chartData, tradeDate, null, '1day');
-        if (scrollTargetTs) {
-          const targetIdx = findCandleIndex(chartData, scrollTargetTs);
-          const totalCandles = chartData.length;
-          const visibleCount = 40;
-          const halfVisible = Math.floor(visibleCount / 2);
-          const scrollTo = Math.max(0, Math.min(targetIdx - halfVisible, totalCandles - visibleCount));
+
+          // Dopo lo zoom, scroll al target (il motore ha bisogno di un frame per applicare lo zoom)
           setTimeout(() => {
             if (chartRef.current) {
-              chartRef.current.scrollToDataIndex?.(scrollTo);
+              chartRef.current.scrollToDataIndex?.(scrollTarget);
             }
-          }, 50);
+          }, 30);
+
+        } else if (timeframe === '1day') {
+          // Per il giornaliero: centra sulla candela del giorno dell'operazione
+          const targetTs = findBestCandleForTime(chartData, tradeDate, null, '1day');
+          if (targetTs) {
+            const targetIdx = findCandleIndex(chartData, targetTs);
+            // Mostra ~60 candele centrate sul giorno dell'operazione
+            const desiredVisible = 60;
+            const halfView = Math.floor(desiredVisible / 2);
+            const scrollTarget = Math.max(0, targetIdx - halfView);
+
+            // Zoom solo se ci sono molte più candele del necessario
+            const zoomLevel = chartData.length / desiredVisible;
+            if (zoomLevel > 1.3) {
+              c.zoomAtDataIndex?.(zoomLevel, targetIdx, 0);
+            }
+
+            setTimeout(() => {
+              if (chartRef.current) {
+                chartRef.current.scrollToDataIndex?.(scrollTarget);
+              }
+            }, 30);
+          }
         }
-      }
+      };
+
+      // Esegui dopo che il chart ha finito il render iniziale
+      setTimeout(centerOnMarkers, 100);
 
     } catch (err: any) {
       console.error('Chart load error:', err);

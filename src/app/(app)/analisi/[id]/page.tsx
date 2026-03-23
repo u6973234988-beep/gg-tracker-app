@@ -247,13 +247,13 @@ export default function AnalisiOperazionePage() {
       </motion.div>
 
       {/* Main Content: Chart + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Chart — full width on mobile, 3/4 on desktop */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] lg:grid-cols-[1fr_280px] gap-4">
+        {/* Chart — prende tutto lo spazio disponibile */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="lg:col-span-3"
+          className="min-w-0"
         >
           <KlineChartComponent
             ticker={operazione.ticker}
