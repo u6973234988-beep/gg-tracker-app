@@ -123,23 +123,23 @@ function registerTradeMarkerOverlay() {
       const direction = extData?.direction || 'LONG';
       const isProfitable = (extData?.pnl ?? 0) >= 0;
 
-      // Determine color and arrow direction based on label
+      // Color logic:
+      //   LONG  = green (opening bullish)
+      //   SHORT = red   (opening bearish)
+      //   ADD   = green if LONG direction, red if SHORT direction
+      //   SELL  = red   (closing long = selling)
+      //   COVER = green (closing short = buying back)
       let bgColor: string;
-      if (label === 'LONG') {
-        bgColor = '#16a34a'; // green
-      } else if (label === 'SHORT') {
-        bgColor = '#dc2626'; // red
-      } else if (label === 'ADD') {
-        bgColor = '#3b82f6'; // blue
-      } else {
-        // SELL, COVER, EXIT
-        bgColor = isProfitable ? '#16a34a' : '#dc2626';
-      }
+      if (label === 'LONG') bgColor = '#16a34a';
+      else if (label === 'SHORT') bgColor = '#dc2626';
+      else if (label === 'ADD') bgColor = direction === 'LONG' ? '#16a34a' : '#dc2626';
+      else if (label === 'SELL') bgColor = '#dc2626';
+      else if (label === 'COVER') bgColor = '#16a34a';
+      else bgColor = isProfitable ? '#16a34a' : '#dc2626';
 
-      // Arrow direction: up for opening long/add-long, down for short/sell/cover
-      const isOpeningLong = (label === 'LONG' || (label === 'ADD' && direction === 'LONG'));
-      const isCoverShort = label === 'COVER';
-      const arrowPointsUp = isOpeningLong || isCoverShort;
+      // Arrow direction: up for buying actions, down for selling actions
+      const isBuyAction = label === 'LONG' || label === 'COVER' || (label === 'ADD' && direction === 'LONG');
+      const arrowPointsUp = isBuyAction;
       const arrowOffset = arrowPointsUp ? 14 : -14;
       const textOffset = arrowPointsUp ? 28 : -28;
 

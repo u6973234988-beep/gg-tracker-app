@@ -272,9 +272,15 @@ export function AggiungiOperazioneDialog({
   };
 
   // ── Esecuzioni handlers ──
+  const hasOpeningExecManual = esecuzioni.some((e) =>
+    ['LONG', 'SHORT', 'ADD'].includes(e.tipo)
+  );
+
   const addEsecuzione = () => {
-    const defaultTipo: TipoEsecuzione =
-      formData.direzione === 'LONG' ? 'LONG' : 'SHORT';
+    // First exec must be LONG/SHORT, after that default to ADD
+    const defaultTipo: TipoEsecuzione = !hasOpeningExecManual
+      ? (formData.direzione === 'LONG' ? 'LONG' : 'SHORT')
+      : 'ADD';
     setEsecuzioni((prev) => [
       ...prev,
       { id: newEsecuzioneId(), ora: '', prezzo: '', quantita: '', tipo: defaultTipo },
@@ -764,29 +770,45 @@ export function AggiungiOperazioneDialog({
                     </div>
                     <div className="space-y-1">
                       {idx === 0 && <Label className="text-[10px]">Tipo</Label>}
-                      <Select
-                        value={es.tipo}
-                        onValueChange={(v) => updateEsecuzione(es.id, 'tipo', v)}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {formData.direzione === 'LONG' ? (
-                            <>
-                              <SelectItem value="LONG">LONG</SelectItem>
-                              <SelectItem value="ADD">ADD</SelectItem>
-                              <SelectItem value="SELL">SELL</SelectItem>
-                            </>
-                          ) : (
-                            <>
-                              <SelectItem value="SHORT">SHORT</SelectItem>
-                              <SelectItem value="ADD">ADD</SelectItem>
-                              <SelectItem value="COVER">COVER</SelectItem>
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      {(() => {
+                        // Check if any PREVIOUS execution (before this one) is an opening
+                        const prevExecs = esecuzioni.slice(0, idx);
+                        const hasPrevOpening = prevExecs.some((e) => ['LONG', 'SHORT', 'ADD'].includes(e.tipo));
+                        const isFirstRow = idx === 0 && !hasPrevOpening;
+                        return (
+                          <Select
+                            value={es.tipo}
+                            onValueChange={(v) => updateEsecuzione(es.id, 'tipo', v)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {isFirstRow ? (
+                                /* First exec: only LONG or SHORT */
+                                formData.direzione === 'LONG' ? (
+                                  <SelectItem value="LONG">LONG</SelectItem>
+                                ) : (
+                                  <SelectItem value="SHORT">SHORT</SelectItem>
+                                )
+                              ) : (
+                                /* After opening: ADD + SELL/COVER */
+                                formData.direzione === 'LONG' ? (
+                                  <>
+                                    <SelectItem value="ADD">ADD</SelectItem>
+                                    <SelectItem value="SELL">SELL</SelectItem>
+                                  </>
+                                ) : (
+                                  <>
+                                    <SelectItem value="ADD">ADD</SelectItem>
+                                    <SelectItem value="COVER">COVER</SelectItem>
+                                  </>
+                                )
+                              )}
+                            </SelectContent>
+                          </Select>
+                        );
+                      })()}
                     </div>
                     <div className="space-y-1">
                       {idx === 0 && <Label className="text-[10px] invisible">X</Label>}

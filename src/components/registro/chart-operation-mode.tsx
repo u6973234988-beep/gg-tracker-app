@@ -141,17 +141,27 @@ function registerTradeMarkerOverlay() {
       const y = coordinates[0].y;
       const label: string = extData?.label || 'ENTRY';
       const direction = extData?.direction || 'LONG';
-      const isProfitable = (extData?.pnl ?? 0) >= 0;
 
+      // Color logic:
+      //   LONG  = green (opening bullish)
+      //   SHORT = red   (opening bearish)
+      //   ADD   = green if LONG direction, red if SHORT direction (adding same direction)
+      //   SELL  = red   (closing long = selling)
+      //   COVER = green (closing short = buying back)
       let bgColor: string;
       if (label === 'LONG') bgColor = '#16a34a';
       else if (label === 'SHORT') bgColor = '#dc2626';
-      else if (label === 'ADD') bgColor = '#3b82f6';
-      else bgColor = isProfitable ? '#16a34a' : '#dc2626';
+      else if (label === 'ADD') bgColor = direction === 'LONG' ? '#16a34a' : '#dc2626';
+      else if (label === 'SELL') bgColor = '#dc2626';
+      else if (label === 'COVER') bgColor = '#16a34a';
+      else bgColor = '#6b7280';
 
-      const isOpeningLong = label === 'LONG' || (label === 'ADD' && direction === 'LONG');
-      const isCoverShort = label === 'COVER';
-      const arrowPointsUp = isOpeningLong || isCoverShort;
+      // Arrow direction: up for buying actions, down for selling actions
+      //   LONG/COVER = up (you're buying)
+      //   SHORT/SELL = down (you're selling)
+      //   ADD = up if LONG direction, down if SHORT direction
+      const isBuyAction = label === 'LONG' || label === 'COVER' || (label === 'ADD' && direction === 'LONG');
+      const arrowPointsUp = isBuyAction;
       const arrowOffset = arrowPointsUp ? 14 : -14;
       const textOffset = arrowPointsUp ? 28 : -28;
 
@@ -304,10 +314,21 @@ export function ChartOperationMode({
     return () => observer.disconnect();
   }, []);
 
-  // ── Update default tipo when direction changes ──
+  // ── Derived: has at least one opening execution? ──
+  const hasOpeningExec = esecuzioni.some((e) =>
+    ['LONG', 'SHORT', 'ADD'].includes(e.tipo)
+  );
+
+  // ── Update default tipo when direction changes or esecuzioni change ──
   useEffect(() => {
-    setTipoInput(formData.direzione === 'LONG' ? 'LONG' : 'SHORT');
-  }, [formData.direzione]);
+    if (!hasOpeningExec) {
+      // First execution must be LONG or SHORT
+      setTipoInput(formData.direzione === 'LONG' ? 'LONG' : 'SHORT');
+    } else {
+      // After opening, default to ADD
+      setTipoInput('ADD');
+    }
+  }, [formData.direzione, hasOpeningExec]);
 
   // ── Calcolo medie ponderate dalle esecuzioni ──
   const calcoloEsecuzioni = useMemo(() => {
@@ -630,13 +651,14 @@ export function ChartOperationMode({
     setSelectedCandle(null);
     setQtyInput('');
 
-    // Smart tipo switch: after first opening, suggest ADD; after openings complete, suggest closing
-    const allExecs = [...esecuzioni, newExec];
-    const hasOpening = allExecs.some((e) => ['LONG', 'SHORT', 'ADD'].includes(e.tipo));
-    if (hasOpening && ['LONG', 'SHORT', 'ADD'].includes(tipoInput)) {
-      // After first opening, suggest ADD for more scaling, or closing type
+    // Smart tipo switch:
+    // After first opening (LONG/SHORT) → suggest ADD
+    // After an ADD → keep ADD (can keep scaling)
+    // After a SELL/COVER → suggest ADD (might add more closing)
+    if (['LONG', 'SHORT'].includes(tipoInput)) {
       setTipoInput('ADD');
     }
+    // Otherwise keep current tipo (ADD stays ADD, SELL/COVER stays)
   };
 
   // ── Remove execution ──
@@ -649,14 +671,17 @@ export function ChartOperationMode({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // ── Tipo color helpers ──
+  // ── Tipo color helpers (consistent with chart markers) ──
+  // LONG = green, SHORT = red, ADD = same as direction, SELL = red, COVER = green
   const getTipoColor = (tipo: TipoEsecuzione) => {
     switch (tipo) {
       case 'LONG': return 'text-green-600 dark:text-green-400';
       case 'SHORT': return 'text-red-600 dark:text-red-400';
-      case 'ADD': return 'text-blue-600 dark:text-blue-400';
-      case 'SELL': return 'text-orange-600 dark:text-orange-400';
-      case 'COVER': return 'text-orange-600 dark:text-orange-400';
+      case 'ADD': return formData.direzione === 'LONG'
+        ? 'text-green-600 dark:text-green-400'
+        : 'text-red-600 dark:text-red-400';
+      case 'SELL': return 'text-red-600 dark:text-red-400';
+      case 'COVER': return 'text-green-600 dark:text-green-400';
     }
   };
 
@@ -664,9 +689,11 @@ export function ChartOperationMode({
     switch (tipo) {
       case 'LONG': return 'bg-green-500/10 border-green-500/20';
       case 'SHORT': return 'bg-red-500/10 border-red-500/20';
-      case 'ADD': return 'bg-blue-500/10 border-blue-500/20';
-      case 'SELL': return 'bg-orange-500/10 border-orange-500/20';
-      case 'COVER': return 'bg-orange-500/10 border-orange-500/20';
+      case 'ADD': return formData.direzione === 'LONG'
+        ? 'bg-green-500/10 border-green-500/20'
+        : 'bg-red-500/10 border-red-500/20';
+      case 'SELL': return 'bg-red-500/10 border-red-500/20';
+      case 'COVER': return 'bg-green-500/10 border-green-500/20';
     }
   };
 
@@ -831,18 +858,26 @@ export function ChartOperationMode({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {formData.direzione === 'LONG' ? (
-                        <>
+                      {!hasOpeningExec ? (
+                        /* Prima esecuzione: solo LONG o SHORT */
+                        formData.direzione === 'LONG' ? (
                           <SelectItem value="LONG">LONG</SelectItem>
-                          <SelectItem value="ADD">ADD</SelectItem>
-                          <SelectItem value="SELL">SELL</SelectItem>
-                        </>
-                      ) : (
-                        <>
+                        ) : (
                           <SelectItem value="SHORT">SHORT</SelectItem>
-                          <SelectItem value="ADD">ADD</SelectItem>
-                          <SelectItem value="COVER">COVER</SelectItem>
-                        </>
+                        )
+                      ) : (
+                        /* Dopo apertura: ADD + SELL/COVER */
+                        formData.direzione === 'LONG' ? (
+                          <>
+                            <SelectItem value="ADD">ADD</SelectItem>
+                            <SelectItem value="SELL">SELL</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="ADD">ADD</SelectItem>
+                            <SelectItem value="COVER">COVER</SelectItem>
+                          </>
+                        )
                       )}
                     </SelectContent>
                   </Select>
