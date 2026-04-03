@@ -551,8 +551,10 @@ export function ChartOperationMode({
     } as any);
 
     // Subscribe to candle bar click
-    chart.subscribeAction(ActionType.OnCandleBarClick, (data: any) => {
-      const kLineData = data?.kLineData;
+    // klinecharts visibleDataList item: { dataIndex, x, data: KLineData }
+    // So the actual candle data is at data.data (not data.kLineData)
+    chart.subscribeAction(ActionType.OnCandleBarClick, (params: any) => {
+      const kLineData = params?.data;
       if (kLineData && kLineData.timestamp) {
         const etTime = timestampToETTime(kLineData.timestamp, formData.data);
         setSelectedCandle({
