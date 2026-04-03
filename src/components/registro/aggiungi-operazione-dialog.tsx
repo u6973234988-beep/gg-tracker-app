@@ -22,11 +22,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Database } from '@/types/database';
-import { ChevronDown, ChevronUp, Plus, Trash2, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2, Loader2, BarChart3, PenLine } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+// Lazy load the chart component (heavy dependency: klinecharts)
+const ChartOperationMode = dynamic(
+  () => import('./chart-operation-mode').then((m) => ({ default: m.ChartOperationMode })),
+  { ssr: false, loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+    </div>
+  )}
+);
 
 type Strategia = Database['public']['Tables']['strategie']['Row'];
 
 type TipoEsecuzione = 'LONG' | 'SHORT' | 'SELL' | 'COVER' | 'ADD';
+type DialogMode = 'manuale' | 'grafico';
 
 interface EsecuzioneForm {
   id: string;
@@ -73,6 +86,7 @@ export function AggiungiOperazioneDialog({
 }: AggiungiOperazioneDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [strategie, setStrategie] = useState<Strategia[]>([]);
+  const [mode, setMode] = useState<DialogMode>('manuale');
   const isEditMode = operazioneModifica !== null;
 
   // ── Form Data ──
@@ -193,6 +207,7 @@ export function AggiungiOperazioneDialog({
       }
       setCreandoStrategia(false);
       setNuovoNomeStrategia('');
+      setMode('manuale');
     }
   }, [open, isEditMode, operazioneModifica, commissioneDefault]);
 
@@ -469,18 +484,89 @@ export function AggiungiOperazioneDialog({
 
   const hasEsecuzioniData = esecuzioni.length > 0;
 
+  const isGrafico = mode === 'grafico';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditMode ? 'Modifica Operazione' : 'Nuova Operazione'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditMode ? 'Modifica i dettagli dell&apos;operazione selezionata.' : 'Inserisci i dettagli della nuova operazione di trading.'}
-          </DialogDescription>
+      <DialogContent
+        className={cn(
+          isGrafico
+            ? 'max-w-7xl w-[95vw] h-[90vh] overflow-hidden flex flex-col'
+            : 'max-w-2xl max-h-[90vh] overflow-y-auto'
+        )}
+      >
+        <DialogHeader className={isGrafico ? 'flex-shrink-0' : ''}>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>
+                {isEditMode ? 'Modifica Operazione' : 'Nuova Operazione'}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditMode
+                  ? 'Modifica i dettagli dell&apos;operazione selezionata.'
+                  : isGrafico
+                    ? 'Clicca sulle candele per aggiungere esecuzioni.'
+                    : 'Inserisci i dettagli della nuova operazione di trading.'}
+              </DialogDescription>
+            </div>
+
+            {/* Mode Toggle - only show for new operations */}
+            {!isEditMode && (
+              <div className="flex items-center bg-gray-100 dark:bg-[#1e1e2e] rounded-lg p-0.5 mr-8">
+                <button
+                  type="button"
+                  onClick={() => setMode('manuale')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+                    mode === 'manuale'
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  )}
+                >
+                  <PenLine className="h-3 w-3" />
+                  Manuale
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('grafico')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
+                    mode === 'grafico'
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  )}
+                >
+                  <BarChart3 className="h-3 w-3" />
+                  Grafico
+                </button>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
+        {/* ═══ GRAFICO MODE ═══ */}
+        {isGrafico && !isEditMode ? (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ChartOperationMode
+              formData={formData}
+              esecuzioni={esecuzioni}
+              setFormData={setFormData}
+              setEsecuzioni={setEsecuzioni}
+              strategie={strategie}
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              onClose={() => onOpenChange(false)}
+              onCreaStrategia={() => setCreandoStrategia(true)}
+              creandoStrategia={creandoStrategia}
+              nuovoNomeStrategia={nuovoNomeStrategia}
+              setNuovoNomeStrategia={setNuovoNomeStrategia}
+              isSavingStrategia={isSavingStrategia}
+              handleCreaStrategia={handleCreaStrategia}
+              pnl={pnl}
+            />
+          </div>
+        ) : (
+        /* ═══ MANUALE MODE (original form) ═══ */
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* ── Riga 1: Data e Ticker ── */}
           <div className="grid grid-cols-2 gap-4">
@@ -881,6 +967,7 @@ export function AggiungiOperazioneDialog({
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
