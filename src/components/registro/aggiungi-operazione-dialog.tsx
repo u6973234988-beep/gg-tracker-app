@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -22,16 +22,37 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Database } from '@/types/database';
+import { ChevronDown, ChevronUp, Plus, Trash2, Loader2 } from 'lucide-react';
 
 type Strategia = Database['public']['Tables']['strategie']['Row'];
+
+interface EsecuzioneForm {
+  id: string;
+  ora: string;
+  prezzo: string;
+  quantita: string;
+  tipo: 'BUY' | 'SELL';
+}
 
 interface AggiungiOperazioneDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAggiungi: (operazione: any) => Promise<void>;
+  onAggiungi: (
+    operazione: any,
+    esecuzioni?: Array<{ ora?: string; prezzo: number; quantita: number; tipo: string }>
+  ) => Promise<void>;
   commissioneDefault?: number;
   operazioneModifica?: any | null;
-  onModifica?: (id: string, data: any) => Promise<void>;
+  onModifica?: (
+    id: string,
+    data: any,
+    esecuzioni?: Array<{ ora?: string; prezzo: number; quantita: number; tipo: string }>
+  ) => Promise<void>;
+}
+
+let esecuzioneCounter = 0;
+function newEsecuzioneId() {
+  return `es-${++esecuzioneCounter}-${Date.now()}`;
 }
 
 export function AggiungiOperazioneDialog({
@@ -45,6 +66,8 @@ export function AggiungiOperazioneDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [strategie, setStrategie] = useState<Strategia[]>([]);
   const isEditMode = operazioneModifica !== null;
+
+  // ── Form Data ──
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
     ticker: '',
@@ -55,8 +78,75 @@ export function AggiungiOperazioneDialog({
     commissione: commissioneDefault.toString(),
     strategia_id: '',
     note: '',
+    ora_entrata: '',
+    ora_uscita: '',
   });
   const [pnl, setPnl] = useState<number | null>(null);
+
+  // ── Esecuzioni Multiple ──
+  const [esecuzioni, setEsecuzioni] = useState<EsecuzioneForm[]>([]);
+  const [showEsecuzioni, setShowEsecuzioni] = useState(false);
+
+  // ── Creazione Rapida Strategia ──
+  const [creandoStrategia, setCreandoStrategia] = useState(false);
+  const [nuovoNomeStrategia, setNuovoNomeStrategia] = useState('');
+  const [isSavingStrategia, setIsSavingStrategia] = useState(false);
+
+  // ── Calcolo medie ponderate dalle esecuzioni ──
+  const calcoloEsecuzioni = useMemo(() => {
+    if (esecuzioni.length === 0) return null;
+
+    const direzione = formData.direzione;
+    const tipoOpening = direzione === 'LONG' ? 'BUY' : 'SELL';
+    const tipoClosing = direzione === 'LONG' ? 'SELL' : 'BUY';
+
+    const opening = esecuzioni.filter(
+      (e) => e.tipo === tipoOpening && e.prezzo && e.quantita
+    );
+    const closing = esecuzioni.filter(
+      (e) => e.tipo === tipoClosing && e.prezzo && e.quantita
+    );
+
+    const totalQtyOpening = opening.reduce((s, e) => s + parseFloat(e.quantita || '0'), 0);
+    const totalQtyClosing = closing.reduce((s, e) => s + parseFloat(e.quantita || '0'), 0);
+
+    const prezzoEntrata =
+      totalQtyOpening > 0
+        ? opening.reduce((s, e) => s + parseFloat(e.prezzo || '0') * parseFloat(e.quantita || '0'), 0) /
+          totalQtyOpening
+        : 0;
+
+    const prezzoUscita =
+      totalQtyClosing > 0
+        ? closing.reduce((s, e) => s + parseFloat(e.prezzo || '0') * parseFloat(e.quantita || '0'), 0) /
+          totalQtyClosing
+        : null;
+
+    return {
+      prezzoEntrata,
+      prezzoUscita,
+      quantita: totalQtyOpening,
+      hasClosing: closing.length > 0,
+    };
+  }, [esecuzioni, formData.direzione]);
+
+  // ── Sync calcoloEsecuzioni → formData ──
+  useEffect(() => {
+    if (calcoloEsecuzioni && esecuzioni.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        prezzo_entrata: calcoloEsecuzioni.prezzoEntrata
+          ? calcoloEsecuzioni.prezzoEntrata.toFixed(4)
+          : prev.prezzo_entrata,
+        prezzo_uscita: calcoloEsecuzioni.prezzoUscita
+          ? calcoloEsecuzioni.prezzoUscita.toFixed(4)
+          : '',
+        quantita: calcoloEsecuzioni.quantita
+          ? calcoloEsecuzioni.quantita.toString()
+          : prev.quantita,
+      }));
+    }
+  }, [calcoloEsecuzioni, esecuzioni.length]);
 
   useEffect(() => {
     if (open) {
@@ -72,7 +162,12 @@ export function AggiungiOperazioneDialog({
           commissione: operazioneModifica.commissione.toString(),
           strategia_id: operazioneModifica.strategia_id || '',
           note: operazioneModifica.note || '',
+          ora_entrata: operazioneModifica.ora_entrata || '',
+          ora_uscita: operazioneModifica.ora_uscita || '',
         });
+        // Reset esecuzioni on edit mode (could load from DB in future)
+        setEsecuzioni([]);
+        setShowEsecuzioni(false);
       } else {
         setFormData({
           data: new Date().toISOString().split('T')[0],
@@ -84,8 +179,14 @@ export function AggiungiOperazioneDialog({
           commissione: commissioneDefault.toString(),
           strategia_id: '',
           note: '',
+          ora_entrata: '',
+          ora_uscita: '',
         });
+        setEsecuzioni([]);
+        setShowEsecuzioni(false);
       }
+      setCreandoStrategia(false);
+      setNuovoNomeStrategia('');
     }
   }, [open, isEditMode, operazioneModifica, commissioneDefault]);
 
@@ -133,19 +234,100 @@ export function AggiungiOperazioneDialog({
     }
   };
 
+  // Recalculate PnL when relevant fields change
+  useEffect(() => {
+    calculatePnL();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formData.prezzo_entrata,
+    formData.prezzo_uscita,
+    formData.quantita,
+    formData.commissione,
+    formData.direzione,
+  ]);
+
   const handleChange = (field: string, value: any) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [field]: value };
-      // Trigger PnL calculation for numeric fields
-      if (
-        ['prezzo_entrata', 'prezzo_uscita', 'quantita', 'commissione', 'direzione'].includes(
-          field
-        )
-      ) {
-        setTimeout(() => calculatePnL(), 0);
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // ── Esecuzioni handlers ──
+  const addEsecuzione = () => {
+    const defaultTipo =
+      formData.direzione === 'LONG' ? 'BUY' : 'SELL';
+    setEsecuzioni((prev) => [
+      ...prev,
+      { id: newEsecuzioneId(), ora: '', prezzo: '', quantita: '', tipo: defaultTipo },
+    ]);
+  };
+
+  const removeEsecuzione = (id: string) => {
+    setEsecuzioni((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const updateEsecuzione = (id: string, field: keyof EsecuzioneForm, value: string) => {
+    setEsecuzioni((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+    );
+  };
+
+  // ── Creazione rapida strategia ──
+  const handleCreaStrategia = async () => {
+    if (!nuovoNomeStrategia.trim()) {
+      toast.error('Inserisci un nome per la strategia');
+      return;
+    }
+
+    setIsSavingStrategia(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error('Sessione non trovata');
+        return;
       }
-      return updated;
-    });
+
+      const { data, error } = await (supabase as any)
+        .from('strategie')
+        .insert({
+          nome: nuovoNomeStrategia.trim(),
+          utente_id: session.user.id,
+          colore: '#7F00FF',
+          attiva: true,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast.error('Errore nella creazione della strategia');
+        console.error('Supabase error:', JSON.stringify(error, null, 2));
+      } else {
+        toast.success(`Strategia "${data.nome}" creata`);
+        // Refresh list and auto-select
+        await fetchStrategie();
+        setFormData((prev) => ({ ...prev, strategia_id: data.id }));
+        setCreandoStrategia(false);
+        setNuovoNomeStrategia('');
+      }
+    } catch (error) {
+      toast.error('Errore sconosciuto');
+      console.error(error);
+    } finally {
+      setIsSavingStrategia(false);
+    }
+  };
+
+  // ── Calcolo durata minuti ──
+  const calcolaDurataMinuti = (oraEntrata: string, oraUscita: string): number | null => {
+    if (!oraEntrata || !oraUscita) return null;
+    const [hE, mE] = oraEntrata.split(':').map(Number);
+    const [hU, mU] = oraUscita.split(':').map(Number);
+    const minEntrata = hE * 60 + mE;
+    const minUscita = hU * 60 + mU;
+    const diff = minUscita - minEntrata;
+    return diff >= 0 ? diff : diff + 1440; // handle overnight
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,61 +339,100 @@ export function AggiungiOperazioneDialog({
         toast.error('Compila tutti i campi obbligatori');
         return;
       }
+
+      const hasEsecuzioni = esecuzioni.length > 0;
+
       const validated = {
         data: formData.data,
         ticker: formData.ticker.toUpperCase(),
         direzione: formData.direzione,
         quantita: parseFloat(formData.quantita),
         prezzo_entrata: parseFloat(formData.prezzo_entrata),
-        prezzo_uscita: parseFloat(formData.prezzo_uscita || '0'),
+        prezzo_uscita: formData.prezzo_uscita ? parseFloat(formData.prezzo_uscita) : null,
         commissione: parseFloat(formData.commissione || '0'),
         strategia_id: formData.strategia_id || undefined,
         note: formData.note || undefined,
+        ora_entrata: formData.ora_entrata || null,
+        ora_uscita: formData.ora_uscita || null,
+        durata_minuti: calcolaDurataMinuti(formData.ora_entrata, formData.ora_uscita),
       };
 
       setIsLoading(true);
 
+      // Determine stato
+      const isAperta = validated.prezzo_uscita === null || validated.prezzo_uscita === 0;
+
       // Calculate final PnL
-      let pnlLordo: number;
-      if (validated.direzione === 'LONG') {
-        pnlLordo = (validated.prezzo_uscita - validated.prezzo_entrata) * validated.quantita;
-      } else {
-        pnlLordo = (validated.prezzo_entrata - validated.prezzo_uscita) * validated.quantita;
+      let pnlNetto = 0;
+      let pnlPercentuale = 0;
+      if (validated.prezzo_uscita && validated.prezzo_uscita > 0) {
+        let pnlLordo: number;
+        if (validated.direzione === 'LONG') {
+          pnlLordo = (validated.prezzo_uscita - validated.prezzo_entrata) * validated.quantita;
+        } else {
+          pnlLordo = (validated.prezzo_entrata - validated.prezzo_uscita) * validated.quantita;
+        }
+        pnlNetto = pnlLordo - validated.commissione;
+        pnlPercentuale = (pnlNetto / (validated.prezzo_entrata * validated.quantita)) * 100;
       }
-      const pnlNetto = pnlLordo - validated.commissione;
-      const pnlPercentuale = (pnlNetto / (validated.prezzo_entrata * validated.quantita)) * 100;
+
+      // Build esecuzioni payload
+      const esecuzioniPayload = hasEsecuzioni
+        ? esecuzioni
+            .filter((e) => e.prezzo && e.quantita)
+            .map((e) => ({
+              ora: e.ora || undefined,
+              prezzo: parseFloat(e.prezzo),
+              quantita: parseFloat(e.quantita),
+              tipo: e.tipo,
+            }))
+        : undefined;
 
       if (isEditMode && operazioneModifica && onModifica) {
         // Update existing operation
-        await onModifica(operazioneModifica.id, {
-          data: validated.data,
-          ticker: validated.ticker,
-          direzione: validated.direzione,
-          quantita: validated.quantita,
-          prezzo_entrata: validated.prezzo_entrata,
-          prezzo_uscita: validated.prezzo_uscita,
-          commissione: validated.commissione,
-          note: validated.note || null,
-          strategia_id: validated.strategia_id || null,
-          pnl: pnlNetto,
-          pnl_percentuale: pnlPercentuale,
-        });
+        await onModifica(
+          operazioneModifica.id,
+          {
+            data: validated.data,
+            ticker: validated.ticker,
+            direzione: validated.direzione,
+            quantita: validated.quantita,
+            prezzo_entrata: validated.prezzo_entrata,
+            prezzo_uscita: validated.prezzo_uscita,
+            commissione: validated.commissione,
+            note: validated.note || null,
+            strategia_id: validated.strategia_id || null,
+            ora_entrata: validated.ora_entrata,
+            ora_uscita: validated.ora_uscita,
+            durata_minuti: validated.durata_minuti,
+            pnl: isAperta ? null : pnlNetto,
+            pnl_percentuale: isAperta ? null : pnlPercentuale,
+            stato: isAperta ? 'aperta' : 'chiusa',
+          },
+          esecuzioniPayload
+        );
       } else {
         // Create new operation
-        await onAggiungi({
-          data: validated.data,
-          ticker: validated.ticker,
-          direzione: validated.direzione,
-          quantita: validated.quantita,
-          prezzo_entrata: validated.prezzo_entrata,
-          prezzo_uscita: validated.prezzo_uscita,
-          commissione: validated.commissione,
-          note: validated.note || null,
-          strategia_id: validated.strategia_id || null,
-          stato: 'chiusa',
-          pnl: pnlNetto,
-          pnl_percentuale: pnlPercentuale,
-        });
+        await onAggiungi(
+          {
+            data: validated.data,
+            ticker: validated.ticker,
+            direzione: validated.direzione,
+            quantita: validated.quantita,
+            prezzo_entrata: validated.prezzo_entrata,
+            prezzo_uscita: validated.prezzo_uscita,
+            commissione: validated.commissione,
+            note: validated.note || null,
+            strategia_id: validated.strategia_id || null,
+            ora_entrata: validated.ora_entrata,
+            ora_uscita: validated.ora_uscita,
+            durata_minuti: validated.durata_minuti,
+            stato: isAperta ? 'aperta' : 'chiusa',
+            pnl: isAperta ? null : pnlNetto,
+            pnl_percentuale: isAperta ? null : pnlPercentuale,
+          },
+          esecuzioniPayload
+        );
       }
 
       // Reset form
@@ -225,8 +446,12 @@ export function AggiungiOperazioneDialog({
         commissione: commissioneDefault.toString(),
         strategia_id: '',
         note: '',
+        ora_entrata: '',
+        ora_uscita: '',
       });
       setPnl(null);
+      setEsecuzioni([]);
+      setShowEsecuzioni(false);
       onOpenChange(false);
     } catch (error) {
       toast.error('Errore nel salvataggio operazione');
@@ -236,9 +461,11 @@ export function AggiungiOperazioneDialog({
     }
   };
 
+  const hasEsecuzioniData = esecuzioni.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? 'Modifica Operazione' : 'Nuova Operazione'}
@@ -248,8 +475,8 @@ export function AggiungiOperazioneDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Data e Ora */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* ── Riga 1: Data e Ticker ── */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="data">Data Operazione</Label>
@@ -261,8 +488,6 @@ export function AggiungiOperazioneDialog({
                 required
               />
             </div>
-
-            {/* Ticker */}
             <div className="space-y-2">
               <Label htmlFor="ticker">Ticker</Label>
               <Input
@@ -276,7 +501,31 @@ export function AggiungiOperazioneDialog({
             </div>
           </div>
 
-          {/* Direzione */}
+          {/* ── Riga 2: Orari Entry/Exit ── */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ora_entrata">Ora Entrata</Label>
+              <Input
+                id="ora_entrata"
+                type="time"
+                value={formData.ora_entrata}
+                onChange={(e) => handleChange('ora_entrata', e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ora_uscita">Ora Uscita</Label>
+              <Input
+                id="ora_uscita"
+                type="time"
+                value={formData.ora_uscita}
+                onChange={(e) => handleChange('ora_uscita', e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          </div>
+
+          {/* ── Direzione ── */}
           <div className="space-y-2">
             <Label htmlFor="direzione">Direzione</Label>
             <Select value={formData.direzione} onValueChange={(value) => handleChange('direzione', value as 'LONG' | 'SHORT')}>
@@ -290,36 +539,54 @@ export function AggiungiOperazioneDialog({
             </Select>
           </div>
 
-          {/* Prezzi e Quantità */}
+          {/* ── Prezzi e Quantità ── */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="prezzo_entrata">Prezzo Entrata</Label>
+              <Label htmlFor="prezzo_entrata">
+                Prezzo Entrata
+                {hasEsecuzioniData && (
+                  <span className="ml-1 text-[10px] text-violet-500 font-normal">(auto)</span>
+                )}
+              </Label>
               <Input
                 id="prezzo_entrata"
                 type="number"
-                step="0.01"
+                step="0.0001"
                 placeholder="0.00"
                 value={formData.prezzo_entrata}
                 onChange={(e) => handleChange('prezzo_entrata', e.target.value)}
+                readOnly={hasEsecuzioniData}
+                className={hasEsecuzioniData ? 'bg-violet-50 dark:bg-violet-900/20 cursor-not-allowed' : ''}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="prezzo_uscita">Prezzo Uscita</Label>
+              <Label htmlFor="prezzo_uscita">
+                Prezzo Uscita
+                {hasEsecuzioniData && (
+                  <span className="ml-1 text-[10px] text-violet-500 font-normal">(auto)</span>
+                )}
+              </Label>
               <Input
                 id="prezzo_uscita"
                 type="number"
-                step="0.01"
+                step="0.0001"
                 placeholder="0.00"
                 value={formData.prezzo_uscita}
                 onChange={(e) => handleChange('prezzo_uscita', e.target.value)}
-                required
+                readOnly={hasEsecuzioniData}
+                className={hasEsecuzioniData ? 'bg-violet-50 dark:bg-violet-900/20 cursor-not-allowed' : ''}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="quantita">Quantità</Label>
+              <Label htmlFor="quantita">
+                Quantità
+                {hasEsecuzioniData && (
+                  <span className="ml-1 text-[10px] text-violet-500 font-normal">(auto)</span>
+                )}
+              </Label>
               <Input
                 id="quantita"
                 type="number"
@@ -327,14 +594,157 @@ export function AggiungiOperazioneDialog({
                 placeholder="0.00"
                 value={formData.quantita}
                 onChange={(e) => handleChange('quantita', e.target.value)}
+                readOnly={hasEsecuzioniData}
+                className={hasEsecuzioniData ? 'bg-violet-50 dark:bg-violet-900/20 cursor-not-allowed' : ''}
                 required
               />
             </div>
           </div>
 
-          {/* Commissione */}
+          {/* ── Sezione Esecuzioni Multiple (collapsible) ── */}
+          <div className="border border-violet-200/40 dark:border-violet-500/20 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowEsecuzioni(!showEsecuzioni)}
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
+                  Esecuzioni Multiple
+                </span>
+                {esecuzioni.length > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+                    {esecuzioni.length}
+                  </span>
+                )}
+              </div>
+              {showEsecuzioni ? (
+                <ChevronUp className="h-4 w-4 text-violet-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-violet-500" />
+              )}
+            </button>
+
+            {showEsecuzioni && (
+              <div className="border-t border-violet-200/30 dark:border-violet-500/15 px-4 py-3 space-y-3 bg-violet-50/20 dark:bg-violet-900/5">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Aggiungi singole esecuzioni (scaling in/out). I prezzi medi e la quantità si calcoleranno automaticamente.
+                </p>
+
+                {/* Esecuzioni list */}
+                {esecuzioni.map((es, idx) => (
+                  <div
+                    key={es.id}
+                    className="grid grid-cols-[70px_1fr_1fr_90px_32px] gap-2 items-end"
+                  >
+                    <div className="space-y-1">
+                      {idx === 0 && <Label className="text-[10px]">Ora</Label>}
+                      <Input
+                        type="time"
+                        value={es.ora}
+                        onChange={(e) => updateEsecuzione(es.id, 'ora', e.target.value)}
+                        className="text-xs h-8 px-1.5"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      {idx === 0 && <Label className="text-[10px]">Prezzo</Label>}
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        placeholder="0.00"
+                        value={es.prezzo}
+                        onChange={(e) => updateEsecuzione(es.id, 'prezzo', e.target.value)}
+                        className="text-xs h-8"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      {idx === 0 && <Label className="text-[10px]">Quantità</Label>}
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={es.quantita}
+                        onChange={(e) => updateEsecuzione(es.id, 'quantita', e.target.value)}
+                        className="text-xs h-8"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      {idx === 0 && <Label className="text-[10px]">Tipo</Label>}
+                      <Select
+                        value={es.tipo}
+                        onValueChange={(v) => updateEsecuzione(es.id, 'tipo', v)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BUY">BUY</SelectItem>
+                          <SelectItem value="SELL">SELL</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      {idx === 0 && <Label className="text-[10px] invisible">X</Label>}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        onClick={() => removeEsecuzione(es.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-8 text-xs border-dashed border-violet-300 dark:border-violet-600 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                  onClick={addEsecuzione}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Aggiungi Esecuzione
+                </Button>
+
+                {/* Summary */}
+                {calcoloEsecuzioni && calcoloEsecuzioni.quantita > 0 && (
+                  <div className="p-2.5 rounded-md bg-violet-100/50 dark:bg-violet-900/20 border border-violet-200/40 dark:border-violet-500/15">
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Prezzo Entrata</span>
+                        <p className="font-semibold text-violet-700 dark:text-white">
+                          ${calcoloEsecuzioni.prezzoEntrata.toFixed(4)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Prezzo Uscita</span>
+                        <p className="font-semibold text-violet-700 dark:text-white">
+                          {calcoloEsecuzioni.prezzoUscita
+                            ? `$${calcoloEsecuzioni.prezzoUscita.toFixed(4)}`
+                            : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Quantità Totale</span>
+                        <p className="font-semibold text-violet-700 dark:text-white">
+                          {calcoloEsecuzioni.quantita}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Commissione ── */}
           <div className="space-y-2">
-            <Label htmlFor="commissione">Commissione (€)</Label>
+            <Label htmlFor="commissione">Commissione ($)</Label>
             <Input
               id="commissione"
               type="number"
@@ -345,7 +755,7 @@ export function AggiungiOperazioneDialog({
             />
           </div>
 
-          {/* Strategia */}
+          {/* ── Strategia con creazione rapida ── */}
           <div className="space-y-2">
             <Label htmlFor="strategia_id">Strategia (Opzionale)</Label>
             <Select
@@ -363,9 +773,62 @@ export function AggiungiOperazioneDialog({
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Creazione rapida inline */}
+            {!creandoStrategia ? (
+              <button
+                type="button"
+                onClick={() => setCreandoStrategia(true)}
+                className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 font-medium transition-colors"
+              >
+                + Crea nuova strategia
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="text"
+                  placeholder="Nome strategia..."
+                  value={nuovoNomeStrategia}
+                  onChange={(e) => setNuovoNomeStrategia(e.target.value)}
+                  className="h-8 text-sm flex-grow"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreaStrategia();
+                    }
+                  }}
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 text-xs px-3"
+                  onClick={handleCreaStrategia}
+                  disabled={isSavingStrategia}
+                >
+                  {isSavingStrategia ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    'Crea'
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs px-2"
+                  onClick={() => {
+                    setCreandoStrategia(false);
+                    setNuovoNomeStrategia('');
+                  }}
+                >
+                  Annulla
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Note */}
+          {/* ── Note ── */}
           <div className="space-y-2">
             <Label htmlFor="note">Note</Label>
             <textarea
@@ -377,11 +840,11 @@ export function AggiungiOperazioneDialog({
             />
           </div>
 
-          {/* P&L Preview */}
-          {pnl !== null && (
+          {/* ── P&L Preview ── */}
+          {pnl !== null && formData.prezzo_uscita && (
             <div className={`p-3 rounded-lg ${pnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
               <p className={`text-sm font-semibold ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                P&L stimato: {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}€
+                P&L stimato: {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}$
               </p>
             </div>
           )}

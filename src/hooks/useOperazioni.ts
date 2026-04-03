@@ -21,6 +21,13 @@ export interface FiltriOperazioni {
   direzione?: 'LONG' | 'SHORT';
 }
 
+export interface EsecuzionePayload {
+  ora?: string;
+  prezzo: number;
+  quantita: number;
+  tipo: string;
+}
+
 export interface UseOperazioniReturn {
   operazioni: OperazioneConDettagli[];
   isLoading: boolean;
@@ -28,9 +35,16 @@ export interface UseOperazioniReturn {
   filtri: FiltriOperazioni;
   setFiltri: (filtri: FiltriOperazioni) => void;
   resetFiltri: () => void;
-  aggiungiOperazione: (operazione: Database['public']['Tables']['operazioni']['Insert']) => Promise<void>;
+  aggiungiOperazione: (
+    operazione: Database['public']['Tables']['operazioni']['Insert'],
+    esecuzioni?: EsecuzionePayload[]
+  ) => Promise<void>;
   importaOperazioniCSV: (operazioni: Database['public']['Tables']['operazioni']['Insert'][]) => Promise<{ importati: number; duplicati: number }>;
-  modificaOperazione: (id: string, updates: Database['public']['Tables']['operazioni']['Update']) => Promise<void>;
+  modificaOperazione: (
+    id: string,
+    updates: Database['public']['Tables']['operazioni']['Update'],
+    esecuzioni?: EsecuzionePayload[]
+  ) => Promise<void>;
   eliminaOperazione: (id: string) => Promise<void>;
 }
 
@@ -122,7 +136,10 @@ export function useOperazioni(): UseOperazioniReturn {
   }, [fetchOperazioni]);
 
   const aggiungiOperazione = useCallback(
-    async (operazione: Database['public']['Tables']['operazioni']['Insert']) => {
+    async (
+      operazione: Database['public']['Tables']['operazioni']['Insert'],
+      esecuzioni?: EsecuzionePayload[]
+    ) => {
       try {
         const supabase = createClient();
 
@@ -137,17 +154,40 @@ export function useOperazioni(): UseOperazioniReturn {
           return;
         }
 
-        const { error } = await (supabase as any)
+        // Insert operazione and get back the ID
+        const { data: insertedOp, error } = await (supabase as any)
           .from('operazioni')
           .insert({
             ...operazione,
             utente_id: session.user.id,
-          });
+          })
+          .select('id')
+          .single();
 
         if (error) {
           toast.error('Errore nell\'aggiunta dell\'operazione');
           console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
+          // Insert esecuzioni if present
+          if (esecuzioni && esecuzioni.length > 0 && insertedOp?.id) {
+            const esecuzioniData = esecuzioni.map((e) => ({
+              operazione_id: insertedOp.id,
+              ora: e.ora || null,
+              prezzo: e.prezzo,
+              quantita: e.quantita,
+              tipo: e.tipo,
+            }));
+
+            const { error: esError } = await (supabase as any)
+              .from('esecuzioni')
+              .insert(esecuzioniData);
+
+            if (esError) {
+              console.error('Errore inserimento esecuzioni:', JSON.stringify(esError, null, 2));
+              toast.warning('Operazione salvata, ma errore nelle esecuzioni');
+            }
+          }
+
           toast.success('Operazione aggiunta con successo');
           await fetchOperazioni();
         }
@@ -225,7 +265,11 @@ export function useOperazioni(): UseOperazioniReturn {
   );
 
   const modificaOperazione = useCallback(
-    async (id: string, updates: Database['public']['Tables']['operazioni']['Update']) => {
+    async (
+      id: string,
+      updates: Database['public']['Tables']['operazioni']['Update'],
+      esecuzioni?: EsecuzionePayload[]
+    ) => {
       try {
         const supabase = createClient();
 
@@ -238,6 +282,32 @@ export function useOperazioni(): UseOperazioniReturn {
           toast.error('Errore nella modifica dell\'operazione');
           console.error('Supabase error:', JSON.stringify(error, null, 2));
         } else {
+          // Replace esecuzioni if provided
+          if (esecuzioni && esecuzioni.length > 0) {
+            // Delete old esecuzioni
+            await (supabase as any)
+              .from('esecuzioni')
+              .delete()
+              .eq('operazione_id', id);
+
+            // Insert new
+            const esecuzioniData = esecuzioni.map((e) => ({
+              operazione_id: id,
+              ora: e.ora || null,
+              prezzo: e.prezzo,
+              quantita: e.quantita,
+              tipo: e.tipo,
+            }));
+
+            const { error: esError } = await (supabase as any)
+              .from('esecuzioni')
+              .insert(esecuzioniData);
+
+            if (esError) {
+              console.error('Errore aggiornamento esecuzioni:', JSON.stringify(esError, null, 2));
+            }
+          }
+
           toast.success('Operazione modificata con successo');
           await fetchOperazioni();
         }
