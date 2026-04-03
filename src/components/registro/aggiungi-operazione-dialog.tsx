@@ -26,12 +26,20 @@ import { ChevronDown, ChevronUp, Plus, Trash2, Loader2 } from 'lucide-react';
 
 type Strategia = Database['public']['Tables']['strategie']['Row'];
 
+type TipoEsecuzione = 'LONG' | 'SHORT' | 'SELL' | 'COVER' | 'ADD';
+
 interface EsecuzioneForm {
   id: string;
   ora: string;
   prezzo: string;
   quantita: string;
-  tipo: 'BUY' | 'SELL';
+  tipo: TipoEsecuzione;
+}
+
+/** Mappa il tipo UI al tipo DB (il constraint accetta solo 'entrata'|'uscita') */
+function mapTipoToDb(uiType: TipoEsecuzione): 'entrata' | 'uscita' {
+  if (uiType === 'SELL' || uiType === 'COVER') return 'uscita';
+  return 'entrata'; // LONG, SHORT, ADD
 }
 
 interface AggiungiOperazioneDialogProps {
@@ -96,15 +104,13 @@ export function AggiungiOperazioneDialog({
   const calcoloEsecuzioni = useMemo(() => {
     if (esecuzioni.length === 0) return null;
 
-    const direzione = formData.direzione;
-    const tipoOpening = direzione === 'LONG' ? 'BUY' : 'SELL';
-    const tipoClosing = direzione === 'LONG' ? 'SELL' : 'BUY';
-
+    // Opening: LONG, SHORT, ADD (entrata)
+    // Closing: SELL, COVER (uscita)
     const opening = esecuzioni.filter(
-      (e) => e.tipo === tipoOpening && e.prezzo && e.quantita
+      (e) => ['LONG', 'SHORT', 'ADD'].includes(e.tipo) && e.prezzo && e.quantita
     );
     const closing = esecuzioni.filter(
-      (e) => e.tipo === tipoClosing && e.prezzo && e.quantita
+      (e) => ['SELL', 'COVER'].includes(e.tipo) && e.prezzo && e.quantita
     );
 
     const totalQtyOpening = opening.reduce((s, e) => s + parseFloat(e.quantita || '0'), 0);
@@ -252,8 +258,8 @@ export function AggiungiOperazioneDialog({
 
   // ── Esecuzioni handlers ──
   const addEsecuzione = () => {
-    const defaultTipo =
-      formData.direzione === 'LONG' ? 'BUY' : 'SELL';
+    const defaultTipo: TipoEsecuzione =
+      formData.direzione === 'LONG' ? 'LONG' : 'SHORT';
     setEsecuzioni((prev) => [
       ...prev,
       { id: newEsecuzioneId(), ora: '', prezzo: '', quantita: '', tipo: defaultTipo },
@@ -376,7 +382,7 @@ export function AggiungiOperazioneDialog({
         pnlPercentuale = (pnlNetto / (validated.prezzo_entrata * validated.quantita)) * 100;
       }
 
-      // Build esecuzioni payload
+      // Build esecuzioni payload — mappiamo UI tipo → DB tipo
       const esecuzioniPayload = hasEsecuzioni
         ? esecuzioni
             .filter((e) => e.prezzo && e.quantita)
@@ -384,7 +390,7 @@ export function AggiungiOperazioneDialog({
               ora: e.ora || undefined,
               prezzo: parseFloat(e.prezzo),
               quantita: parseFloat(e.quantita),
-              tipo: e.tipo,
+              tipo: mapTipoToDb(e.tipo),
             }))
         : undefined;
 
@@ -680,8 +686,19 @@ export function AggiungiOperazioneDialog({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="BUY">BUY</SelectItem>
-                          <SelectItem value="SELL">SELL</SelectItem>
+                          {formData.direzione === 'LONG' ? (
+                            <>
+                              <SelectItem value="LONG">LONG</SelectItem>
+                              <SelectItem value="ADD">ADD</SelectItem>
+                              <SelectItem value="SELL">SELL</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="SHORT">SHORT</SelectItem>
+                              <SelectItem value="ADD">ADD</SelectItem>
+                              <SelectItem value="COVER">COVER</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>

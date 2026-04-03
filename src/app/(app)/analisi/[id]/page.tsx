@@ -268,6 +268,7 @@ export default function AnalisiOperazionePage() {
               takeProfit: operazione.take_profit,
               pnl: operazione.pnl,
               quantity: operazione.quantita,
+              esecuzioni: (operazione as any).esecuzioni || [],
             }}
             height="500px"
           />

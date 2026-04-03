@@ -8,9 +8,20 @@ import { toast } from 'sonner';
 type Operazione = Database['public']['Tables']['operazioni']['Row'];
 type Strategia = Database['public']['Tables']['strategie']['Row'];
 
+export interface EsecuzioneRow {
+  id: string;
+  operazione_id: string;
+  ora: string | null;
+  prezzo: number;
+  quantita: number;
+  tipo: string;
+  creato_il: string;
+}
+
 export interface OperazioneConDettagli extends Operazione {
   strategia?: Strategia | null;
   tags?: any[];
+  esecuzioni?: EsecuzioneRow[];
 }
 
 export interface FiltriOperazioni {
@@ -82,7 +93,8 @@ export function useOperazioni(): UseOperazioniReturn {
           `
           *,
           strategia:strategia_id(id, nome, colore),
-          operazioni_tag(tag_id, tag:tag_id(id, nome, colore))
+          operazioni_tag(tag_id, tag:tag_id(id, nome, colore)),
+          esecuzioni(id, operazione_id, ora, prezzo, quantita, tipo, creato_il)
         `
         )
         .eq('utente_id', userId)
@@ -120,6 +132,7 @@ export function useOperazioni(): UseOperazioniReturn {
           ...op,
           strategia: op.strategia || null,
           tags: op.operazioni_tag ? op.operazioni_tag.map((ot: any) => ot.tag) : [],
+          esecuzioni: op.esecuzioni || [],
         }));
         setOperazioni(operazioniConDettagli);
       }

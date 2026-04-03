@@ -19,6 +19,23 @@ interface TradeMarker {
   takeProfit?: number | null;
   pnl?: number | null;
   quantity?: number;
+  esecuzioni?: Array<{
+    id: string;
+    ora: string | null;
+    prezzo: number;
+    quantita: number;
+    tipo: string; // 'entrata' | 'uscita' from DB
+  }>;
+}
+
+/** Maps DB tipo + operation direction to a UI label for chart markers */
+function mapDbToLabel(tipo: string, direction: string, isFirstEntrata: boolean): string {
+  if (tipo === 'entrata') {
+    if (!isFirstEntrata) return 'ADD';
+    return direction === 'LONG' ? 'LONG' : 'SHORT';
+  }
+  // uscita
+  return direction === 'LONG' ? 'SELL' : 'COVER';
 }
 
 export interface ScreenshotData {
@@ -102,21 +119,27 @@ function registerTradeMarkerOverlay() {
 
       const x = coordinates[0].x;
       const y = coordinates[0].y;
-      const isEntry = extData?.type === 'entry';
-      const isLong = extData?.direction === 'LONG';
-      const isProfitable = extData?.pnl >= 0;
+      const label: string = extData?.label || 'ENTRY';
+      const direction = extData?.direction || 'LONG';
+      const isProfitable = (extData?.pnl ?? 0) >= 0;
 
+      // Determine color and arrow direction based on label
       let bgColor: string;
-      let label: string;
-      if (isEntry) {
-        bgColor = isLong ? '#16a34a' : '#dc2626';
-        label = isLong ? 'LONG' : 'SHORT';
+      if (label === 'LONG') {
+        bgColor = '#16a34a'; // green
+      } else if (label === 'SHORT') {
+        bgColor = '#dc2626'; // red
+      } else if (label === 'ADD') {
+        bgColor = '#3b82f6'; // blue
       } else {
+        // SELL, COVER, EXIT
         bgColor = isProfitable ? '#16a34a' : '#dc2626';
-        label = 'EXIT';
       }
 
-      const arrowPointsUp = isEntry ? isLong : !isProfitable;
+      // Arrow direction: up for opening long/add-long, down for short/sell/cover
+      const isOpeningLong = (label === 'LONG' || (label === 'ADD' && direction === 'LONG'));
+      const isCoverShort = label === 'COVER';
+      const arrowPointsUp = isOpeningLong || isCoverShort;
       const arrowOffset = arrowPointsUp ? 14 : -14;
       const textOffset = arrowPointsUp ? 28 : -28;
 
@@ -439,29 +462,60 @@ function ChartInner({
       // ── Markers ──
       let entryTs: number | null = null;
 
-      if (trade.entryPrice) {
-        entryTs = findBestCandleForTime(chartData, tradeDate, trade.entryTime, timeframe);
-        if (entryTs) {
-          chart.createOverlay({
-            name: 'tradeSignalMarker',
-            points: [{ timestamp: entryTs, value: trade.entryPrice }],
-            extendData: { type: 'entry', direction: trade.direction, pnl: trade.pnl },
-            lock: true,
-            visible: true,
-          });
-        }
-      }
+      if (trade.esecuzioni && trade.esecuzioni.length > 0) {
+        // Multi-execution mode: render each execution as a marker
+        const sorted = [...trade.esecuzioni].sort((a, b) => {
+          if (!a.ora || !b.ora) return 0;
+          return a.ora.localeCompare(b.ora);
+        });
 
-      if (trade.exitPrice) {
-        const exitTs = findBestCandleForTime(chartData, tradeDate, trade.exitTime, timeframe);
-        if (exitTs) {
-          chart.createOverlay({
-            name: 'tradeSignalMarker',
-            points: [{ timestamp: exitTs, value: trade.exitPrice }],
-            extendData: { type: 'exit', direction: trade.direction, pnl: trade.pnl },
-            lock: true,
-            visible: true,
-          });
+        let firstEntrataRendered = false;
+
+        sorted.forEach((exec) => {
+          const isEntrata = exec.tipo === 'entrata';
+          const isFirst = isEntrata && !firstEntrataRendered;
+          if (isEntrata && !firstEntrataRendered) firstEntrataRendered = true;
+
+          const label = mapDbToLabel(exec.tipo, trade.direction, isFirst);
+          const execTs = findBestCandleForTime(chartData, tradeDate, exec.ora, timeframe);
+
+          if (execTs) {
+            if (!entryTs && isEntrata) entryTs = execTs; // track first entry for zoom
+            chart.createOverlay({
+              name: 'tradeSignalMarker',
+              points: [{ timestamp: execTs, value: exec.prezzo }],
+              extendData: { label, direction: trade.direction, pnl: trade.pnl },
+              lock: true,
+              visible: true,
+            });
+          }
+        });
+      } else {
+        // Fallback: single entry/exit markers (no esecuzioni)
+        if (trade.entryPrice) {
+          entryTs = findBestCandleForTime(chartData, tradeDate, trade.entryTime, timeframe);
+          if (entryTs) {
+            chart.createOverlay({
+              name: 'tradeSignalMarker',
+              points: [{ timestamp: entryTs, value: trade.entryPrice }],
+              extendData: { label: trade.direction === 'LONG' ? 'LONG' : 'SHORT', direction: trade.direction, pnl: trade.pnl },
+              lock: true,
+              visible: true,
+            });
+          }
+        }
+
+        if (trade.exitPrice) {
+          const exitTs = findBestCandleForTime(chartData, tradeDate, trade.exitTime, timeframe);
+          if (exitTs) {
+            chart.createOverlay({
+              name: 'tradeSignalMarker',
+              points: [{ timestamp: exitTs, value: trade.exitPrice }],
+              extendData: { label: trade.direction === 'LONG' ? 'SELL' : 'COVER', direction: trade.direction, pnl: trade.pnl },
+              lock: true,
+              visible: true,
+            });
+          }
         }
       }
 
