@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from 'next-themes';
 import {
   AreaChart,
   Area,
@@ -39,7 +38,6 @@ import { it } from 'date-fns/locale/it';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardData, type StrategyEquityPoint, type StrategyLineInfo } from '@/hooks/useDashboardData';
 import { formatValuta, formatPercentuale, formatData, cn } from '@/lib/utils';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /* ─── Animation Variants ─── */
 const containerVariants = {
@@ -116,67 +114,52 @@ function DateRangeFilter({
     <div className="flex flex-wrap items-center gap-2">
       {/* Preset buttons */}
       <div className="flex items-center gap-1.5">
-        <button
-          onClick={() => handlePreset(7)}
-          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
-        >
-          7G
-        </button>
-        <button
-          onClick={() => handlePreset(30)}
-          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
-        >
-          30G
-        </button>
-        <button
-          onClick={() => handlePreset(90)}
-          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
-        >
-          90G
-        </button>
-        <button
-          onClick={() => handlePreset(365)}
-          className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200/30 dark:border-violet-700/30 transition-colors"
-        >
-          1A
-        </button>
+        {['7G', '30G', '90G', '1A'].map((label, i) => (
+          <button
+            key={label}
+            onClick={() => handlePreset([7, 30, 90, 365][i])}
+            className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-[#1C1C1F] text-[#c4a0e8] hover:bg-[#46265F]/20 border border-[#2D2D32] transition-colors"
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="hidden sm:block h-5 w-px bg-violet-200/40 dark:bg-violet-700/30" />
+      <div className="hidden sm:block h-5 w-px bg-[#2D2D32]" />
 
       {/* Custom date inputs */}
       <div className="flex items-center gap-1.5">
         <div className="relative">
-          <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-violet-400 dark:text-violet-500 pointer-events-none" />
+          <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-[#80808A] pointer-events-none" />
           <input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="pl-6 pr-2 py-1.5 text-xs rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 border border-violet-200/30 dark:border-violet-700/30 focus:outline-none focus:ring-1 focus:ring-violet-400 w-[120px]"
+            className="pl-6 pr-2 py-1.5 text-xs rounded-lg bg-[#1C1C1F] text-[#c4a0e8] border border-[#2D2D32] focus:outline-none focus:ring-1 focus:ring-[#6A3D8F] w-[120px]"
             placeholder="Da"
           />
         </div>
-        <span className="text-xs text-violet-500 dark:text-violet-400">—</span>
+        <span className="text-xs text-[#80808A]">—</span>
         <div className="relative">
-          <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-violet-400 dark:text-violet-500 pointer-events-none" />
+          <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-[#80808A] pointer-events-none" />
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="pl-6 pr-2 py-1.5 text-xs rounded-lg bg-white/60 dark:bg-gray-800/60 text-violet-700 dark:text-violet-300 border border-violet-200/30 dark:border-violet-700/30 focus:outline-none focus:ring-1 focus:ring-violet-400 w-[120px]"
+            className="pl-6 pr-2 py-1.5 text-xs rounded-lg bg-[#1C1C1F] text-[#c4a0e8] border border-[#2D2D32] focus:outline-none focus:ring-1 focus:ring-[#6A3D8F] w-[120px]"
             placeholder="A"
           />
         </div>
         <button
           onClick={handleApply}
-          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors shadow-sm"
+          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#46265F] text-[#F8F8FF] hover:bg-[#6A3D8F] transition-colors"
         >
           Applica
         </button>
         {isActive && (
           <button
             onClick={handleReset}
-            className="p-1.5 rounded-lg text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+            className="p-1.5 rounded-lg text-[#80808A] hover:bg-[#46265F]/20 transition-colors"
             title="Rimuovi filtro"
           >
             <X className="h-3.5 w-3.5" />
@@ -192,37 +175,34 @@ function KPICard({
   label,
   value,
   icon: Icon,
-  gradientFrom,
-  gradientTo,
   subtitle,
 }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
-  gradientFrom: string;
-  gradientTo: string;
+  gradientFrom?: string;
+  gradientTo?: string;
   subtitle?: string;
 }) {
   return (
     <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 group rounded-xl h-full">
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradientFrom} ${gradientTo} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-        <CardContent className="relative z-10 p-4 sm:p-5">
+      <Card className="relative overflow-hidden border border-[#2D2D32] bg-[#1C1C1F] hover:border-[#6A3D8F]/40 transition-all duration-300 rounded-xl h-full">
+        <CardContent className="p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-violet-600/80 dark:text-violet-300/80 truncate">
+              <p className="text-xs sm:text-sm font-medium text-[#80808A] truncate">
                 {label}
               </p>
-              <p className="mt-1.5 text-xl sm:text-2xl font-bold text-violet-700 dark:text-white truncate high-contrast-text">
+              <p className="mt-1.5 text-xl sm:text-2xl font-bold text-[#F8F8FF] truncate">
                 {value}
               </p>
               {subtitle && (
-                <p className="mt-1 text-xs text-violet-500/70 dark:text-violet-400/60">
+                <p className="mt-1 text-xs text-[#80808A]">
                   {subtitle}
                 </p>
               )}
             </div>
-            <div className="p-2 sm:p-2.5 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 shrink-0">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-[#46265F]/20 shrink-0">
               {Icon}
             </div>
           </div>
@@ -237,30 +217,30 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <div className="h-10 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
-        <div className="h-8 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        <div className="h-10 w-48 bg-[#2D2D32] rounded-lg animate-pulse" />
+        <div className="h-8 w-64 bg-[#2D2D32] rounded-lg animate-pulse" />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i} className="border border-violet-200/40 dark:border-violet-500/20">
+          <Card key={i} className="border border-[#2D2D32] bg-[#1C1C1F]">
             <CardContent className="p-4 space-y-3">
-              <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-              <div className="h-7 w-28 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              <div className="h-3 w-20 bg-[#2D2D32] rounded animate-pulse" />
+              <div className="h-7 w-28 bg-[#2D2D32] rounded animate-pulse" />
             </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border border-violet-200/40 dark:border-violet-500/20">
+        <Card className="lg:col-span-2 border border-[#2D2D32] bg-[#1C1C1F]">
           <CardContent className="p-4">
-            <div className="h-80 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+            <div className="h-80 bg-[#2D2D32] rounded animate-pulse" />
           </CardContent>
         </Card>
-        <Card className="border border-violet-200/40 dark:border-violet-500/20">
+        <Card className="border border-[#2D2D32] bg-[#1C1C1F]">
           <CardContent className="p-4">
-            <div className="h-80 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+            <div className="h-80 bg-[#2D2D32] rounded animate-pulse" />
           </CardContent>
         </Card>
       </div>
@@ -275,28 +255,28 @@ function EmptyState() {
   return (
     <div className="space-y-8 p-4 md:p-6">
       <motion.div variants={itemVariants}>
-        <h1 className="text-page-title text-violet-700 dark:text-white">Dashboard</h1>
-        <p className="text-violet-600/80 dark:text-gray-300 mt-2">
+        <h1 className="text-2xl font-bold text-[#F8F8FF] font-mono uppercase tracking-widest">Dashboard</h1>
+        <p className="text-[#80808A] mt-2">
           Benvenuto in GG Tracker - Il tuo nuovo compagno di trading
         </p>
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card className="border-dashed border-2 border-violet-500/30 bg-gradient-to-br from-violet-500/5 to-purple-500/5 dark:from-violet-500/10 dark:to-purple-500/10">
+        <Card className="border-dashed border-2 border-[#6A3D8F]/30 bg-[#46265F]/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
+            <CardTitle className="flex items-center gap-2 text-[#F8F8FF]">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
               Nessun dato disponibile
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-violet-600/80 dark:text-gray-300">
+            <p className="text-[#80808A]">
               Non hai ancora registrato operazioni. Inizia a tracciare i tuoi trade per visualizzare
               le metriche di performance.
             </p>
             <button
               onClick={() => router.push('/registro')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 dark:bg-violet-600 dark:hover:bg-violet-700 text-white font-medium transition-colors futuristic-button"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#46265F] hover:bg-[#6A3D8F] text-[#F8F8FF] font-medium transition-colors"
             >
               <ArrowUpRight className="w-4 h-4" />
               Vai al Registro
@@ -325,20 +305,18 @@ function EquityChart({
   chartType: 'line' | 'bar';
   onChartTypeChange: (type: 'line' | 'bar') => void;
 }) {
-  const { resolvedTheme: theme } = useTheme();
-
   if (!equityData || equityData.length === 0) {
     return (
       <motion.div variants={itemVariants}>
-        <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
+        <Card className="h-full border border-[#2D2D32] bg-[#1C1C1F]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
-              <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-300" />
+            <CardTitle className="flex items-center gap-2 text-[#F8F8FF]">
+              <TrendingUp className="w-5 h-5 text-[#c4a0e8]" />
               Equity Line
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72 flex items-center justify-center text-violet-600/80 dark:text-gray-300">
+            <div className="h-72 flex items-center justify-center text-[#80808A]">
               <p>Nessun dato disponibile per il periodo selezionato.</p>
             </div>
           </CardContent>
@@ -366,21 +344,18 @@ function EquityChart({
 
   return (
     <motion.div variants={itemVariants} className="h-full">
-      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl">
-        {/* Subtle background effects */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-purple-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
-
-        <CardHeader className="relative z-10 pb-2">
+      <Card className="h-full border border-[#2D2D32] bg-[#1C1C1F] hover:border-[#6A3D8F]/30 transition-all duration-300 overflow-hidden rounded-xl">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-300" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#46265F]/20">
+                <TrendingUp className="h-4 w-4 text-[#c4a0e8]" />
               </div>
               <div>
-                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                <CardTitle className="text-base sm:text-lg font-semibold text-[#c4a0e8]">
                   {chartType === 'line' ? 'Equity Line' : 'P&L Giornaliero'}
                 </CardTitle>
-                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                <CardDescription className="text-xs text-[#80808A] mt-0.5">
                   {chartType === 'line'
                     ? 'Andamento cumulativo del P&L'
                     : 'P&L netto giornaliero'}
@@ -388,13 +363,13 @@ function EquityChart({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-0.5 border border-violet-200/30 dark:border-violet-700/30">
+              <div className="flex bg-[#0F0F11] rounded-lg p-0.5 border border-[#2D2D32]">
                 <button
                   onClick={() => onChartTypeChange('line')}
                   className={`flex items-center justify-center h-7 w-7 rounded-md text-xs transition-all duration-200 ${
                     chartType === 'line'
-                      ? 'bg-violet-500 text-white shadow-md'
-                      : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
+                      ? 'bg-[#46265F] text-[#F8F8FF]'
+                      : 'text-[#80808A] hover:bg-[#46265F]/20 hover:text-[#c4a0e8]'
                   }`}
                   title="Equity Line"
                 >
@@ -404,22 +379,22 @@ function EquityChart({
                   onClick={() => onChartTypeChange('bar')}
                   className={`flex items-center justify-center h-7 w-7 rounded-md text-xs transition-all duration-200 ${
                     chartType === 'bar'
-                      ? 'bg-violet-500 text-white shadow-md'
-                      : 'text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/30'
+                      ? 'bg-[#46265F] text-[#F8F8FF]'
+                      : 'text-[#80808A] hover:bg-[#46265F]/20 hover:text-[#c4a0e8]'
                   }`}
                   title="P&L Giornaliero"
                 >
                   <BarChart3 className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <span className="text-xs px-2 py-1 rounded-lg bg-violet-100/80 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 font-medium border border-violet-200/30 dark:border-violet-700/30">
+              <span className="text-xs px-2 py-1 rounded-lg bg-[#46265F]/20 text-[#c4a0e8] font-medium border border-[#2D2D32]">
                 {lineChartData.length} giorni
               </span>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="relative z-10 pt-0">
+        <CardContent className="pt-0">
           <div className="w-full h-72 sm:h-80">
             <AnimatePresence mode="wait">
               <motion.div
@@ -435,19 +410,19 @@ function EquityChart({
                     <AreaChart data={lineChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                       <defs>
                         <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#6A3D8F" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#6A3D8F" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(106, 61, 143, 0.08)" vertical={false} />
                       <XAxis
                         dataKey="date"
-                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                        axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
+                        tick={{ fill: '#80808A', fontSize: 11 }}
+                        axisLine={{ stroke: 'rgba(106, 61, 143, 0.1)' }}
                         tickLine={false}
                       />
                       <YAxis
-                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                        tick={{ fill: '#80808A', fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(value) =>
@@ -456,25 +431,25 @@ function EquityChart({
                       />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          backgroundColor: '#1C1C1F',
+                          border: '1px solid rgba(106, 61, 143, 0.3)',
                           borderRadius: '0.75rem',
-                          boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+                          boxShadow: '0 8px 24px rgba(106, 61, 143, 0.15)',
                           fontSize: '13px',
                         }}
-                        labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
+                        labelStyle={{ color: '#c4a0e8' }}
                         formatter={(value: any) => [formatValuta(Number(value) || 0), 'Equity']}
                         labelFormatter={(label) => `Data: ${label}`}
                       />
                       <ReferenceLine
                         y={0}
-                        stroke="rgba(139, 92, 246, 0.3)"
+                        stroke="rgba(106, 61, 143, 0.3)"
                         strokeDasharray="3 3"
                       />
                       <Area
                         type="monotone"
                         dataKey="equity"
-                        stroke="#a855f7"
+                        stroke="#6A3D8F"
                         strokeWidth={2}
                         fillOpacity={1}
                         fill="url(#colorEquity)"
@@ -482,15 +457,15 @@ function EquityChart({
                     </AreaChart>
                   ) : (
                     <BarChart data={barChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(106, 61, 143, 0.08)" vertical={false} />
                       <XAxis
                         dataKey="date"
-                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                        axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
+                        tick={{ fill: '#80808A', fontSize: 11 }}
+                        axisLine={{ stroke: 'rgba(106, 61, 143, 0.1)' }}
                         tickLine={false}
                       />
                       <YAxis
-                        tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                        tick={{ fill: '#80808A', fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(value) =>
@@ -499,22 +474,22 @@ function EquityChart({
                       />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          backgroundColor: '#1C1C1F',
+                          border: '1px solid rgba(106, 61, 143, 0.3)',
                           borderRadius: '0.75rem',
-                          boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+                          boxShadow: '0 8px 24px rgba(106, 61, 143, 0.15)',
                           fontSize: '13px',
                         }}
-                        labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }}
+                        labelStyle={{ color: '#c4a0e8' }}
                         formatter={(value: any) => [formatValuta(Number(value) || 0), 'P&L']}
                         labelFormatter={(label) => `Data: ${label}`}
                       />
-                      <ReferenceLine y={0} stroke="rgba(139, 92, 246, 0.3)" strokeDasharray="3 3" />
+                      <ReferenceLine y={0} stroke="rgba(106, 61, 143, 0.3)" strokeDasharray="3 3" />
                       <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                         {barChartData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={entry.pnl >= 0 ? '#8b5cf6' : '#ef4444'}
+                            fill={entry.pnl >= 0 ? '#6A3D8F' : '#DC2626'}
                           />
                         ))}
                       </Bar>
@@ -552,15 +527,15 @@ function PerformanceMetricsCard({
   if (!metriche && (!data || data.length === 0)) {
     return (
       <motion.div variants={itemVariants}>
-        <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
+        <Card className="h-full border border-[#2D2D32] bg-[#1C1C1F]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
-              <BarChart3 className="w-5 h-5 text-violet-600 dark:text-violet-300" />
+            <CardTitle className="flex items-center gap-2 text-[#F8F8FF]">
+              <BarChart3 className="w-5 h-5 text-[#c4a0e8]" />
               Performance
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-violet-600/80 dark:text-gray-300">
+            <div className="text-center py-8 text-[#80808A]">
               Nessun dato di performance disponibile
             </div>
           </CardContent>
@@ -571,21 +546,18 @@ function PerformanceMetricsCard({
 
   return (
     <motion.div variants={itemVariants} className="h-full">
-      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl flex flex-col">
-        {/* Background effects */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-purple-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
-
-        <CardHeader className="relative z-10 pb-2">
+      <Card className="h-full border border-[#2D2D32] bg-[#1C1C1F] hover:border-[#6A3D8F]/30 transition-all duration-300 overflow-hidden rounded-xl flex flex-col">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                <BarChart3 className="h-4 w-4 text-violet-500" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#46265F]/20">
+                <BarChart3 className="h-4 w-4 text-[#c4a0e8]" />
               </div>
               <div>
-                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                <CardTitle className="text-base sm:text-lg font-semibold text-[#c4a0e8]">
                   Performance
                 </CardTitle>
-                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                <CardDescription className="text-xs text-[#80808A] mt-0.5">
                   Win Rate e Profit Factor
                 </CardDescription>
               </div>
@@ -593,37 +565,37 @@ function PerformanceMetricsCard({
           </div>
         </CardHeader>
 
-        <CardContent className="relative z-10 pt-0 flex-1 flex items-center justify-center">
-          <div className="w-full bg-white/30 dark:bg-gray-900/30 rounded-xl p-4 sm:p-6">
+        <CardContent className="pt-0 flex-1 flex items-center justify-center">
+          <div className="w-full rounded-xl p-4 sm:p-6">
             <div className="flex flex-row gap-6 sm:gap-8 justify-center items-center">
               {/* Win Rate */}
               <div className="flex flex-col items-center">
-                <span className="mb-2 px-2.5 py-0.5 bg-white dark:bg-gray-800 rounded-full text-xs font-medium text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50">
+                <span className="mb-2 px-2.5 py-0.5 bg-[#1C1C1F] rounded-full text-xs font-medium text-[#c4a0e8] border border-[#2D2D32]">
                   Win Rate
                 </span>
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
                   <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(139, 92, 246, 0.1)" strokeWidth="8" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(106, 61, 143, 0.15)" strokeWidth="8" />
                     <circle
                       cx="50"
                       cy="50"
                       r="40"
                       fill="none"
-                      stroke="#8b5cf6"
+                      stroke="#6A3D8F"
                       strokeWidth="8"
                       strokeDasharray={`${(winRate / 100) * 251.2} 251.2`}
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-lg sm:text-xl font-bold text-violet-700 dark:text-violet-300">
+                    <span className="text-lg sm:text-xl font-bold text-[#c4a0e8]">
                       {Math.round(winRate)}%
                     </span>
                   </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-1.5">
-                  <div className={`h-2 w-2 rounded-full ${winRate > 50 ? 'bg-green-500' : 'bg-amber-500'}`} />
-                  <span className="text-xs text-violet-700 dark:text-violet-300">
+                  <div className={`h-2 w-2 rounded-full ${winRate > 50 ? 'bg-[#22C55E]' : 'bg-amber-500'}`} />
+                  <span className="text-xs text-[#80808A]">
                     {winRate > 50 ? 'Buona' : 'Migliorabile'}
                   </span>
                 </div>
@@ -631,32 +603,32 @@ function PerformanceMetricsCard({
 
               {/* Profit Factor */}
               <div className="flex flex-col items-center">
-                <span className="mb-2 px-2.5 py-0.5 bg-white dark:bg-gray-800 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50">
+                <span className="mb-2 px-2.5 py-0.5 bg-[#1C1C1F] rounded-full text-xs font-medium text-[#c4a0e8] border border-[#2D2D32]">
                   Profit Factor
                 </span>
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
                   <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(139, 92, 246, 0.1)" strokeWidth="8" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(106, 61, 143, 0.15)" strokeWidth="8" />
                     <circle
                       cx="50"
                       cy="50"
                       r="40"
                       fill="none"
-                      stroke="#a855f7"
+                      stroke="#6A3D8F"
                       strokeWidth="8"
                       strokeDasharray={`${Math.min((profitFactor / 2.5) * 251.2, 251.2)} 251.2`}
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-lg sm:text-xl font-bold text-purple-700 dark:text-purple-300">
+                    <span className="text-lg sm:text-xl font-bold text-[#c4a0e8]">
                       {profitFactor.toFixed(1)}x
                     </span>
                   </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-1.5">
-                  <div className={`h-2 w-2 rounded-full ${profitFactor > 1.5 ? 'bg-green-500' : 'bg-amber-500'}`} />
-                  <span className="text-xs text-purple-700 dark:text-purple-300">
+                  <div className={`h-2 w-2 rounded-full ${profitFactor > 1.5 ? 'bg-[#22C55E]' : 'bg-amber-500'}`} />
+                  <span className="text-xs text-[#80808A]">
                     {profitFactor > 1.5 ? 'Buona' : 'Migliorabile'}
                   </span>
                 </div>
@@ -679,7 +651,6 @@ function StrategieSection({
   equityData: StrategyEquityPoint[];
   equityLines: StrategyLineInfo[];
 }) {
-  const { resolvedTheme: theme } = useTheme();
   // Track which strategy lines are visible (all visible by default)
   const [visibleLines, setVisibleLines] = useState<Set<string>>(() => {
     return new Set(equityLines.map((l) => l.key));
@@ -696,15 +667,15 @@ function StrategieSection({
   if (!hasPerformanceData && !hasEquityData) {
     return (
       <motion.div variants={itemVariants}>
-        <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622]">
+        <Card className="border border-[#2D2D32] bg-[#1C1C1F]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
-              <Target className="w-5 h-5 text-violet-600 dark:text-violet-300" />
+            <CardTitle className="flex items-center gap-2 text-[#F8F8FF]">
+              <Target className="w-5 h-5 text-[#c4a0e8]" />
               Strategie
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-violet-600/80 dark:text-gray-300">
+            <div className="text-center py-8 text-[#80808A]">
               Nessuna strategia trovata. Associa una strategia alle tue operazioni per vederla qui.
             </div>
           </CardContent>
@@ -724,7 +695,7 @@ function StrategieSection({
   // Match table strategy colors with equity lines
   const getStrategyColor = (stratId: string) => {
     const line = equityLines.find(l => l.key === `s_${stratId.slice(0, 8)}`);
-    return line?.colore || '#8b5cf6';
+    return line?.colore || '#6A3D8F';
   };
 
   const getStrategyKey = (stratId: string) => {
@@ -749,26 +720,24 @@ function StrategieSection({
 
   return (
     <motion.div variants={itemVariants}>
-      <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-cyan-500/5 dark:from-violet-500/10 dark:via-transparent dark:to-cyan-500/10 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
-
-        <CardHeader className="relative z-10 pb-3">
+      <Card className="border border-[#2D2D32] bg-[#1C1C1F] hover:border-[#6A3D8F]/30 transition-all duration-300 overflow-hidden rounded-xl">
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 dark:from-violet-500/20 dark:to-purple-500/20">
-              <Target className="h-4.5 w-4.5 text-violet-600 dark:text-violet-300" />
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#46265F]/20">
+              <Target className="h-4 w-4 text-[#c4a0e8]" />
             </div>
             <div>
-              <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+              <CardTitle className="text-base sm:text-lg font-semibold text-[#c4a0e8]">
                 Strategie
               </CardTitle>
-              <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+              <CardDescription className="text-xs text-[#80808A] mt-0.5">
                 Equity e performance &mdash; clicca una riga per attivare/disattivare la linea
               </CardDescription>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="relative z-10 pt-0 space-y-4">
+        <CardContent className="pt-0 space-y-4">
           {/* ── Equity Chart ── */}
           {hasEquityData ? (
             <div className="w-full h-56 sm:h-64">
@@ -777,31 +746,19 @@ function StrategieSection({
                   data={chartData}
                   margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
                 >
-                  <defs>
-                    {equityLines.map((line) => (
-                      <linearGradient
-                        key={`grad_${line.key}`}
-                        id={`grad_${line.key}`}
-                        x1="0" y1="0" x2="0" y2="1"
-                      >
-                        <stop offset="5%" stopColor={line.colore} stopOpacity={0.15} />
-                        <stop offset="95%" stopColor={line.colore} stopOpacity={0} />
-                      </linearGradient>
-                    ))}
-                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="rgba(139, 92, 246, 0.08)"
+                    stroke="rgba(106, 61, 143, 0.08)"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="dateLabel"
-                    tick={{ fill: '#8b8b9f', fontSize: 11 }}
-                    axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }}
+                    tick={{ fill: '#80808A', fontSize: 11 }}
+                    axisLine={{ stroke: 'rgba(106, 61, 143, 0.1)' }}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: '#8b8b9f', fontSize: 11 }}
+                    tick={{ fill: '#80808A', fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(value) =>
@@ -812,15 +769,15 @@ function StrategieSection({
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
-                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      backgroundColor: '#1C1C1F',
+                      border: '1px solid rgba(106, 61, 143, 0.3)',
                       borderRadius: '0.75rem',
-                      boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+                      boxShadow: '0 8px 24px rgba(106, 61, 143, 0.15)',
                       fontSize: '12px',
                       padding: '10px 14px',
                     }}
                     labelStyle={{
-                      color: theme === 'dark' ? '#a78bfa' : '#8b5cf6',
+                      color: '#c4a0e8',
                       fontWeight: 600,
                       marginBottom: '6px',
                     }}
@@ -836,7 +793,7 @@ function StrategieSection({
                   />
                   <ReferenceLine
                     y={0}
-                    stroke="rgba(139, 92, 246, 0.25)"
+                    stroke="rgba(106, 61, 143, 0.25)"
                     strokeDasharray="3 3"
                   />
                   {equityLines.map((line) => (
@@ -852,7 +809,7 @@ function StrategieSection({
                           ? {
                               r: 5,
                               fill: line.colore,
-                              stroke: theme === 'dark' ? '#161622' : '#ffffff',
+                              stroke: '#1C1C1F',
                               strokeWidth: 2,
                             }
                           : false
@@ -864,7 +821,7 @@ function StrategieSection({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-40 flex items-center justify-center text-violet-600/80 dark:text-gray-300">
+            <div className="h-40 flex items-center justify-center text-[#80808A]">
               <p className="text-sm text-center">
                 Servono almeno 2 operazioni per strategia per visualizzare il grafico.
               </p>
@@ -872,7 +829,7 @@ function StrategieSection({
           )}
 
           {/* ── Divider ── */}
-          <div className="border-t border-violet-200/20 dark:border-violet-500/10" />
+          <div className="border-t border-[#2D2D32]" />
 
           {/* ── Performance Table ── */}
           {hasPerformanceData ? (
@@ -880,20 +837,20 @@ function StrategieSection({
               <div className="inline-block min-w-full px-4 sm:px-6">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-violet-200/40 dark:border-violet-500/20">
-                      <th className="text-left py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                    <tr className="border-b border-[#2D2D32]">
+                      <th className="text-left py-2 px-3 font-semibold text-[#80808A] text-xs uppercase tracking-wider">
                         Strategia
                       </th>
-                      <th className="text-center py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden sm:table-cell">
+                      <th className="text-center py-2 px-3 font-semibold text-[#80808A] text-xs uppercase tracking-wider hidden sm:table-cell">
                         Op.
                       </th>
-                      <th className="text-center py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                      <th className="text-center py-2 px-3 font-semibold text-[#80808A] text-xs uppercase tracking-wider">
                         Win Rate
                       </th>
-                      <th className="text-center py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider hidden md:table-cell">
+                      <th className="text-center py-2 px-3 font-semibold text-[#80808A] text-xs uppercase tracking-wider hidden md:table-cell">
                         PF
                       </th>
-                      <th className="text-right py-2 px-3 font-semibold text-violet-600 dark:text-violet-300 text-xs uppercase tracking-wider">
+                      <th className="text-right py-2 px-3 font-semibold text-[#80808A] text-xs uppercase tracking-wider">
                         P&L
                       </th>
                     </tr>
@@ -911,9 +868,9 @@ function StrategieSection({
                           key={row.strategia_id}
                           onClick={() => toggleStrategyVisibility(row.strategia_id || '')}
                           className={cn(
-                            'border-b border-violet-200/20 dark:border-violet-500/10 transition-all duration-200 cursor-pointer select-none',
+                            'border-b border-[#2D2D32]/30 transition-all duration-200 cursor-pointer select-none',
                             isVisible
-                              ? 'hover:bg-violet-50/50 dark:hover:bg-violet-900/10'
+                              ? 'hover:bg-[#46265F]/10'
                               : 'opacity-40 hover:opacity-60'
                           )}
                         >
@@ -922,7 +879,7 @@ function StrategieSection({
                               <div
                                 className={cn(
                                   'w-2.5 h-2.5 rounded-full shrink-0 transition-all duration-200',
-                                  isVisible ? 'scale-100' : 'scale-75 ring-1 ring-gray-400/30'
+                                  isVisible ? 'scale-100' : 'scale-75'
                                 )}
                                 style={{
                                   backgroundColor: isVisible ? stratColor : 'transparent',
@@ -931,28 +888,28 @@ function StrategieSection({
                                   borderStyle: 'solid',
                                 }}
                               />
-                              <span className="text-violet-700 dark:text-white text-sm font-medium truncate max-w-[140px] sm:max-w-none">
+                              <span className="text-[#F8F8FF] text-sm font-medium truncate max-w-[140px] sm:max-w-none">
                                 {row.nome_strategia || 'Senza Strategia'}
                               </span>
                               {!isVisible && (
-                                <span className="text-[10px] text-gray-400 dark:text-gray-600 italic">
+                                <span className="text-[10px] text-[#80808A] italic">
                                   nascosta
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="text-center py-2.5 px-3 text-violet-600/80 dark:text-gray-300 hidden sm:table-cell">
+                          <td className="text-center py-2.5 px-3 text-[#80808A] hidden sm:table-cell">
                             {row.totale_operazioni || 0}
                           </td>
                           <td className="text-center py-2.5 px-3">
                             <div className="flex items-center justify-center gap-1.5">
                               <div className={cn(
                                 'h-1.5 w-1.5 rounded-full',
-                                (row.win_rate || 0) >= 50 ? 'bg-emerald-500' : 'bg-red-500'
+                                (row.win_rate || 0) >= 50 ? 'bg-[#22C55E]' : 'bg-[#DC2626]'
                               )} />
                               <span className={cn(
                                 'font-semibold text-sm',
-                                (row.win_rate || 0) >= 50 ? 'text-emerald-500' : 'text-red-500'
+                                (row.win_rate || 0) >= 50 ? 'text-[#22C55E]' : 'text-[#DC2626]'
                               )}>
                                 {row.win_rate ? formatPercentuale(row.win_rate / 100) : '0%'}
                               </span>
@@ -961,7 +918,7 @@ function StrategieSection({
                           <td className="text-center py-2.5 px-3 hidden md:table-cell">
                             <span className={cn(
                               'font-semibold text-sm',
-                              (row.profit_factor || 0) >= 1.5 ? 'text-emerald-500' : 'text-red-500'
+                              (row.profit_factor || 0) >= 1.5 ? 'text-[#22C55E]' : 'text-[#DC2626]'
                             )}>
                               {(row.profit_factor || 0).toFixed(2)}
                             </span>
@@ -969,7 +926,7 @@ function StrategieSection({
                           <td className="text-right py-2.5 px-3">
                             <span className={cn(
                               'font-bold text-sm',
-                              isPositive ? 'text-emerald-500' : 'text-red-500'
+                              isPositive ? 'text-[#22C55E]' : 'text-[#DC2626]'
                             )}>
                               {isPositive ? '+' : ''}{formatValuta(pnl)}
                             </span>
@@ -982,7 +939,7 @@ function StrategieSection({
               </div>
             </div>
           ) : (
-            <div className="text-center py-4 text-violet-600/80 dark:text-gray-300 text-sm">
+            <div className="text-center py-4 text-[#80808A] text-sm">
               Nessuna strategia trovata
             </div>
           )}
@@ -992,7 +949,7 @@ function StrategieSection({
   );
 }
 
-/* ─── Best/Worst Trades (FIXED) ─── */
+/* ─── Best/Worst Trades ─── */
 function BestWorstTrades({
   operazioniRecenti,
 }: {
@@ -1000,10 +957,8 @@ function BestWorstTrades({
 }) {
   const [activeTab, setActiveTab] = useState<'best' | 'worst'>('best');
 
-  // All operazioni are already filtered to 'chiusa' by the hook
   const trades = operazioniRecenti;
 
-  // Sort by PnL descending for best, ascending for worst
   const sortedByPnlDesc = useMemo(() => {
     return [...trades].sort((a, b) => {
       const aPnl = a.operazione.pnl || 0;
@@ -1012,12 +967,10 @@ function BestWorstTrades({
     });
   }, [trades]);
 
-  // Best: top 5 with highest (positive) PnL
   const bestTrades = useMemo(() => {
     return sortedByPnlDesc.filter(t => (t.operazione.pnl || 0) > 0).slice(0, 5);
   }, [sortedByPnlDesc]);
 
-  // Worst: bottom 5 with lowest (most negative) PnL
   const worstTrades = useMemo(() => {
     return [...trades]
       .filter(t => (t.operazione.pnl || 0) < 0)
@@ -1029,25 +982,18 @@ function BestWorstTrades({
 
   return (
     <motion.div variants={itemVariants} className="h-full">
-      <Card className="h-full border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-300 overflow-hidden group relative rounded-xl flex flex-col">
-        {/* Dynamic gradient */}
-        <div className={`absolute inset-0 bg-gradient-to-br transition-colors duration-300 opacity-60 group-hover:opacity-100 ${
-          activeTab === 'best'
-            ? 'from-green-500/5 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10'
-            : 'from-red-500/5 to-rose-500/5 dark:from-red-500/10 dark:to-rose-500/10'
-        }`} />
-
-        <CardHeader className="relative z-10 pb-2">
+      <Card className="h-full border border-[#2D2D32] bg-[#1C1C1F] hover:border-[#6A3D8F]/30 transition-all duration-300 overflow-hidden rounded-xl flex flex-col">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                <Trophy className="h-4 w-4 text-violet-500" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#46265F]/20">
+                <Trophy className="h-4 w-4 text-[#c4a0e8]" />
               </div>
               <div>
-                <CardTitle className="text-base sm:text-lg font-semibold text-violet-700 dark:text-violet-300">
+                <CardTitle className="text-base sm:text-lg font-semibold text-[#c4a0e8]">
                   Migliori e Peggiori
                 </CardTitle>
-                <CardDescription className="text-xs text-violet-600/70 dark:text-gray-400 mt-0.5">
+                <CardDescription className="text-xs text-[#80808A] mt-0.5">
                   Top e Flop per P&L
                 </CardDescription>
               </div>
@@ -1055,15 +1001,15 @@ function BestWorstTrades({
           </div>
         </CardHeader>
 
-        <CardContent className="relative z-10 pt-0 flex-1 flex flex-col">
-          <div className="flex gap-1 border-b border-violet-200/40 dark:border-violet-500/20 mb-3">
+        <CardContent className="pt-0 flex-1 flex flex-col">
+          <div className="flex gap-1 border-b border-[#2D2D32] mb-3">
             <button
               onClick={() => setActiveTab('best')}
               className={cn(
                 'px-3 py-2 font-medium text-sm border-b-2 transition-colors',
                 activeTab === 'best'
-                  ? 'border-emerald-400 text-emerald-500 dark:text-emerald-400'
-                  : 'border-transparent text-violet-600/80 dark:text-gray-400 hover:text-violet-700 dark:hover:text-white'
+                  ? 'border-[#22C55E] text-[#22C55E]'
+                  : 'border-transparent text-[#80808A] hover:text-[#F8F8FF]'
               )}
             >
               Migliori ({bestTrades.length})
@@ -1073,8 +1019,8 @@ function BestWorstTrades({
               className={cn(
                 'px-3 py-2 font-medium text-sm border-b-2 transition-colors',
                 activeTab === 'worst'
-                  ? 'border-red-400 text-red-500 dark:text-red-400'
-                  : 'border-transparent text-violet-600/80 dark:text-gray-400 hover:text-violet-700 dark:hover:text-white'
+                  ? 'border-[#DC2626] text-[#DC2626]'
+                  : 'border-transparent text-[#80808A] hover:text-[#F8F8FF]'
               )}
             >
               Peggiori ({worstTrades.length})
@@ -1091,7 +1037,7 @@ function BestWorstTrades({
               className="space-y-2 flex-1"
             >
               {displayTrades.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-violet-600/80 dark:text-gray-400">
+                <div className="flex flex-col items-center justify-center py-8 text-[#80808A]">
                   {activeTab === 'best' ? (
                     <>
                       <TrendingUp className="h-8 w-8 mb-2 opacity-40" />
@@ -1112,32 +1058,32 @@ function BestWorstTrades({
                   return (
                     <div
                       key={trade.operazione.id}
-                      className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-white/50 dark:bg-gray-900/50 hover:bg-white/70 dark:hover:bg-gray-900/70 transition-colors border border-violet-200/20 dark:border-violet-500/10"
+                      className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-[#0F0F11]/50 hover:bg-[#0F0F11]/80 transition-colors border border-[#2D2D32]/40"
                     >
                       <div className="flex items-center gap-2.5 flex-1 min-w-0">
                         <div className={cn(
                           'w-1.5 h-8 rounded-full shrink-0',
-                          isPositive ? 'bg-emerald-500' : 'bg-red-500'
+                          isPositive ? 'bg-[#22C55E]' : 'bg-[#DC2626]'
                         )} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-semibold text-sm text-violet-700 dark:text-white">
+                            <span className="font-mono font-semibold text-sm text-[#F8F8FF]">
                               {trade.operazione.ticker}
                             </span>
                             {trade.strategia && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-300 truncate max-w-[80px]">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#46265F]/15 text-[#c4a0e8] truncate max-w-[80px]">
                                 {trade.strategia.nome}
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-violet-600/70 dark:text-gray-400 mt-0.5">
+                          <div className="text-[11px] text-[#80808A] mt-0.5">
                             {formatData(trade.operazione.data)}
                           </div>
                         </div>
                       </div>
                       <div className={cn(
                         'text-right font-semibold text-sm shrink-0 ml-2',
-                        isPositive ? 'text-emerald-500' : 'text-red-500'
+                        isPositive ? 'text-[#22C55E]' : 'text-[#DC2626]'
                       )}>
                         {formatValuta(pnl)}
                       </div>
@@ -1173,7 +1119,6 @@ export default function DashboardPage() {
 
   const [isLoaded, setIsLoaded] = useState(false);
   const [mainChartType, setMainChartType] = useState<'line' | 'bar'>('line');
-  const [activeTab, setActiveTab] = useState('panoramica');
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 100);
@@ -1200,31 +1145,9 @@ export default function DashboardPage() {
     >
       {/* Top bar: Tabs + Date Filter */}
       <motion.div
-        className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sticky top-0 z-10 py-2.5 px-3 sm:px-4 bg-white/95 dark:bg-[#161622]/95 border-gray-200/80 dark:border-violet-500/20 backdrop-blur-md rounded-xl border shadow-sm"
+        className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sticky top-0 z-10 py-2.5 px-3 sm:px-4 bg-[#1C1C1F] border border-[#2D2D32] rounded-xl"
         variants={itemVariants}
       >
-        <div className="shrink-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="bg-gray-50/80 dark:bg-gray-900/80 p-1 rounded-lg border border-violet-200/30 dark:border-violet-500/30">
-              <TabsTrigger
-                value="panoramica"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-300 rounded-md transition-all duration-200 flex items-center gap-1.5 text-sm px-3 py-1.5"
-              >
-                <BarChart3 className="h-3.5 w-3.5" />
-                <span>Panoramica</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="progressi"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-300 rounded-md transition-all duration-200 flex items-center gap-1.5 text-sm px-3 py-1.5"
-              >
-                <LineChartIcon className="h-3.5 w-3.5" />
-                <span>Progressi</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div className="hidden sm:block h-5 w-px bg-violet-200/40 dark:bg-violet-700/30 shrink-0" />
 
         <div className="flex-1 overflow-x-auto">
           <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
@@ -1233,7 +1156,6 @@ export default function DashboardPage() {
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {activeTab === 'panoramica' && (
           <motion.div
             key="panoramica"
             variants={itemVariants}
@@ -1243,7 +1165,7 @@ export default function DashboardPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            {/* 4 KPI Cards — Win Rate removed, Total Commissions added */}
+            {/* 4 KPI Cards */}
             <motion.div
               className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
               variants={fadeInUp}
@@ -1256,36 +1178,28 @@ export default function DashboardPage() {
                 value={formatValuta(netPnl)}
                 icon={
                   netPnl >= 0
-                    ? <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                    : <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                    ? <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#22C55E]" />
+                    : <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-[#DC2626]" />
                 }
-                gradientFrom="from-green-500/5"
-                gradientTo="to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/10"
               />
 
               <KPICard
                 label="Commissioni Pagate"
                 value={formatValuta(totaleCommissioni)}
-                icon={<DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
-                gradientFrom="from-amber-500/5"
-                gradientTo="to-orange-500/5 dark:from-amber-500/10 dark:to-orange-500/10"
+                icon={<DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
                 subtitle="Totale costi"
               />
 
               <KPICard
                 label="Trade Totali"
                 value={totalTrades}
-                icon={<Hash className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />}
-                gradientFrom="from-violet-500/5"
-                gradientTo="to-purple-500/5 dark:from-violet-500/10 dark:to-purple-500/10"
+                icon={<Hash className="w-4 h-4 sm:w-5 sm:h-5 text-[#c4a0e8]" />}
               />
 
               <KPICard
                 label="Giorni di Trading"
                 value={equityData.length}
-                icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />}
-                gradientFrom="from-blue-500/5"
-                gradientTo="to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10"
+                icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />}
               />
             </motion.div>
 
@@ -1310,7 +1224,7 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            {/* Row 3: Strategie (chart+table unified) + Best/Worst Trades */}
+            {/* Row 3: Strategie + Best/Worst Trades */}
             <motion.div
               className="grid gap-4 sm:gap-5 lg:grid-cols-5"
               variants={fadeInUp}
@@ -1331,50 +1245,13 @@ export default function DashboardPage() {
               </div>
             </motion.div>
           </motion.div>
-        )}
-
-        {activeTab === 'progressi' && (
-          <motion.div
-            key="progressi"
-            variants={itemVariants}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="w-full"
-          >
-            <Card className="border border-violet-200/40 dark:border-violet-500/20 bg-white/95 dark:bg-[#161622] backdrop-blur-md">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-violet-700 dark:text-white">
-                  <LineChartIcon className="h-5 w-5 text-violet-500" />
-                  Progressi
-                </CardTitle>
-                <CardDescription className="text-violet-600/80 dark:text-gray-300">
-                  Funzionalità in arrivo
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
-                  <LineChartIcon className="h-12 w-12 sm:h-16 sm:w-16 text-violet-200 dark:text-violet-800 mb-4" />
-                  <h3 className="text-lg sm:text-xl font-medium mb-2 text-violet-700 dark:text-white">
-                    Funzionalità in sviluppo
-                  </h3>
-                  <p className="text-sm text-violet-600/80 dark:text-gray-300 max-w-md">
-                    Questa sezione mostrerà i tuoi progressi nel trading nel tempo. Stiamo lavorando per renderla
-                    disponibile presto.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
       </AnimatePresence>
 
       {/* Error message */}
       {errore && (
         <motion.div
           variants={itemVariants}
-          className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 dark:text-red-400 text-sm"
+          className="p-4 rounded-lg bg-[#DC2626]/10 border border-[#DC2626]/30 text-[#DC2626] text-sm"
         >
           {errore}
         </motion.div>

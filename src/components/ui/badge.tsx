@@ -5,25 +5,26 @@ import { cn } from '@/lib/utils';
 
 /**
  * Definisce le varianti del Badge usando CVA
- * Supporta varianti: default, secondary, success, danger, warning, outline
+ * GG Tracker Design System — colori semantici senza glassmorphism
+ * Supporta varianti: default, secondary, success, destructive, warning, outline
  */
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[#6A3D8F] focus:ring-offset-2',
   {
     variants: {
       variant: {
         default:
-          'border border-transparent bg-[#7F00FF] text-white hover:bg-[#6B00D4] dark:bg-[#7F00FF] dark:text-white dark:hover:bg-[#6B00D4]',
+          'bg-[#46265F]/30 text-[#c4a0e8] border border-[#6A3D8F]/20',
         secondary:
-          'border border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-[#1e1e2e] dark:text-gray-300 dark:hover:bg-[#2a2a3e]',
+          'bg-[#1C1C1F] border border-[#2D2D32] text-[#80808A]',
         destructive:
-          'border border-transparent bg-[#FF4757] text-white hover:bg-[#E63946] dark:bg-[#FF4757] dark:text-white dark:hover:bg-[#E63946]',
+          'bg-[#DC2626]/15 border border-[#DC2626]/30 text-[#DC2626]',
         outline:
-          'border border-primary-600 text-primary-700 dark:border-[#7F00FF] dark:text-[#7F00FF]',
+          'border border-[#6A3D8F]/40 text-[#c4a0e8] bg-transparent',
         success:
-          'border border-transparent bg-[#2ecc71] text-white hover:bg-[#27ae60] dark:bg-[#2ecc71] dark:text-white dark:hover:bg-[#27ae60]',
+          'bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E]',
         warning:
-          'border border-transparent bg-[#f39c12] text-white hover:bg-[#e67e22] dark:bg-[#f39c12] dark:text-white dark:hover:bg-[#e67e22]',
+          'bg-[#f39c12]/15 border border-[#f39c12]/30 text-[#f39c12]',
       },
     },
     defaultVariants: {
@@ -43,7 +44,7 @@ export interface BadgeProps
 
 /**
  * Componente Badge riutilizzabile con varianti multiple
- * Disponibili: default (viola), secondary, success (verde), danger (rosso),
+ * Disponibili: default (viola), secondary, success (verde), destructive (rosso),
  * warning (giallo), outline
  *
  * @example

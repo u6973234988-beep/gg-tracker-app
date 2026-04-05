@@ -79,12 +79,12 @@ export function TabellaOperazioni({
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/60 dark:bg-[#161622]/60 overflow-hidden">
+      <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] overflow-hidden">
         <div className="p-6 space-y-3">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="w-4 h-4 rounded bg-violet-200/30 dark:bg-violet-900/20 animate-pulse" />
-              <div className="h-10 flex-1 bg-violet-200/20 dark:bg-violet-900/10 rounded-lg animate-pulse" />
+              <div className="w-4 h-4 rounded bg-[#46265F]/20 animate-pulse" />
+              <div className="h-10 flex-1 bg-[#46265F]/10 rounded-lg animate-pulse" />
             </div>
           ))}
         </div>
@@ -94,10 +94,10 @@ export function TabellaOperazioni({
 
   if (operazioni.length === 0) {
     return (
-      <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/60 dark:bg-[#161622]/60 overflow-hidden">
+      <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] overflow-hidden">
         <div className="p-16 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
-            <BarChart2 className="w-7 h-7 text-violet-400" />
+          <div className="w-14 h-14 rounded-2xl bg-[#46265F]/10 flex items-center justify-center mx-auto mb-4">
+            <BarChart2 className="w-7 h-7 text-[#c4a0e8]" />
           </div>
           <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
             Nessuna operazione trovata
@@ -121,11 +121,11 @@ export function TabellaOperazioni({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/60 dark:bg-[#161622]/60 overflow-hidden">
+      <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-violet-200/20 dark:border-violet-500/10 bg-violet-50/40 dark:bg-violet-900/10">
+              <TableRow className="border-b border-[#2D2D32] bg-[#46265F]/10">
                 <TableHead className="w-10 pl-3">
                   {selectionEnabled ? (
                     <button
@@ -133,10 +133,10 @@ export function TabellaOperazioni({
                       className={cn(
                         'flex items-center justify-center w-[18px] h-[18px] rounded border-2 transition-all duration-200',
                         allPageSelected
-                          ? 'bg-violet-500 border-violet-500 text-white shadow-sm shadow-violet-500/30'
+                          ? 'bg-[#46265F] border-[#46265F] text-white shadow-sm'
                           : somePageSelected
-                            ? 'bg-violet-500/30 border-violet-400 text-white'
-                            : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-400'
+                            ? 'bg-[#46265F]/30 border-[#6A3D8F] text-white'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-[#6A3D8F]'
                       )}
                     >
                       {allPageSelected ? (
@@ -147,15 +147,15 @@ export function TabellaOperazioni({
                     </button>
                   ) : null}
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Data</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Ticker</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Dir.</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Entrata</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Uscita</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Qty</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">P&L</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Strategia</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80 text-right pr-3">Azioni</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Data</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Ticker</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Dir.</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Entrata</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Uscita</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Qty</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">P&L</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Strategia</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8] text-right pr-3">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -175,10 +175,10 @@ export function TabellaOperazioni({
                       exit={{ opacity: 0 }}
                       transition={{ delay: idx * 0.02 }}
                       className={cn(
-                        'border-b border-violet-200/10 dark:border-violet-500/5 transition-colors group cursor-pointer',
+                        'border-b border-[#2D2D32]/10 transition-colors group cursor-pointer',
                         isSelected
-                          ? 'bg-violet-50/60 dark:bg-violet-500/10 hover:bg-violet-100/60 dark:hover:bg-violet-500/15'
-                          : 'hover:bg-violet-50/30 dark:hover:bg-violet-900/10'
+                          ? 'bg-[#46265F]/10 hover:bg-[#46265F]/15'
+                          : 'hover:bg-[#46265F]/10'
                       )}
                       onClick={() => {
                         if (selectionEnabled) toggleSelect(op.id);
@@ -192,8 +192,8 @@ export function TabellaOperazioni({
                             className={cn(
                               'flex items-center justify-center w-[18px] h-[18px] rounded border-2 transition-all duration-200',
                               isSelected
-                                ? 'bg-violet-500 border-violet-500 text-white shadow-sm shadow-violet-500/30'
-                                : 'border-gray-300 dark:border-gray-600 group-hover:border-violet-400 dark:group-hover:border-violet-400'
+                                ? 'bg-[#46265F] border-[#46265F] text-white shadow-sm'
+                                : 'border-gray-300 dark:border-gray-600 group-hover:border-[#6A3D8F]'
                             )}
                           >
                             {isSelected && <Check className="w-2.5 h-2.5" />}
@@ -201,12 +201,12 @@ export function TabellaOperazioni({
                         ) : (
                           <div className={cn(
                             'w-5 h-5 rounded flex items-center justify-center transition-colors',
-                            isExpanded ? 'bg-violet-100 dark:bg-violet-500/20' : 'opacity-0 group-hover:opacity-100'
+                            isExpanded ? 'bg-[#46265F]/20' : 'opacity-0 group-hover:opacity-100'
                           )}>
                             {isExpanded ? (
-                              <ChevronUp className="w-3 h-3 text-violet-600 dark:text-violet-400" />
+                              <ChevronUp className="w-3 h-3 text-[#c4a0e8]" />
                             ) : (
-                              <ChevronDown className="w-3 h-3 text-violet-600 dark:text-violet-400" />
+                              <ChevronDown className="w-3 h-3 text-[#c4a0e8]" />
                             )}
                           </div>
                         )}
@@ -214,7 +214,7 @@ export function TabellaOperazioni({
                       <TableCell className="text-xs font-medium text-gray-600 dark:text-gray-300">
                         {formatData(op.data)}
                       </TableCell>
-                      <TableCell className="font-mono font-bold text-xs text-violet-700 dark:text-white">
+                      <TableCell className="font-mono font-bold text-xs text-[#F8F8FF]">
                         {op.ticker}
                       </TableCell>
                       <TableCell>
@@ -247,13 +247,13 @@ export function TabellaOperazioni({
                             style={{
                               backgroundColor: op.strategia.colore
                                 ? `${op.strategia.colore}15`
-                                : 'rgba(139, 92, 246, 0.08)',
-                              color: op.strategia.colore || '#8b5cf6',
+                                : 'rgba(70, 38, 95, 0.08)',
+                              color: op.strategia.colore || '#6A3D8F',
                             }}
                           >
                             <div
                               className="w-1.5 h-1.5 rounded-full"
-                              style={{ backgroundColor: op.strategia.colore || '#8b5cf6' }}
+                              style={{ backgroundColor: op.strategia.colore || '#6A3D8F' }}
                             />
                             {op.strategia.nome}
                           </span>
@@ -267,7 +267,7 @@ export function TabellaOperazioni({
                             size="icon"
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); router.push(`/analisi/${op.id}`); }}
-                            className="h-7 w-7 text-violet-500 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-500/10"
+                            className="h-7 w-7 text-[#c4a0e8] hover:text-[#c4a0e8] hover:bg-[#46265F]/10"
                             title="Analisi"
                           >
                             <BarChart2 className="w-3.5 h-3.5" />
@@ -318,10 +318,10 @@ export function TabellaOperazioni({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="border-b border-violet-200/10 dark:border-violet-500/5"
+                    className="border-b border-[#2D2D32]/10"
                   >
                     <TableCell colSpan={10} className="p-0">
-                      <div className="px-4 py-3 bg-violet-50/30 dark:bg-violet-900/5 border-l-2 border-violet-500/30 ml-3">
+                      <div className="px-4 py-3 bg-[#46265F]/5 border-l-2 border-[#6A3D8F]/30 ml-3">
                         {/* Row 1: Key metrics */}
                         <div className="flex flex-wrap items-center gap-4 mb-2">
                           <div className="flex items-center gap-1.5">
@@ -341,7 +341,7 @@ export function TabellaOperazioni({
                           <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase">Stato</span>
-                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-violet-50 dark:bg-violet-500/5 border-violet-200 dark:border-violet-500/20 text-violet-700 dark:text-violet-300">
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-[#46265F]/5 border-[#6A3D8F]/20 text-[#c4a0e8]">
                               {op.stato}
                             </Badge>
                           </div>
@@ -407,7 +407,7 @@ export function TabellaOperazioni({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-500/10"
+              className="h-7 w-7 text-[#c4a0e8] hover:bg-[#46265F]/10"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
@@ -432,8 +432,8 @@ export function TabellaOperazioni({
                     className={cn(
                       'h-7 w-7 rounded text-xs font-medium transition-all',
                       currentPage === page
-                        ? 'bg-violet-500 text-white shadow-sm shadow-violet-500/20'
-                        : 'text-gray-500 dark:text-gray-400 hover:bg-violet-50 dark:hover:bg-violet-500/10'
+                        ? 'bg-[#46265F] text-white shadow-sm'
+                        : 'text-[#80808A] hover:bg-[#46265F]/10'
                     )}
                   >
                     {page}
@@ -444,7 +444,7 @@ export function TabellaOperazioni({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-500/10"
+              className="h-7 w-7 text-[#c4a0e8] hover:bg-[#46265F]/10"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >

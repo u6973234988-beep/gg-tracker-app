@@ -84,14 +84,14 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
           className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border',
             showFilters || hasFilters
-              ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-200/50 dark:border-violet-500/20 text-violet-700 dark:text-violet-300'
-              : 'bg-white/50 dark:bg-gray-800/30 border-violet-200/20 dark:border-violet-500/10 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-200/40 dark:hover:border-violet-500/20'
+              ? 'bg-[#46265F]/10 border-[#6A3D8F]/20 text-[#c4a0e8]'
+              : 'bg-[#1C1C1F] border-[#2D2D32] text-[#80808A] hover:text-[#c4a0e8] hover:border-[#6A3D8F]/20'
           )}
         >
           <SlidersHorizontal className="w-3.5 h-3.5" />
           Filtri
           {activeFilterCount > 0 && (
-            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[#46265F] text-white text-[10px] font-bold">
               {activeFilterCount}
             </span>
           )}
@@ -102,7 +102,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
         {!showFilters && hasFilters && (
           <div className="flex items-center gap-1.5 flex-wrap">
             {filtri.ticker && (
-              <Badge variant="outline" className="text-[10px] h-6 gap-1 px-2 bg-violet-50 dark:bg-violet-500/5 border-violet-200/50 dark:border-violet-500/20 text-violet-700 dark:text-violet-300">
+              <Badge variant="outline" className="text-[10px] h-6 gap-1 px-2 bg-[#46265F]/5 border-[#6A3D8F]/20 text-[#c4a0e8]">
                 {filtri.ticker}
                 <button onClick={() => onFiltriChange({ ...filtri, ticker: undefined })} className="hover:text-red-500 transition-colors">
                   <X className="w-2.5 h-2.5" />
@@ -123,8 +123,8 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
               </Badge>
             )}
             {selectedStrategia && (
-              <Badge variant="outline" className="text-[10px] h-6 gap-1 px-2 bg-violet-50 dark:bg-violet-500/5 border-violet-200/50 dark:border-violet-500/20 text-violet-700 dark:text-violet-300">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedStrategia.colore || '#8b5cf6' }} />
+              <Badge variant="outline" className="text-[10px] h-6 gap-1 px-2 bg-[#46265F]/5 border-[#6A3D8F]/20 text-[#c4a0e8]">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedStrategia.colore || '#6A3D8F' }} />
                 {selectedStrategia.nome}
                 <button onClick={() => onFiltriChange({ ...filtri, strategiaId: undefined })} className="hover:text-red-500 transition-colors">
                   <X className="w-2.5 h-2.5" />
@@ -132,7 +132,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
               </Badge>
             )}
             {(filtri.dataInizio || filtri.dataFine) && (
-              <Badge variant="outline" className="text-[10px] h-6 gap-1 px-2 bg-violet-50 dark:bg-violet-500/5 border-violet-200/50 dark:border-violet-500/20 text-violet-700 dark:text-violet-300">
+              <Badge variant="outline" className="text-[10px] h-6 gap-1 px-2 bg-[#46265F]/5 border-[#6A3D8F]/20 text-[#c4a0e8]">
                 {filtri.dataInizio || '...'} → {filtri.dataFine || '...'}
                 <button onClick={() => onFiltriChange({ ...filtri, dataInizio: undefined, dataFine: undefined })} className="hover:text-red-500 transition-colors">
                   <X className="w-2.5 h-2.5" />
@@ -151,15 +151,15 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
       {/* Expanded filter panel */}
       {showFilters && (
-        <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/40 dark:bg-[#161622]/40 p-4 space-y-4">
+        <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Ticker Search */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Ticker</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Ticker</label>
               <Input
                 type="text"
                 placeholder="es. AAPL"
-                className="h-9 text-xs cyber-input"
+                className="h-9 text-xs"
                 value={filtri.ticker || ''}
                 onChange={(e) =>
                   onFiltriChange({
@@ -172,10 +172,10 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
             {/* Data Inizio */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Da</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Da</label>
               <Input
                 type="date"
-                className="h-9 text-xs cyber-input"
+                className="h-9 text-xs"
                 value={filtri.dataInizio || ''}
                 onChange={(e) =>
                   onFiltriChange({
@@ -188,10 +188,10 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
             {/* Data Fine */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">A</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">A</label>
               <Input
                 type="date"
-                className="h-9 text-xs cyber-input"
+                className="h-9 text-xs"
                 value={filtri.dataFine || ''}
                 onChange={(e) =>
                   onFiltriChange({
@@ -204,7 +204,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
             {/* Direzione */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Direzione</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Direzione</label>
               <Select
                 value={filtri.direzione || 'all'}
                 onValueChange={(value) =>
@@ -237,7 +237,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
 
             {/* Strategia */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-violet-600/80 dark:text-violet-400/80">Strategia</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#c4a0e8]">Strategia</label>
               <Select
                 value={filtri.strategiaId || 'all'}
                 onValueChange={(value) =>
@@ -251,7 +251,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
                   <SelectValue placeholder="Tutte">
                     {selectedStrategia ? (
                       <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedStrategia.colore || '#8b5cf6' }} />
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedStrategia.colore || '#6A3D8F' }} />
                         {selectedStrategia.nome}
                       </span>
                     ) : (
@@ -266,7 +266,7 @@ export function FiltriRegistro({ filtri, onFiltriChange, onReset }: FiltriRegist
                       <span className="flex items-center gap-2">
                         <span
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: s.colore || '#8b5cf6' }}
+                          style={{ backgroundColor: s.colore || '#6A3D8F' }}
                         />
                         {s.nome}
                       </span>

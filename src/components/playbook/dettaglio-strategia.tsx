@@ -71,7 +71,7 @@ const PRESET_GRUPPI: { key: string; label: string; icon: React.ReactNode; color:
   { key: 'entry', label: 'Condizioni di Ingresso', icon: <TrendingUp className="h-4 w-4" />, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20' },
   { key: 'stop_loss', label: 'Stop Loss', icon: <Shield className="h-4 w-4" />, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20' },
   { key: 'take_profit', label: 'Take Profit', icon: <Target className="h-4 w-4" />, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20' },
-  { key: 'condizioni_mercato', label: 'Condizioni di Mercato', icon: <BarChart2 className="h-4 w-4" />, color: 'text-violet-600 dark:text-violet-400', bgColor: 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/20' },
+  { key: 'condizioni_mercato', label: 'Condizioni di Mercato', icon: <BarChart2 className="h-4 w-4" />, color: 'text-[#c4a0e8]', bgColor: 'bg-[#46265F]/10 border-[#6A3D8F]/20' },
 ];
 
 // Lookup veloce per stile gruppo (preset + custom fallback)
@@ -419,7 +419,7 @@ export function DettaglioStrategia({
 
   if (!strategia) return null;
 
-  const borderColor = strategia.colore || '#7F00FF';
+  const borderColor = strategia.colore || '#6A3D8F';
   const opCount = strategia.operazioniCount || 0;
   const winRate = strategia.winRate || 0;
   const profitFactor = strategia.profitFactor || 0;
@@ -489,25 +489,25 @@ export function DettaglioStrategia({
   };
 
   const tooltipStyle = {
-    backgroundColor: theme === 'dark' ? '#1a1a24' : '#ffffff',
-    border: '1px solid rgba(139, 92, 246, 0.3)',
+    backgroundColor: theme === 'dark' ? '#1C1C1F' : '#ffffff',
+    border: '1px solid rgba(106, 61, 143, 0.3)',
     borderRadius: '0.75rem',
-    boxShadow: '0 8px 24px rgba(139, 92, 246, 0.15)',
+    boxShadow: '0 8px 24px rgba(106, 61, 143, 0.15)',
     fontSize: '13px',
   };
 
   return (
     <div className="space-y-0">
       {/* Strategy header */}
-      <div className="p-6 border-b border-gray-200 dark:border-violet-500/15">
+      <div className="p-6 border-b border-gray-200 dark:border-[#2D2D32]">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <button onClick={onBack} className="mt-1 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-violet-500/10 transition-colors">
+            <button onClick={onBack} className="mt-1 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#46265F]/10 transition-colors">
               <ArrowLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-4 h-4 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#1e1e30]" style={{ backgroundColor: borderColor }} />
+                <div className="w-4 h-4 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#1C1C1F]" style={{ backgroundColor: borderColor }} />
                 <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{strategia.nome}</h1>
                 <Badge variant="outline" className={cn('text-xs font-bold', opCount === 0 ? 'border-gray-300 text-gray-500 dark:border-gray-600 dark:text-gray-400' : winRate >= 60 ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' : winRate >= 45 ? 'border-amber-200 text-amber-700 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' : 'border-red-200 text-red-700 bg-red-50 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20')}>
                   {opCount === 0 ? 'Nuova' : winRate >= 60 ? 'Ottima' : winRate >= 45 ? 'Media' : 'Da Migliorare'}
@@ -532,7 +532,7 @@ export function DettaglioStrategia({
                   setExportingPdf(false);
                 }
               }}
-              className="border-violet-200 dark:border-violet-500/30 hover:border-violet-400 text-violet-600 dark:text-violet-400 font-medium"
+              className="border-[#2D2D32] hover:border-[#6A3D8F] text-[#c4a0e8] font-medium"
             >
               {exportingPdf ? (
                 <><span className="animate-spin mr-2">⏳</span>Generazione...</>
@@ -540,7 +540,7 @@ export function DettaglioStrategia({
                 <><Download className="h-4 w-4 mr-2" />Esporta PDF</>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => onEdit(strategia)} className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-700 dark:text-gray-300 font-medium">
+            <Button variant="outline" size="sm" onClick={() => onEdit(strategia)} className="border-gray-200 dark:border-[#2D2D32] hover:border-[#6A3D8F] text-gray-700 dark:text-gray-300 font-medium">
               <Edit2 className="h-4 w-4 mr-2" />Modifica
             </Button>
             <Button variant="outline" size="sm" onClick={() => onDelete(strategia)} disabled={isLoading} className="border-red-200 dark:border-red-500/30 hover:border-red-400 text-red-600 dark:text-red-400 hover:text-red-700 font-medium">
@@ -553,18 +553,18 @@ export function DettaglioStrategia({
 
       {/* Tabs — Ordine: Descrizione → Regole → Performance → Operazioni */}
       <Tabs defaultValue="description" className="w-full">
-        <div className="px-6 pt-4 border-b border-gray-100 dark:border-violet-500/15">
-          <TabsList className="bg-gray-100 dark:bg-gray-800/60 p-1 border border-gray-200 dark:border-violet-500/20">
-            <TabsTrigger value="description" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
+        <div className="px-6 pt-4 border-b border-gray-100 dark:border-[#2D2D32]">
+          <TabsList className="bg-gray-100 dark:bg-gray-800/60 p-1 border border-gray-200 dark:border-[#2D2D32]">
+            <TabsTrigger value="description" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#1C1C1F] data-[state=active]:shadow-sm data-[state=active]:text-[#c4a0e8] font-medium">
               <Edit2 className="h-4 w-4 mr-2" />Descrizione
             </TabsTrigger>
-            <TabsTrigger value="rules" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
+            <TabsTrigger value="rules" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#1C1C1F] data-[state=active]:shadow-sm data-[state=active]:text-[#c4a0e8] font-medium">
               <BookOpen className="h-4 w-4 mr-2" />Regole / Condizioni ({totalRules})
             </TabsTrigger>
-            <TabsTrigger value="performance" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
+            <TabsTrigger value="performance" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#1C1C1F] data-[state=active]:shadow-sm data-[state=active]:text-[#c4a0e8] font-medium">
               <BarChart2 className="h-4 w-4 mr-2" />Performance
             </TabsTrigger>
-            <TabsTrigger value="trades" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#161622] data-[state=active]:shadow-sm data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 font-medium">
+            <TabsTrigger value="trades" className="data-[state=active]:bg-white dark:data-[state=active]:bg-[#1C1C1F] data-[state=active]:shadow-sm data-[state=active]:text-[#c4a0e8] font-medium">
               <Activity className="h-4 w-4 mr-2" />Operazioni ({operazioni.length})
             </TabsTrigger>
           </TabsList>
@@ -579,7 +579,7 @@ export function DettaglioStrategia({
               {/* ═══ COLONNA SINISTRA — Grafici ═══ */}
               <div className="flex-1 min-w-0 space-y-4">
                 {/* Win/Loss bar compatta */}
-                <div className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] p-3">
+                <div className="rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] p-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-green-600 dark:text-green-400 font-bold w-14">{performanceData.winningTrades.length} win</span>
                     <div className="flex-1 h-4 bg-gray-100 dark:bg-gray-800/60 rounded-full overflow-hidden">
@@ -593,18 +593,18 @@ export function DettaglioStrategia({
                 {equityChartData.length > 0 && (
                   <>
                     <div className="flex items-center justify-between">
-                      <div className="bg-gray-100 dark:bg-gray-800/60 p-0.5 rounded-lg border border-gray-200 dark:border-violet-500/20 flex">
-                        <button onClick={() => setChartView('equity')} className={cn('flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all', chartView === 'equity' ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
+                      <div className="bg-gray-100 dark:bg-gray-800/60 p-0.5 rounded-lg border border-gray-200 dark:border-[#2D2D32] flex">
+                        <button onClick={() => setChartView('equity')} className={cn('flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all', chartView === 'equity' ? 'bg-white dark:bg-[#1C1C1F] text-[#c4a0e8] shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
                           <TrendingUp className="h-3 w-3" /> Equity
                         </button>
-                        <button onClick={() => setChartView('distribuzione')} className={cn('flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all', chartView === 'distribuzione' ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
+                        <button onClick={() => setChartView('distribuzione')} className={cn('flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all', chartView === 'distribuzione' ? 'bg-white dark:bg-[#1C1C1F] text-[#c4a0e8] shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
                           <BarChart2 className="h-3 w-3" /> Distribuzione
                         </button>
                       </div>
                       {chartView === 'distribuzione' && (
-                        <div className="bg-gray-100 dark:bg-gray-800/60 p-0.5 rounded-lg border border-gray-200 dark:border-violet-500/20 flex">
+                        <div className="bg-gray-100 dark:bg-gray-800/60 p-0.5 rounded-lg border border-gray-200 dark:border-[#2D2D32] flex">
                           {(['oraria', 'giornaliera', 'mensile'] as DistributionView[]).map((view) => (
-                            <button key={view} onClick={() => setDistributionView(view)} className={cn('rounded-md px-2 py-1 text-[11px] font-medium transition-all', distributionView === view ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
+                            <button key={view} onClick={() => setDistributionView(view)} className={cn('rounded-md px-2 py-1 text-[11px] font-medium transition-all', distributionView === view ? 'bg-white dark:bg-[#1C1C1F] text-[#c4a0e8] shadow-sm' : 'text-gray-500 dark:text-gray-400')}>
                               {view.charAt(0).toUpperCase() + view.slice(1)}
                             </button>
                           ))}
@@ -614,9 +614,9 @@ export function DettaglioStrategia({
 
                     {/* Equity Chart */}
                     {chartView === 'equity' && (
-                      <div className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] p-4">
+                      <div className="rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] p-4">
                         <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                          <TrendingUp className="h-3.5 w-3.5 text-violet-500" /> Curva Equity
+                          <TrendingUp className="h-3.5 w-3.5 text-[#c4a0e8]" /> Curva Equity
                         </p>
                         <div className="h-[280px]">
                           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -630,7 +630,7 @@ export function DettaglioStrategia({
                               <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
                               <XAxis dataKey="date" tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }} tickLine={false} />
                               <YAxis tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => Math.abs(v) >= 1000 ? `€${(v / 1000).toFixed(0)}K` : `€${v}`} />
-                              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }} formatter={(value: any) => [formatValuta(Number(value) || 0), 'Equity']} labelFormatter={(l) => `Data: ${l}`} />
+                              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: theme === 'dark' ? '#c4a0e8' : '#6A3D8F' }} formatter={(value: any) => [formatValuta(Number(value) || 0), 'Equity']} labelFormatter={(l) => `Data: ${l}`} />
                               <ReferenceLine y={0} stroke="rgba(139, 92, 246, 0.3)" strokeDasharray="3 3" />
                               <Area type="monotone" dataKey="equity" stroke={borderColor} strokeWidth={2.5} fillOpacity={1} fill={`url(#colorEquityStrat-${strategia.id})`} animationDuration={1200} />
                             </AreaChart>
@@ -641,9 +641,9 @@ export function DettaglioStrategia({
 
                     {/* Distribution Chart */}
                     {chartView === 'distribuzione' && (
-                      <div className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] p-4">
+                      <div className="rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] p-4">
                         <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                          <BarChart2 className="h-3.5 w-3.5 text-violet-500" /> Distribuzione — {distributionView}
+                          <BarChart2 className="h-3.5 w-3.5 text-[#c4a0e8]" /> Distribuzione — {distributionView}
                         </p>
                         <div className="h-[280px]">
                           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -651,7 +651,7 @@ export function DettaglioStrategia({
                               <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.08)" vertical={false} />
                               <XAxis dataKey="label" tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={{ stroke: 'rgba(139, 92, 246, 0.1)' }} tickLine={false} />
                               <YAxis tick={{ fill: '#8b8b9f', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: theme === 'dark' ? '#a78bfa' : '#8b5cf6' }} formatter={(value: any) => [`${value} trade`, 'Frequenza']} />
+                              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: theme === 'dark' ? '#c4a0e8' : '#6A3D8F' }} formatter={(value: any) => [`${value} trade`, 'Frequenza']} />
                               <Bar dataKey="trades" radius={[6, 6, 0, 0]} animationDuration={800}>
                                 {distributionData.map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={entry.trades > 0 ? borderColor : 'rgba(139, 92, 246, 0.1)'} fillOpacity={0.7 + (entry.trades / Math.max(...distributionData.map(d => d.trades), 1)) * 0.3} />
@@ -692,7 +692,7 @@ export function DettaglioStrategia({
                   { label: 'R:R Medio', value: performanceData.rrCount > 0 ? performanceData.avgRR.toFixed(2) : 'N/A', positive: performanceData.avgRR >= 1, icon: <Target className="h-3 w-3" /> },
                   { label: 'Expectancy', value: formatValuta(performanceData.expectancy), positive: performanceData.expectancy >= 0, icon: <DollarSign className="h-3 w-3" /> },
                 ].map((stat, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 dark:text-gray-500">{stat.icon}</span>
                       <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{stat.label}</span>
@@ -704,25 +704,25 @@ export function DettaglioStrategia({
                 ))}
 
                 {/* Separatore */}
-                <div className="border-t border-gray-100 dark:border-violet-500/10 my-1" />
+                <div className="border-t border-gray-100 dark:border-[#2D2D32]/20 my-1" />
 
                 {/* Media Win/Loss */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
                     <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Media Win</p>
                     <p className="text-sm font-bold text-green-600 dark:text-green-400 tracking-tight">{formatValuta(performanceData.avgWin)}</p>
                   </div>
-                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
                     <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Media Loss</p>
                     <p className="text-sm font-bold text-red-600 dark:text-red-400 tracking-tight">{formatValuta(performanceData.avgLoss)}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
                     <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Best Trade</p>
                     <p className={cn('text-sm font-bold tracking-tight', performanceData.bestTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{formatValuta(performanceData.bestTrade)}</p>
                   </div>
-                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+                  <div className="p-2.5 rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
                     <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mb-1">Worst Trade</p>
                     <p className={cn('text-sm font-bold tracking-tight', performanceData.worstTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>{formatValuta(performanceData.worstTrade)}</p>
                   </div>
@@ -731,7 +731,7 @@ export function DettaglioStrategia({
             </div>
           ) : (
             /* Empty state */
-            <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+            <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
               <CardContent className="py-12 text-center">
                 <BarChart2 className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400 font-medium">Nessun dato di performance disponibile</p>
@@ -748,11 +748,11 @@ export function DettaglioStrategia({
           {/* ─── Barra superiore: ricerca + filtro ─── */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-violet-400" />
-              <Input placeholder="Cerca nelle regole..." value={ruleSearchQuery} onChange={(e) => setRuleSearchQuery(e.target.value)} className="pl-10 border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622] text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500/10" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-[#c4a0e8]" />
+              <Input placeholder="Cerca nelle regole..." value={ruleSearchQuery} onChange={(e) => setRuleSearchQuery(e.target.value)} className="pl-10 border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#6A3D8F]/10" />
             </div>
             {activeGroups.length > 1 && (
-              <select value={ruleFilter} onChange={(e) => setRuleFilter(e.target.value)} className="px-3 py-2 bg-white dark:bg-[#161622] border border-gray-200 dark:border-violet-500/30 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium focus:border-violet-400 outline-none">
+              <select value={ruleFilter} onChange={(e) => setRuleFilter(e.target.value)} className="px-3 py-2 bg-white dark:bg-[#1C1C1F] border border-gray-200 dark:border-[#2D2D32] text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium focus:border-[#6A3D8F] outline-none">
                 <option value="">Tutti i gruppi</option>
                 {activeGroups.map((g) => {
                   const cfg = getGroupConfig(g);
@@ -770,11 +770,11 @@ export function DettaglioStrategia({
             <div className="flex items-center gap-2">
               {activeGroups.length > 0 && (
                 <>
-                  <button onClick={() => setExpandedGroups(new Set(activeGroups))} className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 transition-colors">
+                  <button onClick={() => setExpandedGroups(new Set(activeGroups))} className="text-xs font-medium text-[#c4a0e8] hover:text-[#c4a0e8] transition-colors">
                     Espandi tutti
                   </button>
                   <span className="text-gray-300 dark:text-gray-600">|</span>
-                  <button onClick={() => setExpandedGroups(new Set())} className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 transition-colors">
+                  <button onClick={() => setExpandedGroups(new Set())} className="text-xs font-medium text-[#c4a0e8] hover:text-[#c4a0e8] transition-colors">
                     Comprimi tutti
                   </button>
                 </>
@@ -792,13 +792,13 @@ export function DettaglioStrategia({
             const checkedCount = allRulesInGroup.filter((r: any) => checkedRules.has(r.id)).length;
 
             return (
-              <motion.div key={gruppo} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl overflow-hidden border border-gray-200 dark:border-violet-500/15">
+              <motion.div key={gruppo} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl overflow-hidden border border-gray-200 dark:border-[#2D2D32]">
                 {/* Header del gruppo */}
                 <div
                   role="button" tabIndex={0}
                   onClick={() => toggleGroup(gruppo)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleGroup(gruppo); }}
-                  className="w-full flex items-center justify-between p-4 transition-colors bg-gray-50 dark:bg-[#161622]/60 hover:bg-gray-100 dark:hover:bg-[#161622] cursor-pointer select-none"
+                  className="w-full flex items-center justify-between p-4 transition-colors bg-gray-50 dark:bg-[#1C1C1F]/60 hover:bg-gray-100 dark:hover:bg-[#1C1C1F] cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn('p-2 rounded-lg border', config.bgColor)}>
@@ -829,7 +829,7 @@ export function DettaglioStrategia({
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                      <div className="p-4 space-y-1.5 bg-white dark:bg-[#1e1e30]/50">
+                      <div className="p-4 space-y-1.5 bg-white dark:bg-[#1C1C1F]/50">
                         {rules.length > 0 ? rules.map((rule: any, idx: number) => {
                           const isChecked = checkedRules.has(rule.id);
                           return (
@@ -842,7 +842,7 @@ export function DettaglioStrategia({
                                 'flex items-center gap-3 p-3 rounded-lg border transition-all',
                                 isChecked
                                   ? cn(config.bgColor, 'shadow-sm')
-                                  : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#161622]/30 opacity-60'
+                                  : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1C1C1F]/30 opacity-60'
                               )}
                             >
                               {/* Checkbox */}
@@ -851,8 +851,8 @@ export function DettaglioStrategia({
                                 className={cn(
                                   'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
                                   isChecked
-                                    ? 'bg-violet-600 border-violet-600 text-white'
-                                    : 'border-gray-300 dark:border-gray-600 hover:border-violet-400'
+                                    ? 'bg-[#46265F] border-[#46265F] text-white'
+                                    : 'border-gray-300 dark:border-gray-600 hover:border-[#6A3D8F]'
                                 )}
                               >
                                 {isChecked && (
@@ -892,9 +892,9 @@ export function DettaglioStrategia({
                               onKeyDown={(e) => { if (e.key === 'Enter') handleAddRuleToGroup(gruppo); if (e.key === 'Escape') { setAddingRuleToGroup(null); setNewRuleInGroupText(''); } }}
                               disabled={addingRule}
                               autoFocus
-                              className="flex-1 h-9 text-sm border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622] text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500/10"
+                              className="flex-1 h-9 text-sm border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#6A3D8F]/10"
                             />
-                            <Button size="sm" onClick={() => handleAddRuleToGroup(gruppo)} disabled={!newRuleInGroupText.trim() || addingRule} className="h-9 bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold text-xs px-3">
+                            <Button size="sm" onClick={() => handleAddRuleToGroup(gruppo)} disabled={!newRuleInGroupText.trim() || addingRule} className="h-9 bg-[#46265F] hover:bg-[#6A3D8F] text-white border-0 font-bold text-xs px-3">
                               {addingRule ? '...' : 'Aggiungi'}
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => { setAddingRuleToGroup(null); setNewRuleInGroupText(''); }} className="h-9 text-gray-400 hover:text-gray-600 px-2">
@@ -904,7 +904,7 @@ export function DettaglioStrategia({
                         ) : (
                           <button
                             onClick={() => { setAddingRuleToGroup(gruppo); setNewRuleInGroupText(''); }}
-                            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-gray-200 dark:border-violet-500/20 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 dark:hover:border-violet-500/40 transition-all mt-1"
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-gray-200 dark:border-[#2D2D32] text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-[#c4a0e8] hover:border-[#6A3D8F]/40 dark:hover:border-[#6A3D8F]/40 transition-all mt-1"
                           >
                             <Plus className="h-3.5 w-3.5" />
                             Aggiungi regola
@@ -925,8 +925,8 @@ export function DettaglioStrategia({
             className={cn(
               'w-full border-dashed border-2 font-bold py-6 transition-all',
               showAddGroupMenu
-                ? 'border-violet-300 dark:border-violet-500/40 text-violet-600 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-500/5'
-                : 'border-gray-200 dark:border-violet-500/20 hover:border-violet-300 dark:hover:border-violet-500/40 text-gray-600 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400'
+                ? 'border-[#6A3D8F]/40 text-[#c4a0e8] bg-[#46265F]/5'
+                : 'border-gray-200 dark:border-[#2D2D32] hover:border-[#6A3D8F]/40 dark:hover:border-[#6A3D8F]/40 text-gray-600 dark:text-gray-400 hover:text-[#c4a0e8]'
             )}
           >
             {showAddGroupMenu ? <ChevronUp className="h-5 w-5 mr-2" /> : <Plus className="h-5 w-5 mr-2" />}
@@ -943,7 +943,7 @@ export function DettaglioStrategia({
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <Card className="border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30]">
+                <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
                   <CardContent className="p-4 space-y-4">
                     {/* Gruppi preset disponibili */}
                     {availablePresetGroups.length > 0 && (
@@ -980,7 +980,7 @@ export function DettaglioStrategia({
                     )}
 
                     {/* Separatore */}
-                    <div className="border-t border-gray-100 dark:border-violet-500/10" />
+                    <div className="border-t border-gray-100 dark:border-[#2D2D32]/20" />
 
                     {/* Crea gruppo personalizzato */}
                     <div>
@@ -994,12 +994,12 @@ export function DettaglioStrategia({
                           onChange={(e) => setNewCustomGroupName(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCustomGroup(); }}
                           disabled={addingRule}
-                          className="flex-1 h-10 text-sm border-gray-200 dark:border-violet-500/30 bg-gray-50 dark:bg-[#161622] text-gray-900 dark:text-white"
+                          className="flex-1 h-10 text-sm border-gray-200 dark:border-[#2D2D32] bg-gray-50 dark:bg-[#1C1C1F] text-gray-900 dark:text-white"
                         />
                         <Button
                           onClick={handleCreateCustomGroup}
                           disabled={!newCustomGroupName.trim() || addingRule}
-                          className="h-10 bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold text-sm px-5"
+                          className="h-10 bg-[#46265F] hover:bg-[#6A3D8F] text-white border-0 font-bold text-sm px-5"
                         >
                           <Plus className="h-4 w-4 mr-1.5" />Crea
                         </Button>
@@ -1013,7 +1013,7 @@ export function DettaglioStrategia({
 
           {/* Empty state se nessun gruppo e menu chiuso */}
           {activeGroups.length === 0 && !showAddGroupMenu && (
-            <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+            <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
               <CardContent className="py-10 text-center">
                 <BookOpen className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-500 dark:text-gray-400 font-medium">Nessun gruppo di regole</p>
@@ -1034,7 +1034,7 @@ export function DettaglioStrategia({
                 {/* Header + filtri */}
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    <Activity className="h-4 w-4 text-[#c4a0e8]" />
                     Operazioni
                   </h3>
                   <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -1047,18 +1047,18 @@ export function DettaglioStrategia({
                 {/* Filtri compatti */}
                 <div className="flex gap-2 mb-3">
                   <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400 dark:text-violet-400" />
+                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400 dark:text-[#c4a0e8]" />
                     <Input
                       placeholder="Cerca ticker..."
                       value={opSearchQuery}
                       onChange={(e) => setOpSearchQuery(e.target.value)}
-                      className="pl-8 h-8 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622] text-gray-900 dark:text-white"
+                      className="pl-8 h-8 text-xs border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] text-gray-900 dark:text-white"
                     />
                   </div>
                   <select
                     value={opDirectionFilter}
                     onChange={(e) => setOpDirectionFilter(e.target.value)}
-                    className="px-2 py-1 bg-white dark:bg-[#161622] border border-gray-200 dark:border-violet-500/30 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium focus:border-violet-400 outline-none"
+                    className="px-2 py-1 bg-white dark:bg-[#1C1C1F] border border-gray-200 dark:border-[#2D2D32] text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium focus:border-[#6A3D8F] outline-none"
                   >
                     <option value="">Tutte</option>
                     <option value="LONG">Long</option>
@@ -1067,7 +1067,7 @@ export function DettaglioStrategia({
                   <select
                     value={opResultFilter}
                     onChange={(e) => setOpResultFilter(e.target.value)}
-                    className="px-2 py-1 bg-white dark:bg-[#161622] border border-gray-200 dark:border-violet-500/30 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium focus:border-violet-400 outline-none"
+                    className="px-2 py-1 bg-white dark:bg-[#1C1C1F] border border-gray-200 dark:border-[#2D2D32] text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium focus:border-[#6A3D8F] outline-none"
                   >
                     <option value="">Tutti</option>
                     <option value="win">Win</option>
@@ -1092,8 +1092,8 @@ export function DettaglioStrategia({
                         className={cn(
                           'px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 group',
                           isSelected
-                            ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/40 shadow-sm'
-                            : 'bg-white dark:bg-[#161622]/50 border-gray-200 dark:border-violet-500/10 hover:border-violet-200 dark:hover:border-violet-500/25 hover:bg-gray-50 dark:hover:bg-violet-500/5'
+                            ? 'bg-[#46265F]/10 border-[#6A3D8F]/40 shadow-sm'
+                            : 'bg-white dark:bg-[#1C1C1F]/50 border-gray-200 dark:border-[#2D2D32]/20 hover:border-[#6A3D8F]/20 hover:bg-gray-50 dark:hover:bg-[#46265F]/5'
                         )}
                       >
                         <div className="flex items-center justify-between">
@@ -1114,8 +1114,8 @@ export function DettaglioStrategia({
                             <span className={cn('text-sm font-bold tracking-tight', isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
                               {pnl !== 0 ? formatValuta(pnl) : '-'}
                             </span>
-                            <BarChart2 className={cn('h-3.5 w-3.5 transition-colors', isSelected ? 'text-violet-500' : 'text-gray-300 dark:text-gray-600 group-hover:text-violet-400')} />
-                            <ChevronDown className={cn('h-3.5 w-3.5 -rotate-90 transition-colors', isSelected ? 'text-violet-500' : 'text-gray-300 dark:text-gray-600')} />
+                            <BarChart2 className={cn('h-3.5 w-3.5 transition-colors', isSelected ? 'text-[#c4a0e8]' : 'text-gray-300 dark:text-gray-600 group-hover:text-[#c4a0e8]')} />
+                            <ChevronDown className={cn('h-3.5 w-3.5 -rotate-90 transition-colors', isSelected ? 'text-[#c4a0e8]' : 'text-gray-300 dark:text-gray-600')} />
                           </div>
                         </div>
                       </motion.div>
@@ -1128,7 +1128,7 @@ export function DettaglioStrategia({
               <div className="flex-1 min-w-0 space-y-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    <TrendingUp className="h-4 w-4 text-[#c4a0e8]" />
                     Grafico
                   </h3>
                   {selectedOp && (
@@ -1164,7 +1164,7 @@ export function DettaglioStrategia({
                     />
                   </>
                 ) : (
-                  <div className="h-[520px] rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] flex flex-col items-center justify-center">
+                  <div className="h-[520px] rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] flex flex-col items-center justify-center">
                     <BarChart2 className="h-12 w-12 text-gray-200 dark:text-gray-700 mb-4" />
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Seleziona un&apos;operazione dalla lista per visualizzare il grafico</p>
                   </div>
@@ -1172,7 +1172,7 @@ export function DettaglioStrategia({
               </div>
             </div>
           ) : (
-            <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+            <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
               <CardContent className="py-12 text-center">
                 <Activity className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400 font-medium">Nessuna operazione chiusa registrata per questa strategia</p>
@@ -1187,8 +1187,8 @@ export function DettaglioStrategia({
         <TabsContent value="description" className="px-6 py-5 space-y-5">
           {/* Info strip compatta */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#161622]/80 border border-gray-200 dark:border-violet-500/15">
-              <div className="h-4 w-4 rounded-md border border-gray-200 dark:border-violet-500/30" style={{ backgroundColor: borderColor }} />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#1C1C1F]/80 border border-gray-200 dark:border-[#2D2D32]">
+              <div className="h-4 w-4 rounded-md border border-gray-200 dark:border-[#2D2D32]" style={{ backgroundColor: borderColor }} />
               <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{strategia.nome}</span>
             </div>
             <Badge variant="outline" className={cn('text-xs font-bold', strategia.attiva ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' : 'border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-400')}>
@@ -1210,7 +1210,7 @@ export function DettaglioStrategia({
 
           {/* Sommario breve (solo se presente) */}
           {strategia.descrizione && (
-            <div className="px-4 py-3 rounded-xl bg-violet-50/50 dark:bg-violet-500/5 border border-violet-100 dark:border-violet-500/10">
+            <div className="px-4 py-3 rounded-xl bg-[#46265F]/5 border border-[#6A3D8F]/10">
               <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{strategia.descrizione}</p>
             </div>
           )}
@@ -1219,7 +1219,7 @@ export function DettaglioStrategia({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                <FileText className="h-4 w-4 text-[#c4a0e8]" />
                 Documento Strategia
               </h3>
               <div className="flex items-center gap-2">
@@ -1233,13 +1233,13 @@ export function DettaglioStrategia({
                     <Button variant="ghost" size="sm" onClick={() => { setEditingDescription(false); setDescriptionText(strategia.descrizione_dettagliata || ''); }} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 h-8 text-xs px-3">
                       Annulla
                     </Button>
-                    <Button size="sm" onClick={handleSaveDescription} disabled={savingDescription} className="h-8 bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold text-xs px-4">
+                    <Button size="sm" onClick={handleSaveDescription} disabled={savingDescription} className="h-8 bg-[#46265F] hover:bg-[#6A3D8F] text-white border-0 font-bold text-xs px-4">
                       <Save className="h-3.5 w-3.5 mr-1.5" />
                       {savingDescription ? 'Salvataggio...' : 'Salva'}
                     </Button>
                   </div>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => setEditingDescription(true)} className="h-8 text-xs px-3 border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-600 dark:text-gray-300">
+                  <Button variant="outline" size="sm" onClick={() => setEditingDescription(true)} className="h-8 text-xs px-3 border-gray-200 dark:border-[#2D2D32] hover:border-[#6A3D8F] text-gray-600 dark:text-gray-300">
                     <Edit2 className="h-3.5 w-3.5 mr-1.5" />
                     Modifica
                   </Button>
@@ -1257,7 +1257,7 @@ export function DettaglioStrategia({
               />
             ) : descriptionText && descriptionText !== '<p></p>' ? (
               <div
-                className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#161622] p-5 cursor-pointer hover:border-violet-300 dark:hover:border-violet-500/30 transition-colors"
+                className="rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] p-5 cursor-pointer hover:border-[#6A3D8F]/40 dark:hover:border-[#6A3D8F]/40 transition-colors"
                 onClick={() => setEditingDescription(true)}
                 title="Clicca per modificare"
               >
@@ -1265,7 +1265,7 @@ export function DettaglioStrategia({
               </div>
             ) : (
               <div
-                className="rounded-xl border-2 border-dashed border-gray-200 dark:border-violet-500/15 bg-gray-50/50 dark:bg-[#161622]/50 p-8 text-center cursor-pointer hover:border-violet-300 dark:hover:border-violet-500/30 transition-all"
+                className="rounded-xl border-2 border-dashed border-gray-200 dark:border-[#2D2D32] bg-gray-50/50 dark:bg-[#1C1C1F]/50 p-8 text-center cursor-pointer hover:border-[#6A3D8F]/40 dark:hover:border-[#6A3D8F]/40 transition-all"
                 onClick={() => setEditingDescription(true)}
               >
                 <FileText className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
@@ -1279,7 +1279,7 @@ export function DettaglioStrategia({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Camera className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                <Camera className="h-4 w-4 text-[#c4a0e8]" />
                 Immagini dal Grafico
                 {screenshots.length > 0 && (
                   <Badge variant="outline" className="text-[10px] font-bold border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400">
@@ -1308,7 +1308,7 @@ export function DettaglioStrategia({
                       key={shot.id}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="rounded-xl border border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] overflow-hidden group"
+                      className="rounded-xl border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] overflow-hidden group"
                     >
                       {/* Screenshot image */}
                       <div className="relative aspect-video bg-gray-100 dark:bg-[#0e0e1a] overflow-hidden">
@@ -1348,7 +1348,7 @@ export function DettaglioStrategia({
                                 <Input
                                   value={shot.data}
                                   onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'data', e.target.value)}
-                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                  className="h-7 text-xs border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]"
                                 />
                               </div>
                               <div>
@@ -1356,7 +1356,7 @@ export function DettaglioStrategia({
                                 <Input
                                   value={shot.asset}
                                   onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'asset', e.target.value)}
-                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                  className="h-7 text-xs border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]"
                                 />
                               </div>
                               <div>
@@ -1364,7 +1364,7 @@ export function DettaglioStrategia({
                                 <Input
                                   value={shot.entrata}
                                   onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'entrata', e.target.value)}
-                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                  className="h-7 text-xs border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]"
                                 />
                               </div>
                               <div>
@@ -1372,7 +1372,7 @@ export function DettaglioStrategia({
                                 <Input
                                   value={shot.uscita}
                                   onChange={(e) => handleUpdateScreenshotMeta(shot.id, 'uscita', e.target.value)}
-                                  className="h-7 text-xs border-gray-200 dark:border-violet-500/30 bg-white dark:bg-[#161622]"
+                                  className="h-7 text-xs border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]"
                                 />
                               </div>
                             </div>
@@ -1380,14 +1380,14 @@ export function DettaglioStrategia({
                               <Button variant="ghost" size="sm" onClick={() => setEditingScreenshot(null)} className="h-7 text-xs text-gray-400">
                                 Annulla
                               </Button>
-                              <Button size="sm" onClick={() => handleSaveScreenshotMeta(shot.id)} className="h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white border-0 font-bold px-3">
+                              <Button size="sm" onClick={() => handleSaveScreenshotMeta(shot.id)} className="h-7 text-xs bg-[#46265F] hover:bg-[#6A3D8F] text-white border-0 font-bold px-3">
                                 <Save className="h-3 w-3 mr-1" /> Salva
                               </Button>
                             </div>
                           </>
                         ) : (
                           <div
-                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-violet-500/5 -mx-3 -my-2 p-3 rounded-b-xl transition-colors"
+                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-[#46265F]/5 -mx-3 -my-2 p-3 rounded-b-xl transition-colors"
                             onClick={() => setEditingScreenshot(shot.id)}
                             title="Clicca per modificare i dettagli"
                           >
@@ -1411,7 +1411,7 @@ export function DettaglioStrategia({
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-violet-500/15 bg-gray-50/50 dark:bg-[#161622]/50 p-6 text-center">
+              <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-[#2D2D32] bg-gray-50/50 dark:bg-[#1C1C1F]/50 p-6 text-center">
                 <ImageIcon className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Nessuno screenshot</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -1476,7 +1476,7 @@ function PlaybookAderenzaMediaCard({ strategiaId, operazioni }: { strategiaId: s
 
   if (aderenzaLoading) {
     return (
-      <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+      <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
         <CardContent className="p-4 text-center">
           <p className="text-xs text-gray-400 animate-pulse">Calcolo aderenza media...</p>
         </CardContent>
@@ -1491,12 +1491,12 @@ function PlaybookAderenzaMediaCard({ strategiaId, operazioni }: { strategiaId: s
   const bgGlow = aderenzaMedia >= 80 ? 'from-emerald-500/5 to-transparent' : aderenzaMedia >= 50 ? 'from-amber-500/5 to-transparent' : 'from-red-500/5 to-transparent';
 
   return (
-    <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622] overflow-hidden">
+    <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] overflow-hidden">
       <div className={`absolute inset-0 bg-gradient-to-br ${bgGlow} pointer-events-none`} />
       <CardContent className="p-4 relative">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <Shield className="h-4 w-4 text-[#c4a0e8]" />
             <span className="text-sm font-bold text-gray-900 dark:text-white">Aderenza Media alle Regole</span>
           </div>
           <div className="flex items-center gap-2">
@@ -1526,7 +1526,7 @@ function PlaybookAderenzaPanel({ operazioneId, strategiaId }: { operazioneId: st
 
   if (loading && !aderenza) {
     return (
-      <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+      <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
         <CardContent className="p-4">
           <p className="text-xs text-gray-400 animate-pulse text-center">Caricamento regole...</p>
         </CardContent>
@@ -1551,14 +1551,14 @@ function PlaybookAderenzaPanel({ operazioneId, strategiaId }: { operazioneId: st
   const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
 
   return (
-    <Card className="border-gray-200 dark:border-violet-500/15 bg-white dark:bg-[#161622]">
+    <Card className="border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F]">
       <CardHeader className="pb-2 pt-3 px-4">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => setExpanded(!expanded)}
         >
           <CardTitle className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-            <BookOpen className="h-3.5 w-3.5 text-violet-500" />
+            <BookOpen className="h-3.5 w-3.5 text-[#c4a0e8]" />
             Aderenza Regole
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -1614,7 +1614,7 @@ function PlaybookAderenzaPanel({ operazioneId, strategiaId }: { operazioneId: st
                                 'w-full flex items-center gap-2 p-2 rounded-lg border text-left transition-all duration-150',
                                 isChecked
                                   ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20'
-                                  : 'bg-gray-50/50 dark:bg-[#161622]/30 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                                  : 'bg-gray-50/50 dark:bg-[#1C1C1F]/30 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
                               )}
                             >
                               <div className={cn(

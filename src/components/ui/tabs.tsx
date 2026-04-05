@@ -10,7 +10,7 @@ const Tabs = TabsPrimitive.Root;
 
 /**
  * Componente TabsList per la lista dei trigger dei tab
- * Contiene i pulsanti per selezionare i diversi tab
+ * GG Tracker Design System — sfondo Card #1C1C1F, bordo #2D2D32
  */
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
@@ -19,7 +19,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-10 items-center justify-center rounded-md bg-gray-100 p-1 text-gray-500 dark:bg-[#1e1e2e] dark:text-gray-400',
+      'inline-flex h-10 items-center justify-center rounded-md bg-[#1C1C1F] border border-[#2D2D32] p-1 text-[#80808A]',
       className,
     )}
     {...props}
@@ -29,7 +29,7 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 
 /**
  * Componente TabsTrigger per il pulsante di selezione del tab
- * Mostra lo stato attivo con colore viola e transizioni fluide
+ * Mostra lo stato attivo con colore viola Deep Purple e transizioni fluide
  */
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
@@ -38,7 +38,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-[#7F00FF] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-gray-500 data-[state=inactive]:hover:text-gray-900 dark:data-[state=active]:bg-[#7F00FF] dark:data-[state=active]:text-white dark:data-[state=inactive]:text-gray-400 dark:data-[state=inactive]:hover:text-white',
+      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-[#0F0F11] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6A3D8F] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-[#46265F] data-[state=active]:text-[#F8F8FF] data-[state=active]:shadow-sm data-[state=inactive]:text-[#80808A] data-[state=inactive]:hover:text-[#c4a0e8]',
       className,
     )}
     {...props}
@@ -56,7 +56,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      'mt-2 ring-offset-[#0F0F11] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6A3D8F] focus-visible:ring-offset-2',
       className,
     )}
     {...props}

@@ -22,7 +22,7 @@ const strategiaSchema = z.object({
   nome: z.string().min(1, 'Nome è obbligatorio').min(3, 'Nome deve avere almeno 3 caratteri'),
   descrizione: z.string().optional().nullable(),
   descrizione_dettagliata: z.string().optional().nullable(),
-  colore: z.string().default('#7F00FF'),
+  colore: z.string().default('#6A3D8F'),
   rischio_max_importo: z.number().optional().nullable(),
   rischio_max_percentuale: z.number().optional().nullable(),
 });
@@ -46,7 +46,7 @@ export function DialogStrategia({
   onEditSave,
   isLoading = false,
 }: DialogStrategiaProps) {
-  const [colorPreview, setColorPreview] = React.useState<string>('#7F00FF');
+  const [colorPreview, setColorPreview] = React.useState<string>('#6A3D8F');
 
   const {
     register,
@@ -60,12 +60,12 @@ export function DialogStrategia({
       ? {
           nome: strategiaEdit.nome,
           descrizione: strategiaEdit.descrizione,
-          colore: strategiaEdit.colore || '#7F00FF',
+          colore: strategiaEdit.colore || '#6A3D8F',
         }
       : {
           nome: '',
           descrizione: '',
-          colore: '#7F00FF',
+          colore: '#6A3D8F',
         },
   });
 
@@ -80,23 +80,23 @@ export function DialogStrategia({
       reset({
         nome: strategiaEdit.nome,
         descrizione: strategiaEdit.descrizione,
-        colore: strategiaEdit.colore || '#7F00FF',
+        colore: strategiaEdit.colore || '#6A3D8F',
       });
-      setColorPreview(strategiaEdit.colore || '#7F00FF');
+      setColorPreview(strategiaEdit.colore || '#6A3D8F');
     } else {
       reset({
         nome: '',
         descrizione: '',
-        colore: '#7F00FF',
+        colore: '#6A3D8F',
       });
-      setColorPreview('#7F00FF');
+      setColorPreview('#6A3D8F');
     }
   }, [strategiaEdit, reset]);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       reset();
-      setColorPreview('#7F00FF');
+      setColorPreview('#6A3D8F');
     }
     onOpenChange(newOpen);
   };
@@ -128,11 +128,11 @@ export function DialogStrategia({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[550px] border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-xl dark:shadow-violet-500/5">
+      <DialogContent className="sm:max-w-[550px] border border-gray-200 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] shadow-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-            <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-500/20">
-              <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <div className="p-1.5 rounded-lg bg-[#46265F]/20">
+              <BookOpen className="h-4 w-4 text-[#c4a0e8]" />
             </div>
             {strategiaEdit ? 'Modifica Strategia' : 'Crea Nuova Strategia'}
           </DialogTitle>
@@ -154,7 +154,7 @@ export function DialogStrategia({
               placeholder="Es. Mean Reversion Breakout"
               {...register('nome')}
               disabled={isLoading}
-              className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
+              className="border-gray-200 dark:border-[#2D2D32] focus:border-[#6A3D8F] bg-white dark:bg-[#1C1C1F] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-[#6A3D8F]/10"
             />
             {errors.nome && (
               <p className="text-sm text-red-600 dark:text-red-400 font-medium">{errors.nome.message}</p>
@@ -171,14 +171,14 @@ export function DialogStrategia({
               placeholder="Una breve descrizione della strategia"
               {...register('descrizione')}
               disabled={isLoading}
-              className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
+              className="border-gray-200 dark:border-[#2D2D32] focus:border-[#6A3D8F] bg-white dark:bg-[#1C1C1F] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-[#6A3D8F]/10"
             />
           </div>
 
           {/* Colore */}
           <div className="space-y-2">
             <Label htmlFor="colore" className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <Palette className="h-4 w-4 text-violet-500" />
+              <Palette className="h-4 w-4 text-[#c4a0e8]" />
               Colore Strategia
             </Label>
             <div className="flex items-center gap-3">
@@ -187,11 +187,11 @@ export function DialogStrategia({
                 type="color"
                 {...register('colore')}
                 disabled={isLoading}
-                className="h-12 w-20 rounded-lg cursor-pointer border border-gray-200 dark:border-violet-500/30"
+                className="h-12 w-20 rounded-lg cursor-pointer border border-gray-200 dark:border-[#2D2D32]"
               />
               <div className="flex-1 flex items-center gap-2">
                 <div
-                  className="h-10 w-10 rounded-lg border border-gray-200 dark:border-violet-500/30 shadow-sm"
+                  className="h-10 w-10 rounded-lg border border-gray-200 dark:border-[#2D2D32] shadow-sm"
                   style={{ backgroundColor: colorPreview }}
                 />
                 <span className="text-sm text-gray-500 dark:text-gray-400 font-mono font-bold">
@@ -214,7 +214,7 @@ export function DialogStrategia({
                 placeholder="Opzionale"
                 {...register('rischio_max_importo', { valueAsNumber: true })}
                 disabled={isLoading}
-                className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
+                className="border-gray-200 dark:border-[#2D2D32] focus:border-[#6A3D8F] bg-white dark:bg-[#1C1C1F] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-[#6A3D8F]/10"
                 step="0.01"
               />
             </div>
@@ -230,7 +230,7 @@ export function DialogStrategia({
                 placeholder="Opzionale"
                 {...register('rischio_max_percentuale', { valueAsNumber: true })}
                 disabled={isLoading}
-                className="border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500/10"
+                className="border-gray-200 dark:border-[#2D2D32] focus:border-[#6A3D8F] bg-white dark:bg-[#1C1C1F] text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-[#6A3D8F]/10"
                 step="0.01"
               />
             </div>
@@ -242,14 +242,14 @@ export function DialogStrategia({
               variant="outline"
               onClick={() => handleOpenChange(false)}
               disabled={isLoading}
-              className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-700 dark:text-gray-300 font-medium"
+              className="border-gray-200 dark:border-[#2D2D32] hover:border-[#6A3D8F] text-gray-700 dark:text-gray-300 font-medium"
             >
               Annulla
             </Button>
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-lg shadow-violet-500/25 font-bold"
+              className="font-bold"
             >
               {isLoading ? 'Salvataggio...' : strategiaEdit ? 'Aggiorna' : 'Crea Playbook'}
             </Button>

@@ -31,7 +31,7 @@ const ChartOperationMode = dynamic(
   () => import('./chart-operation-mode').then((m) => ({ default: m.ChartOperationMode })),
   { ssr: false, loading: () => (
     <div className="flex items-center justify-center h-full">
-      <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+      <Loader2 className="h-6 w-6 animate-spin text-[#6A3D8F]" />
     </div>
   )}
 );
@@ -321,7 +321,7 @@ export function AggiungiOperazioneDialog({
         .insert({
           nome: nuovoNomeStrategia.trim(),
           utente_id: session.user.id,
-          colore: '#7F00FF',
+          colore: '#6A3D8F',
           attiva: true,
         })
         .select()
@@ -518,14 +518,14 @@ export function AggiungiOperazioneDialog({
 
             {/* Mode Toggle - only show for new operations */}
             {!isEditMode && (
-              <div className="flex items-center bg-gray-100 dark:bg-[#1e1e2e] rounded-lg p-0.5 mr-8">
+              <div className="flex items-center bg-gray-100 dark:bg-[#1C1C1F] rounded-lg p-0.5 mr-8">
                 <button
                   type="button"
                   onClick={() => setMode('manuale')}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
                     mode === 'manuale'
-                      ? 'bg-violet-600 text-white shadow-sm'
+                      ? 'bg-[#46265F] text-white shadow-sm'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   )}
                 >
@@ -538,7 +538,7 @@ export function AggiungiOperazioneDialog({
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200',
                     mode === 'grafico'
-                      ? 'bg-violet-600 text-white shadow-sm'
+                      ? 'bg-[#46265F] text-white shadow-sm'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   )}
                 >
@@ -643,7 +643,7 @@ export function AggiungiOperazioneDialog({
               <Label htmlFor="prezzo_entrata">
                 Prezzo Entrata
                 {hasEsecuzioniData && (
-                  <span className="ml-1 text-[10px] text-violet-500 font-normal">(auto)</span>
+                  <span className="ml-1 text-[10px] text-[#c4a0e8] font-normal">(auto)</span>
                 )}
               </Label>
               <Input
@@ -654,7 +654,7 @@ export function AggiungiOperazioneDialog({
                 value={formData.prezzo_entrata}
                 onChange={(e) => handleChange('prezzo_entrata', e.target.value)}
                 readOnly={hasEsecuzioniData}
-                className={hasEsecuzioniData ? 'bg-violet-50 dark:bg-violet-900/20 cursor-not-allowed' : ''}
+                className={hasEsecuzioniData ? 'bg-[#46265F]/10 cursor-not-allowed' : ''}
                 required
               />
             </div>
@@ -663,7 +663,7 @@ export function AggiungiOperazioneDialog({
               <Label htmlFor="prezzo_uscita">
                 Prezzo Uscita
                 {hasEsecuzioniData && (
-                  <span className="ml-1 text-[10px] text-violet-500 font-normal">(auto)</span>
+                  <span className="ml-1 text-[10px] text-[#c4a0e8] font-normal">(auto)</span>
                 )}
               </Label>
               <Input
@@ -674,7 +674,7 @@ export function AggiungiOperazioneDialog({
                 value={formData.prezzo_uscita}
                 onChange={(e) => handleChange('prezzo_uscita', e.target.value)}
                 readOnly={hasEsecuzioniData}
-                className={hasEsecuzioniData ? 'bg-violet-50 dark:bg-violet-900/20 cursor-not-allowed' : ''}
+                className={hasEsecuzioniData ? 'bg-[#46265F]/10 cursor-not-allowed' : ''}
               />
             </div>
 
@@ -682,7 +682,7 @@ export function AggiungiOperazioneDialog({
               <Label htmlFor="quantita">
                 Quantità
                 {hasEsecuzioniData && (
-                  <span className="ml-1 text-[10px] text-violet-500 font-normal">(auto)</span>
+                  <span className="ml-1 text-[10px] text-[#c4a0e8] font-normal">(auto)</span>
                 )}
               </Label>
               <Input
@@ -693,38 +693,38 @@ export function AggiungiOperazioneDialog({
                 value={formData.quantita}
                 onChange={(e) => handleChange('quantita', e.target.value)}
                 readOnly={hasEsecuzioniData}
-                className={hasEsecuzioniData ? 'bg-violet-50 dark:bg-violet-900/20 cursor-not-allowed' : ''}
+                className={hasEsecuzioniData ? 'bg-[#46265F]/10 cursor-not-allowed' : ''}
                 required
               />
             </div>
           </div>
 
           {/* ── Sezione Esecuzioni Multiple (collapsible) ── */}
-          <div className="border border-violet-200/40 dark:border-violet-500/20 rounded-lg overflow-hidden">
+          <div className="border border-[#2D2D32] rounded-lg overflow-hidden">
             <button
               type="button"
               onClick={() => setShowEsecuzioni(!showEsecuzioni)}
-              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#46265F]/5 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
+                <span className="text-sm font-medium text-[#c4a0e8]">
                   Esecuzioni Multiple
                 </span>
                 {esecuzioni.length > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#46265F] text-white text-[10px] font-bold">
                     {esecuzioni.length}
                   </span>
                 )}
               </div>
               {showEsecuzioni ? (
-                <ChevronUp className="h-4 w-4 text-violet-500" />
+                <ChevronUp className="h-4 w-4 text-[#c4a0e8]" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-violet-500" />
+                <ChevronDown className="h-4 w-4 text-[#c4a0e8]" />
               )}
             </button>
 
             {showEsecuzioni && (
-              <div className="border-t border-violet-200/30 dark:border-violet-500/15 px-4 py-3 space-y-3 bg-violet-50/20 dark:bg-violet-900/5">
+              <div className="border-t border-[#2D2D32] px-4 py-3 space-y-3 bg-[#46265F]/5">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Aggiungi singole esecuzioni (scaling in/out). I prezzi medi e la quantità si calcoleranno automaticamente.
                 </p>
@@ -829,7 +829,7 @@ export function AggiungiOperazioneDialog({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="w-full h-8 text-xs border-dashed border-violet-300 dark:border-violet-600 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                  className="w-full h-8 text-xs border-dashed border-[#6A3D8F]/40 text-[#c4a0e8] hover:bg-[#46265F]/10"
                   onClick={addEsecuzione}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1" />
@@ -838,17 +838,17 @@ export function AggiungiOperazioneDialog({
 
                 {/* Summary */}
                 {calcoloEsecuzioni && calcoloEsecuzioni.quantita > 0 && (
-                  <div className="p-2.5 rounded-md bg-violet-100/50 dark:bg-violet-900/20 border border-violet-200/40 dark:border-violet-500/15">
+                  <div className="p-2.5 rounded-md bg-[#46265F]/10 border border-[#6A3D8F]/20">
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
                         <span className="text-gray-500 dark:text-gray-400">Prezzo Entrata</span>
-                        <p className="font-semibold text-violet-700 dark:text-white">
+                        <p className="font-semibold text-[#F8F8FF]">
                           ${calcoloEsecuzioni.prezzoEntrata.toFixed(4)}
                         </p>
                       </div>
                       <div>
                         <span className="text-gray-500 dark:text-gray-400">Prezzo Uscita</span>
-                        <p className="font-semibold text-violet-700 dark:text-white">
+                        <p className="font-semibold text-[#F8F8FF]">
                           {calcoloEsecuzioni.prezzoUscita
                             ? `$${calcoloEsecuzioni.prezzoUscita.toFixed(4)}`
                             : '—'}
@@ -856,7 +856,7 @@ export function AggiungiOperazioneDialog({
                       </div>
                       <div>
                         <span className="text-gray-500 dark:text-gray-400">Quantità Totale</span>
-                        <p className="font-semibold text-violet-700 dark:text-white">
+                        <p className="font-semibold text-[#F8F8FF]">
                           {calcoloEsecuzioni.quantita}
                         </p>
                       </div>
@@ -904,7 +904,7 @@ export function AggiungiOperazioneDialog({
               <button
                 type="button"
                 onClick={() => setCreandoStrategia(true)}
-                className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 font-medium transition-colors"
+                className="text-xs text-[#6A3D8F] hover:text-[#c4a0e8] font-medium transition-colors"
               >
                 + Crea nuova strategia
               </button>
@@ -958,7 +958,7 @@ export function AggiungiOperazioneDialog({
             <Label htmlFor="note">Note</Label>
             <textarea
               id="note"
-              className="flex h-24 w-full rounded-md border border-gray-300 dark:border-[#1e1e2e] bg-white dark:bg-[#12121a] px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#7F00FF] focus:outline-none focus:ring-2 focus:ring-[#7F00FF] focus:ring-opacity-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-24 w-full rounded-md border border-gray-300 dark:border-[#2D2D32] bg-white dark:bg-[#1C1C1F] px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#6A3D8F] focus:outline-none focus:ring-2 focus:ring-[#6A3D8F] focus:ring-opacity-50 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Commenti sull'operazione..."
               value={formData.note}
               onChange={(e) => handleChange('note', e.target.value)}

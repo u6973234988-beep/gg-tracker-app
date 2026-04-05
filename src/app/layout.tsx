@@ -1,6 +1,25 @@
 import type { Metadata } from 'next';
+import { Space_Mono, DM_Sans } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import './globals.css';
+
+/* ── GG Tracker Fonts ──
+   Space Mono → headings, data, display (font-mono)
+   DM Sans    → body, UI, labels      (font-sans)
+*/
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-space-mono',
+  display: 'swap',
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'GG Tracker - Trading Journal',
@@ -21,11 +40,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it" suppressHydrationWarning>
+    <html
+      lang="it"
+      className="dark"
+      suppressHydrationWarning
+    >
       <head>
-        <meta name="theme-color" content="#7F00FF" />
+        <meta name="theme-color" content="#0F0F11" />
       </head>
-      <body className="antialiased bg-gray-50 dark:bg-[#0a0a0f] text-gray-800 dark:text-white">
+      <body
+        className={`
+          ${spaceMono.variable}
+          ${dmSans.variable}
+          font-sans
+          antialiased
+          bg-[#0F0F11]
+          text-[#F8F8FF]
+        `}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

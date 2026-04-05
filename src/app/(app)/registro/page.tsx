@@ -146,20 +146,20 @@ export default function RegistroPage() {
   return (
     <div className="p-4 md:p-6 space-y-5 min-h-screen">
       {/* Main glassmorphism container */}
-      <div className="enhanced-glassmorphism rounded-xl border border-violet-200/30 dark:border-violet-500/30 shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-[#2D2D32] shadow-sm overflow-hidden">
         {/* Search bar and button header */}
-        <div className="border-b border-violet-200/30 dark:border-violet-800/30 px-4 py-3 flex flex-col sm:flex-row gap-3 items-center">
+        <div className="border-b border-[#2D2D32] px-4 py-3 flex flex-col sm:flex-row gap-3 items-center">
           <div className="relative flex-grow w-full sm:w-auto">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-violet-500 dark:text-violet-400" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#c4a0e8]" />
             <Input
               placeholder="Cerca per ticker, strategia o note..."
-              className="pl-9 cyber-input"
+              className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <Button
-            className="futuristic-button h-9 text-xs sm:text-sm w-full sm:w-auto"
+            className="h-9 text-xs sm:text-sm w-full sm:w-auto"
             onClick={() => setDialogOpen(true)}
           >
             <PlusCircle className="mr-1 h-3.5 w-3.5" />
@@ -169,11 +169,11 @@ export default function RegistroPage() {
 
         {/* Tabs with glassmorphism styling */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="border-b border-violet-200/30 dark:border-violet-800/30 px-4 py-2">
-            <TabsList className="grid grid-cols-3 w-full sm:w-auto bg-white/30 dark:bg-gray-800/30 p-1 rounded-lg">
+          <div className="border-b border-[#2D2D32] px-4 py-2">
+            <TabsList className="grid grid-cols-3 w-full sm:w-auto bg-[#1C1C1F] p-1 rounded-lg border border-[#2D2D32]">
               <TabsTrigger
                 value="giornaliero"
-                className="flex items-center gap-2 data-[state=active]:enhanced-glassmorphism data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 data-[state=active]:shadow-sm transition-all rounded-md"
+                className="flex items-center gap-2 data-[state=active]:bg-[#1C1C1F] data-[state=active]:text-[#c4a0e8] data-[state=active]:shadow-sm transition-all rounded-md"
               >
                 <List className="h-4 w-4" />
                 <span className="hidden sm:inline">Giornaliero</span>
@@ -181,7 +181,7 @@ export default function RegistroPage() {
               </TabsTrigger>
               <TabsTrigger
                 value="tabella"
-                className="flex items-center gap-2 data-[state=active]:enhanced-glassmorphism data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 data-[state=active]:shadow-sm transition-all rounded-md"
+                className="flex items-center gap-2 data-[state=active]:bg-[#1C1C1F] data-[state=active]:text-[#c4a0e8] data-[state=active]:shadow-sm transition-all rounded-md"
               >
                 <TableIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">Tabella</span>
@@ -189,7 +189,7 @@ export default function RegistroPage() {
               </TabsTrigger>
               <TabsTrigger
                 value="calendario"
-                className="flex items-center gap-2 data-[state=active]:enhanced-glassmorphism data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 data-[state=active]:shadow-sm transition-all rounded-md"
+                className="flex items-center gap-2 data-[state=active]:bg-[#1C1C1F] data-[state=active]:text-[#c4a0e8] data-[state=active]:shadow-sm transition-all rounded-md"
               >
                 <Calendar className="h-4 w-4" />
                 <span className="hidden sm:inline">Calendario</span>
@@ -204,9 +204,9 @@ export default function RegistroPage() {
               {operazioniPerGiorno.length === 0 ? (
                 <motion.div
                   variants={itemVariants}
-                  className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-12 text-center"
+                  className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-12 text-center"
                 >
-                  <p className="text-violet-600/80 dark:text-gray-400">
+                  <p className="text-[#80808A]">
                     {searchQuery ? 'Nessuna operazione trovata per la ricerca' : 'Nessuna operazione registrata'}
                   </p>
                 </motion.div>
@@ -264,13 +264,13 @@ export default function RegistroPage() {
                             animate={{ rotate: isExpanded ? 180 : 0 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <ChevronDown className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                            <ChevronDown className="h-4 w-4 text-[#c4a0e8]" />
                           </motion.div>
                           <div className="text-left">
-                            <p className="font-semibold text-violet-700 dark:text-white text-sm">
+                            <p className="font-semibold text-[#F8F8FF] text-sm">
                               {formattedDate}
                             </p>
-                            <p className="text-xs text-violet-600/60 dark:text-gray-400">
+                            <p className="text-xs text-[#80808A]">
                               {ops.length} {ops.length === 1 ? 'operazione' : 'operazioni'}
                             </p>
                           </div>
@@ -296,14 +296,14 @@ export default function RegistroPage() {
                           )}
 
                           {/* Win rate gauge */}
-                          <div className="flex items-center gap-1.5 bg-white/40 dark:bg-gray-900/40 px-2 py-1 rounded-full">
+                          <div className="flex items-center gap-1.5 bg-[#1C1C1F]/60 px-2 py-1 rounded-full">
                             <div
                               className={cn(
                                 'h-2 w-2 rounded-full',
                                 dayWinRate >= 60 ? 'bg-emerald-500' : dayWinRate >= 40 ? 'bg-amber-500' : 'bg-red-500'
                               )}
                             />
-                            <span className="text-xs font-medium text-violet-700 dark:text-white">{Math.round(dayWinRate)}%</span>
+                            <span className="text-xs font-medium text-[#F8F8FF]">{Math.round(dayWinRate)}%</span>
                           </div>
 
                           {/* P&L and count */}
@@ -323,22 +323,22 @@ export default function RegistroPage() {
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="border-t border-violet-200/20 dark:border-violet-500/20 grid grid-cols-2 gap-1 px-3 py-2"
+                            className="border-t border-[#2D2D32]/20 grid grid-cols-2 gap-1 px-3 py-2"
                           >
-                            <div className="flex items-center justify-center bg-white/40 dark:bg-gray-900/40 rounded-md py-1 px-2">
+                            <div className="flex items-center justify-center bg-[#1C1C1F]/60 rounded-md py-1 px-2">
                               <div className="flex items-center gap-1">
                                 <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                                 <span className="font-medium text-xs text-emerald-700 dark:text-emerald-300">{dayWins}</span>
                               </div>
-                              <span className="mx-1 text-violet-600/40 dark:text-gray-500">/</span>
+                              <span className="mx-1 text-[#80808A]">/</span>
                               <div className="flex items-center gap-1">
                                 <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />
                                 <span className="font-medium text-xs text-red-700 dark:text-red-300">{dayLosses}</span>
                               </div>
                             </div>
-                            <div className="flex items-center justify-center bg-white/40 dark:bg-gray-900/40 rounded-md py-1 px-2">
-                              <Tag className="h-3 w-3 mr-1 text-violet-600 dark:text-violet-400" />
-                              <span className="text-xs font-medium text-violet-700 dark:text-violet-300">{strategies.size} {strategies.size === 1 ? 'strategia' : 'strategie'}</span>
+                            <div className="flex items-center justify-center bg-[#1C1C1F]/60 rounded-md py-1 px-2">
+                              <Tag className="h-3 w-3 mr-1 text-[#c4a0e8]" />
+                              <span className="text-xs font-medium text-[#c4a0e8]">{strategies.size} {strategies.size === 1 ? 'strategia' : 'strategie'}</span>
                             </div>
                           </motion.div>
                         )}
@@ -354,13 +354,13 @@ export default function RegistroPage() {
                             transition={{ duration: 0.25 }}
                             className="overflow-hidden"
                           >
-                            <div className="border-t border-violet-200/20 dark:border-violet-500/20 p-4 space-y-4 bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm">
+                            <div className="border-t border-[#2D2D32]/20 p-4 space-y-4 bg-[#1C1C1F]/30">
                               {/* Metrics Grid - 4 columns */}
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                 {/* Win Rate Gauge */}
-                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">Win Rate</h3>
+                                    <h3 className="text-xs font-medium text-[#c4a0e8]">Win Rate</h3>
                                     <Badge
                                       variant={dayWinRate >= 60 ? 'success' : dayWinRate >= 40 ? 'outline' : 'destructive'}
                                       className="text-xs py-0 h-5"
@@ -372,7 +372,7 @@ export default function RegistroPage() {
                                     <div className="relative h-14 w-14">
                                       <svg className="w-full h-full" viewBox="0 0 100 100">
                                         <circle
-                                          className="text-violet-200 dark:text-violet-900/50 stroke-current"
+                                          className="text-[#2D2D32] stroke-current"
                                           strokeWidth="8"
                                           cx="50"
                                           cy="50"
@@ -400,7 +400,7 @@ export default function RegistroPage() {
                                         />
                                       </svg>
                                       <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-xs font-semibold text-violet-700 dark:text-white">
+                                        <span className="text-xs font-semibold text-[#F8F8FF]">
                                           {dayWins}/{ops.length}
                                         </span>
                                       </div>
@@ -409,9 +409,9 @@ export default function RegistroPage() {
                                 </div>
 
                                 {/* Profit Factor Gauge */}
-                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">Profit Factor</h3>
+                                    <h3 className="text-xs font-medium text-[#c4a0e8]">Profit Factor</h3>
                                     <Badge
                                       variant={profitFactor >= 2 ? 'success' : profitFactor >= 1 ? 'outline' : 'destructive'}
                                       className="text-xs py-0 h-5"
@@ -423,7 +423,7 @@ export default function RegistroPage() {
                                     <div className="relative h-14 w-14">
                                       <svg className="w-full h-full" viewBox="0 0 100 100">
                                         <circle
-                                          className="text-violet-200 dark:text-violet-900/50 stroke-current"
+                                          className="text-[#2D2D32] stroke-current"
                                           strokeWidth="8"
                                           cx="50"
                                           cy="50"
@@ -451,7 +451,7 @@ export default function RegistroPage() {
                                         />
                                       </svg>
                                       <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-xs text-violet-700 dark:text-white font-semibold">
+                                        <span className="text-xs text-[#F8F8FF] font-semibold">
                                           {profitFactor >= 2 ? 'Ottimo' : profitFactor >= 1 ? 'Buono' : 'Basso'}
                                         </span>
                                       </div>
@@ -460,9 +460,9 @@ export default function RegistroPage() {
                                 </div>
 
                                 {/* Average Trade */}
-                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">Media Trade</h3>
+                                    <h3 className="text-xs font-medium text-[#c4a0e8]">Media Trade</h3>
                                     <Badge
                                       variant={avgTrade > 0 ? 'success' : avgTrade < 0 ? 'destructive' : 'outline'}
                                       className="text-xs py-0 h-5"
@@ -472,7 +472,7 @@ export default function RegistroPage() {
                                   </div>
                                   <div className="flex items-center justify-center h-16">
                                     <div className="w-full flex flex-col items-center">
-                                      <div className="w-full h-2 bg-violet-200 dark:bg-violet-900/50 rounded-full overflow-hidden">
+                                      <div className="w-full h-2 bg-[#46265F]/20 rounded-full overflow-hidden">
                                         {avgTrade !== 0 && (
                                           <div
                                             className={avgTrade > 0 ? 'h-full bg-emerald-500' : 'h-full bg-red-500'}
@@ -484,7 +484,7 @@ export default function RegistroPage() {
                                           />
                                         )}
                                       </div>
-                                      <div className="flex justify-between w-full mt-1 text-[10px] text-violet-600/60 dark:text-gray-500">
+                                      <div className="flex justify-between w-full mt-1 text-[10px] text-[#80808A]">
                                         <span>-50€</span>
                                         <span>0</span>
                                         <span>+50€</span>
@@ -494,9 +494,9 @@ export default function RegistroPage() {
                                 </div>
 
                                 {/* P&L Total */}
-                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
+                                <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300">P&L Totale</h3>
+                                    <h3 className="text-xs font-medium text-[#c4a0e8]">P&L Totale</h3>
                                     <Badge variant="outline" className="text-xs py-0 h-5">
                                       {ops.length}
                                     </Badge>
@@ -506,7 +506,7 @@ export default function RegistroPage() {
                                       <span className={cn('text-lg font-bold', dayPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                                         {dayPnl >= 0 ? '+' : ''}{formatValuta(dayPnl)}
                                       </span>
-                                      <div className="mt-1 w-full h-2 bg-violet-200 dark:bg-violet-900/50 rounded-full overflow-hidden">
+                                      <div className="mt-1 w-full h-2 bg-[#46265F]/20 rounded-full overflow-hidden">
                                         <div
                                           className={dayPnl >= 0 ? 'h-full bg-emerald-500' : 'h-full bg-red-500'}
                                           style={{ width: `${Math.min((Math.abs(dayPnl) / 500) * 100, 100)}%` }}
@@ -520,26 +520,26 @@ export default function RegistroPage() {
                               {/* Best/Worst Trade & Detailed Stats */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {/* Best/Worst Trade */}
-                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
-                                  <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300 mb-2">Operazioni Significative</h3>
+                                <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-3">
+                                  <h3 className="text-xs font-medium text-[#c4a0e8] mb-2">Operazioni Significative</h3>
                                   <div className="space-y-2">
                                     {bestOp && (bestOp.pnl || 0) > 0 ? (
                                       <div className="flex items-center justify-between p-2 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-md">
                                         <div className="flex items-center gap-2">
                                           <div className="w-1.5 h-6 bg-emerald-500 rounded-sm" />
                                           <div>
-                                            <p className="text-xs font-medium text-violet-700 dark:text-white">{bestOp.ticker}</p>
-                                            <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Miglior trade</p>
+                                            <p className="text-xs font-medium text-[#F8F8FF]">{bestOp.ticker}</p>
+                                            <p className="text-[10px] text-[#80808A]">Miglior trade</p>
                                           </div>
                                         </div>
                                         <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{formatValuta(bestOp.pnl || 0)}</span>
                                       </div>
                                     ) : (
-                                      <div className="flex items-center gap-2 p-2 bg-gray-100/50 dark:bg-gray-800/30 rounded-md">
-                                        <div className="w-1.5 h-6 bg-gray-400 rounded-sm" />
+                                      <div className="flex items-center gap-2 p-2 bg-[#1C1C1F]/50 rounded-md">
+                                        <div className="w-1.5 h-6 bg-[#80808A] rounded-sm" />
                                         <div>
-                                          <p className="text-xs font-medium text-violet-700 dark:text-white">Nessun trade in profitto</p>
-                                          <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Miglior trade</p>
+                                          <p className="text-xs font-medium text-[#F8F8FF]">Nessun trade in profitto</p>
+                                          <p className="text-[10px] text-[#80808A]">Miglior trade</p>
                                         </div>
                                       </div>
                                     )}
@@ -548,18 +548,18 @@ export default function RegistroPage() {
                                         <div className="flex items-center gap-2">
                                           <div className="w-1.5 h-6 bg-red-500 rounded-sm" />
                                           <div>
-                                            <p className="text-xs font-medium text-violet-700 dark:text-white">{worstOp.ticker}</p>
-                                            <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Peggior trade</p>
+                                            <p className="text-xs font-medium text-[#F8F8FF]">{worstOp.ticker}</p>
+                                            <p className="text-[10px] text-[#80808A]">Peggior trade</p>
                                           </div>
                                         </div>
                                         <span className="text-xs font-bold text-red-600 dark:text-red-400">{formatValuta(worstOp.pnl || 0)}</span>
                                       </div>
                                     ) : (
-                                      <div className="flex items-center gap-2 p-2 bg-gray-100/50 dark:bg-gray-800/30 rounded-md">
-                                        <div className="w-1.5 h-6 bg-gray-400 rounded-sm" />
+                                      <div className="flex items-center gap-2 p-2 bg-[#1C1C1F]/50 rounded-md">
+                                        <div className="w-1.5 h-6 bg-[#80808A] rounded-sm" />
                                         <div>
-                                          <p className="text-xs font-medium text-violet-700 dark:text-white">Nessun trade in perdita</p>
-                                          <p className="text-[10px] text-violet-600/60 dark:text-gray-400">Peggior trade</p>
+                                          <p className="text-xs font-medium text-[#F8F8FF]">Nessun trade in perdita</p>
+                                          <p className="text-[10px] text-[#80808A]">Peggior trade</p>
                                         </div>
                                       </div>
                                     )}
@@ -567,30 +567,30 @@ export default function RegistroPage() {
                                 </div>
 
                                 {/* Detailed Stats */}
-                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
-                                  <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300 mb-2">Statistiche Dettagliate</h3>
+                                <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-3">
+                                  <h3 className="text-xs font-medium text-[#c4a0e8] mb-2">Statistiche Dettagliate</h3>
                                   <div className="grid grid-cols-2 gap-2">
-                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
-                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Media Win</p>
+                                    <div className="p-2 bg-[#46265F]/10 rounded-md">
+                                      <p className="text-[10px] text-[#80808A] mb-0.5">Media Win</p>
                                       <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                         {avgWinAmount > 0 ? `+${formatValuta(avgWinAmount)}` : 'N/A'}
                                       </p>
                                     </div>
-                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
-                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Media Loss</p>
+                                    <div className="p-2 bg-[#46265F]/10 rounded-md">
+                                      <p className="text-[10px] text-[#80808A] mb-0.5">Media Loss</p>
                                       <p className="text-xs font-semibold text-red-600 dark:text-red-400">
                                         {avgLossAmount < 0 ? formatValuta(avgLossAmount) : 'N/A'}
                                       </p>
                                     </div>
-                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
-                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Commissioni</p>
+                                    <div className="p-2 bg-[#46265F]/10 rounded-md">
+                                      <p className="text-[10px] text-[#80808A] mb-0.5">Commissioni</p>
                                       <p className="text-xs font-semibold text-red-600 dark:text-red-400">
                                         -{formatValuta(totalCommissions)}
                                       </p>
                                     </div>
-                                    <div className="p-2 bg-violet-50/50 dark:bg-violet-900/20 rounded-md">
-                                      <p className="text-[10px] text-violet-600/60 dark:text-gray-400 mb-0.5">Rapporto W/L</p>
-                                      <p className="text-xs font-semibold text-violet-700 dark:text-violet-300">
+                                    <div className="p-2 bg-[#46265F]/10 rounded-md">
+                                      <p className="text-[10px] text-[#80808A] mb-0.5">Rapporto W/L</p>
+                                      <p className="text-xs font-semibold text-[#c4a0e8]">
                                         {Math.abs(avgLossAmount) > 0 && avgWinAmount > 0
                                           ? `${(avgWinAmount / Math.abs(avgLossAmount)).toFixed(2)}`
                                           : 'N/A'}
@@ -602,8 +602,8 @@ export default function RegistroPage() {
 
                               {/* Strategies section */}
                               {strategies.size > 0 && (
-                                <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 p-3">
-                                  <h3 className="text-xs font-medium text-violet-700 dark:text-gray-300 mb-2">Strategie</h3>
+                                <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] p-3">
+                                  <h3 className="text-xs font-medium text-[#c4a0e8] mb-2">Strategie</h3>
                                   <div className="flex flex-wrap gap-1">
                                     {Array.from(strategies).map((strategy) => (
                                       <Badge key={strategy} variant="outline" className="text-xs py-0 h-5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30">
@@ -615,22 +615,22 @@ export default function RegistroPage() {
                               )}
 
                               {/* Operations list */}
-                              <div className="rounded-lg border border-violet-200/30 dark:border-violet-500/30 bg-white/50 dark:bg-gray-900/50 overflow-hidden">
-                                <div className="border-b border-violet-200/20 dark:border-violet-500/20 px-3 py-2 bg-violet-50/50 dark:bg-violet-900/10">
-                                  <p className="text-xs font-medium text-violet-700 dark:text-gray-300">Operazioni ({ops.length})</p>
+                              <div className="rounded-lg border border-[#2D2D32] bg-[#1C1C1F] overflow-hidden">
+                                <div className="border-b border-[#2D2D32]/20 px-3 py-2 bg-[#46265F]/10">
+                                  <p className="text-xs font-medium text-[#c4a0e8]">Operazioni ({ops.length})</p>
                                 </div>
-                                <div className="divide-y divide-violet-200/10 dark:divide-violet-500/10 max-h-64 overflow-y-auto">
+                                <div className="divide-y divide-[#2D2D32]/10 max-h-64 overflow-y-auto">
                                   {ops.map((op) => (
                                     <div
                                       key={op.id}
-                                      className="flex items-center justify-between px-3 py-2 hover:bg-violet-50/50 dark:hover:bg-violet-900/5 transition-colors cursor-pointer"
+                                      className="flex items-center justify-between px-3 py-2 hover:bg-[#46265F]/5 transition-colors cursor-pointer"
                                       onClick={() => {
                                         setOperazioneInModifica(op);
                                         setDialogOpen(true);
                                       }}
                                     >
                                       <div className="flex items-center gap-2 flex-grow min-w-0">
-                                        <span className="font-mono font-semibold text-xs text-violet-700 dark:text-white min-w-[45px]">
+                                        <span className="font-mono font-semibold text-xs text-[#F8F8FF] min-w-[45px]">
                                           {op.ticker}
                                         </span>
                                         <Badge
@@ -639,7 +639,7 @@ export default function RegistroPage() {
                                         >
                                           {op.direzione}
                                         </Badge>
-                                        <span className="text-xs text-violet-600/60 dark:text-gray-500 hidden sm:inline truncate">
+                                        <span className="text-xs text-[#80808A] hidden sm:inline truncate">
                                           {op.quantita} @ {op.prezzo_entrata?.toFixed(2)}
                                         </span>
                                       </div>
@@ -650,7 +650,7 @@ export default function RegistroPage() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-6 text-xs px-1.5 flex-shrink-0 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-300"
+                                          className="h-6 text-xs px-1.5 flex-shrink-0 text-[#c4a0e8] hover:text-[#c4a0e8]"
                                           title="Analisi"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -711,24 +711,24 @@ export default function RegistroPage() {
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
                 >
-                  <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/95 dark:bg-[#1a1a2e]/95 backdrop-blur-xl border border-violet-300/40 dark:border-violet-500/30 shadow-2xl shadow-violet-500/20">
+                  <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/95 dark:bg-[#1C1C1F]/95 border border-[#2D2D32] shadow-2xl shadow-[#46265F]/10">
                     {/* Selection count */}
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-violet-500 text-white text-xs font-bold">
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#46265F] text-white text-xs font-bold">
                         {selectedIds.size}
                       </div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      <span className="text-sm font-medium text-[#F8F8FF] whitespace-nowrap">
                         {selectedIds.size === 1 ? 'operazione' : 'operazioni'}
                       </span>
                     </div>
 
-                    <div className="w-px h-8 bg-violet-200/50 dark:bg-violet-500/20" />
+                    <div className="w-px h-8 bg-[#2D2D32]/50" />
 
                     {/* Assign to strategy button */}
                     <div className="relative">
                       <Button
                         size="sm"
-                        className="futuristic-button h-9 text-xs gap-1.5"
+                        className="h-9 text-xs gap-1.5"
                         onClick={() => setShowStrategyDropdown(!showStrategyDropdown)}
                         disabled={isAssigning}
                       >
@@ -748,18 +748,18 @@ export default function RegistroPage() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 8, scale: 0.95 }}
                             transition={{ duration: 0.15 }}
-                            className="absolute bottom-full left-0 mb-2 w-64 max-h-72 overflow-y-auto rounded-xl bg-white dark:bg-[#1a1a2e] border border-violet-200/40 dark:border-violet-500/30 shadow-xl shadow-violet-500/10 py-1"
+                            className="absolute bottom-full left-0 mb-2 w-64 max-h-72 overflow-y-auto rounded-xl bg-white dark:bg-[#1C1C1F] border border-[#2D2D32] shadow-xl py-1"
                           >
                             {strategieLoading ? (
                               <div className="flex items-center justify-center py-6">
-                                <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+                                <Loader2 className="w-5 h-5 animate-spin text-[#c4a0e8]" />
                               </div>
                             ) : strategie.length === 0 ? (
                               <div className="px-4 py-6 text-center">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                <p className="text-sm text-[#80808A]">
                                   Nessuna strategia trovata
                                 </p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                <p className="text-xs text-[#80808A] mt-1">
                                   Crea una strategia nel Playbook
                                 </p>
                               </div>
@@ -769,32 +769,32 @@ export default function RegistroPage() {
                                   <button
                                     key={strat.id}
                                     onClick={() => handleBulkAssign(strat.id)}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors text-left"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#46265F]/10 transition-colors text-left"
                                   >
                                     <div
                                       className="w-3 h-3 rounded-full shrink-0 shadow-sm"
                                       style={{
-                                        backgroundColor: strat.colore || '#8b5cf6',
-                                        boxShadow: `0 0 0 2px white, 0 0 0 4px ${strat.colore || '#8b5cf6'}40`,
+                                        backgroundColor: strat.colore || '#6A3D8F',
+                                        boxShadow: `0 0 0 2px white, 0 0 0 4px ${strat.colore || '#6A3D8F'}40`,
                                       }}
                                     />
                                     <div className="min-w-0 flex-1">
-                                      <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
+                                      <p className="text-sm font-medium text-[#F8F8FF] truncate">
                                         {strat.nome}
                                       </p>
-                                      <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                                      <p className="text-[10px] text-[#80808A]">
                                         {strat.operazioniCount || 0} ops · WR {(strat.winRate || 0).toFixed(0)}%
                                       </p>
                                     </div>
                                   </button>
                                 ))}
-                                <div className="border-t border-violet-200/20 dark:border-violet-500/20 mt-1 pt-1">
+                                <div className="border-t border-[#2D2D32]/20 mt-1 pt-1">
                                   <button
                                     onClick={() => handleBulkAssign(null)}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-left"
                                   >
                                     <div className="w-3 h-3 rounded-full shrink-0 border-2 border-dashed border-gray-300 dark:border-gray-600" />
-                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                    <p className="text-sm font-medium text-[#80808A]">
                                       Rimuovi strategia
                                     </p>
                                   </button>
@@ -812,7 +812,7 @@ export default function RegistroPage() {
                         setSelectedIds(new Set());
                         setShowStrategyDropdown(false);
                       }}
-                      className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+                      className="flex items-center justify-center w-8 h-8 rounded-lg text-[#80808A] hover:text-[#c4a0e8] hover:bg-[#46265F]/10 transition-colors"
                       title="Deseleziona tutto"
                     >
                       <X className="w-4 h-4" />
@@ -832,12 +832,12 @@ export default function RegistroPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)); setSelectedCalendarDay(null); }}
-                  className="h-8 w-8 text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
+                  className="h-8 w-8 text-[#c4a0e8] hover:bg-[#46265F]/10"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <div className="text-center">
-                  <h3 className="text-base font-bold text-violet-700 dark:text-white capitalize">
+                  <h3 className="text-base font-bold text-[#F8F8FF] capitalize">
                     {format(currentMonth, 'MMMM yyyy', { locale: it })}
                   </h3>
                 </div>
@@ -845,7 +845,7 @@ export default function RegistroPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedCalendarDay(null); }}
-                  className="h-8 w-8 text-violet-600 dark:text-violet-400 hover:bg-violet-100/50 dark:hover:bg-violet-900/20"
+                  className="h-8 w-8 text-[#c4a0e8] hover:bg-[#46265F]/10"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -868,18 +868,18 @@ export default function RegistroPage() {
                 const monthComm = monthOps.reduce((sum, op) => sum + (op.commissione || 0), 0);
 
                 return (
-                  <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/40 dark:bg-[#161622]/40 overflow-hidden">
+                  <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] overflow-hidden">
                     {/* Top: P&L totale e barra */}
-                    <div className="flex items-center gap-4 px-4 py-3 border-b border-violet-200/15 dark:border-violet-500/10">
+                    <div className="flex items-center gap-4 px-4 py-3 border-b border-[#2D2D32]/20">
                       <div className="flex-1">
                         <div className="flex items-baseline gap-2">
-                          <span className={cn('text-xl font-bold', monthOps.length === 0 ? 'text-gray-400 dark:text-gray-500' : monthPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                          <span className={cn('text-xl font-bold', monthOps.length === 0 ? 'text-[#80808A]' : monthPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                             {monthOps.length === 0 ? '€0,00' : `${monthPnl >= 0 ? '+' : ''}${formatValuta(monthPnl)}`}
                           </span>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">P&L mese</span>
+                          <span className="text-[10px] text-[#80808A] font-medium uppercase tracking-wider">P&L mese</span>
                         </div>
                         {monthOps.length > 0 && (
-                          <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full mt-1.5 overflow-hidden">
+                          <div className="w-full h-1.5 bg-[#2D2D32] rounded-full mt-1.5 overflow-hidden">
                             <div
                               className={cn('h-full rounded-full transition-all duration-500', monthPnl >= 0 ? 'bg-emerald-500' : 'bg-red-500')}
                               style={{ width: `${Math.min(Math.abs(monthPnl) / Math.max(Math.abs(monthPnl), 500) * 100, 100)}%` }}
@@ -890,29 +890,29 @@ export default function RegistroPage() {
                     </div>
 
                     {/* Bottom: Stats row */}
-                    <div className="grid grid-cols-5 divide-x divide-violet-200/15 dark:divide-violet-500/10">
+                    <div className="grid grid-cols-5 divide-x divide-[#2D2D32]/20">
                       <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Operazioni</p>
-                        <p className="text-sm font-bold text-violet-700 dark:text-white">{monthOps.length}</p>
+                        <p className="text-[10px] text-[#80808A] font-medium mb-0.5">Operazioni</p>
+                        <p className="text-sm font-bold text-[#F8F8FF]">{monthOps.length}</p>
                       </div>
                       <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Win Rate</p>
-                        <p className={cn('text-sm font-bold', monthOps.length === 0 ? 'text-gray-400 dark:text-gray-500' : monthWinRate >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                        <p className="text-[10px] text-[#80808A] font-medium mb-0.5">Win Rate</p>
+                        <p className={cn('text-sm font-bold', monthOps.length === 0 ? 'text-[#80808A]' : monthWinRate >= 50 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                           {monthOps.length === 0 ? '—' : `${Math.round(monthWinRate)}%`}
                         </p>
                       </div>
                       <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Giorni</p>
-                        <p className="text-sm font-bold text-violet-700 dark:text-white">{tradingDays}</p>
+                        <p className="text-[10px] text-[#80808A] font-medium mb-0.5">Giorni</p>
+                        <p className="text-sm font-bold text-[#F8F8FF]">{tradingDays}</p>
                       </div>
                       <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Media/Giorno</p>
-                        <p className={cn('text-sm font-bold', monthOps.length === 0 ? 'text-gray-400 dark:text-gray-500' : avgPnlPerDay >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                        <p className="text-[10px] text-[#80808A] font-medium mb-0.5">Media/Giorno</p>
+                        <p className={cn('text-sm font-bold', monthOps.length === 0 ? 'text-[#80808A]' : avgPnlPerDay >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                           {monthOps.length === 0 ? '—' : `${avgPnlPerDay >= 0 ? '+' : ''}${formatValuta(avgPnlPerDay)}`}
                         </p>
                       </div>
                       <div className="px-3 py-2.5 text-center">
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Commissioni</p>
+                        <p className="text-[10px] text-[#80808A] font-medium mb-0.5">Commissioni</p>
                         <p className="text-sm font-bold text-red-500 dark:text-red-400">
                           {monthOps.length === 0 ? '—' : `-${formatValuta(monthComm)}`}
                         </p>
@@ -923,17 +923,17 @@ export default function RegistroPage() {
               })()}
 
               {/* Calendar grid */}
-              <div className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 overflow-hidden">
+              <div className="rounded-xl border border-[#2D2D32] overflow-hidden">
                 {/* Day of week headers */}
-                <div className="grid grid-cols-7 bg-violet-50/40 dark:bg-violet-900/15">
+                <div className="grid grid-cols-7 bg-[#46265F]/10">
                   {weekDays.map((day, i) => (
                     <div
                       key={day}
                       className={cn(
                         'py-2.5 text-center text-[10px] font-bold uppercase tracking-wider',
                         i >= 5
-                          ? 'text-violet-400/60 dark:text-violet-500/40'
-                          : 'text-violet-600/80 dark:text-violet-400/80'
+                          ? 'text-[#80808A]/60'
+                          : 'text-[#c4a0e8]'
                       )}
                     >
                       {day}
@@ -948,7 +948,7 @@ export default function RegistroPage() {
                       return (
                         <div
                           key={`empty-${idx}`}
-                          className="min-h-[90px] border-t border-r border-violet-200/8 dark:border-violet-500/5 bg-gray-50/20 dark:bg-gray-900/10 last:border-r-0"
+                          className="min-h-[90px] border-t border-r border-[#2D2D32]/5 bg-[#1C1C1F]/10 last:border-r-0"
                         />
                       );
                     }
@@ -968,14 +968,14 @@ export default function RegistroPage() {
                           }
                         }}
                         className={cn(
-                          'min-h-[90px] border-t border-r border-violet-200/8 dark:border-violet-500/5 p-1.5 transition-all duration-150 relative group/cell',
+                          'min-h-[90px] border-t border-r border-[#2D2D32]/5 p-1.5 transition-all duration-150 relative group/cell',
                           hasOps && 'cursor-pointer',
                           hasOps && isPositive && !isSelectedDay && 'bg-emerald-50/30 dark:bg-emerald-500/[0.03]',
                           hasOps && !isPositive && !isSelectedDay && 'bg-red-50/30 dark:bg-red-500/[0.03]',
-                          !hasOps && 'bg-white/30 dark:bg-[#161622]/30',
-                          hasOps && !isSelectedDay && 'hover:bg-violet-50/50 dark:hover:bg-violet-900/10',
-                          isToday && !isSelectedDay && 'ring-1 ring-inset ring-violet-400/40 dark:ring-violet-500/30',
-                          isSelectedDay && 'ring-2 ring-inset ring-violet-500 dark:ring-violet-400 bg-violet-50/60 dark:bg-violet-500/10'
+                          !hasOps && 'bg-[#0F0F11]/30',
+                          hasOps && !isSelectedDay && 'hover:bg-[#46265F]/10',
+                          isToday && !isSelectedDay && 'ring-1 ring-inset ring-[#6A3D8F]/30',
+                          isSelectedDay && 'ring-2 ring-inset ring-[#6A3D8F] bg-[#46265F]/10'
                         )}
                       >
                         {/* Day number */}
@@ -983,10 +983,10 @@ export default function RegistroPage() {
                           <div className={cn(
                             'text-[11px] font-semibold leading-none',
                             isToday
-                              ? 'text-white bg-violet-500 rounded-full w-5 h-5 flex items-center justify-center text-[10px]'
+                              ? 'text-white bg-[#46265F] rounded-full w-5 h-5 flex items-center justify-center text-[10px]'
                               : hasOps
-                                ? 'text-violet-700 dark:text-white'
-                                : 'text-gray-400 dark:text-gray-600'
+                                ? 'text-[#F8F8FF]'
+                                : 'text-[#80808A]'
                           )}>
                             {cell.day}
                           </div>
@@ -997,10 +997,10 @@ export default function RegistroPage() {
                                 const dayOp = filteredOperazioni.find((op) => op.data === cell.dateStr);
                                 if (dayOp) router.push(`/analisi/${dayOp.id}`);
                               }}
-                              className="opacity-0 group-hover/cell:opacity-100 p-0.5 rounded hover:bg-violet-200/50 dark:hover:bg-violet-500/20 transition-all"
+                              className="opacity-0 group-hover/cell:opacity-100 p-0.5 rounded hover:bg-[#46265F]/20 transition-all"
                               title="Vai all'analisi"
                             >
-                              <BarChart2 className="h-3 w-3 text-violet-500" />
+                              <BarChart2 className="h-3 w-3 text-[#c4a0e8]" />
                             </button>
                           )}
                         </div>
@@ -1017,7 +1017,7 @@ export default function RegistroPage() {
 
                             {/* Mini bar: win/loss ratio */}
                             <div className="flex items-center gap-1">
-                              <div className="flex-1 h-1 bg-gray-200/50 dark:bg-gray-800/50 rounded-full overflow-hidden">
+                              <div className="flex-1 h-1 bg-[#2D2D32]/50 rounded-full overflow-hidden">
                                 <div
                                   className={cn(
                                     'h-full rounded-full transition-all',
@@ -1029,7 +1029,7 @@ export default function RegistroPage() {
                             </div>
 
                             {/* Count + wins */}
-                            <p className="text-[9px] text-gray-400 dark:text-gray-500 leading-none">
+                            <p className="text-[9px] text-[#80808A] leading-none">
                               {cell.ops} ops · {cell.wins}W/{cell.ops - cell.wins}L
                             </p>
                           </div>
@@ -1064,25 +1064,25 @@ export default function RegistroPage() {
                       animate={{ opacity: 1, y: 0, height: 'auto' }}
                       exit={{ opacity: 0, y: -10, height: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="rounded-xl border border-violet-200/30 dark:border-violet-500/15 bg-white/50 dark:bg-[#161622]/50 overflow-hidden"
+                      className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] overflow-hidden"
                     >
                       {/* Day header */}
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-violet-200/20 dark:border-violet-500/10 bg-violet-50/30 dark:bg-violet-900/10">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2D2D32]/20 bg-[#46265F]/10">
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             'w-2 h-8 rounded-full',
                             dayPnl >= 0 ? 'bg-emerald-500' : 'bg-red-500'
                           )} />
                           <div>
-                            <h4 className="text-sm font-bold text-violet-700 dark:text-white">{formattedDate}</h4>
+                            <h4 className="text-sm font-bold text-[#F8F8FF]">{formattedDate}</h4>
                             <div className="flex items-center gap-3 mt-0.5">
                               <span className={cn('text-xs font-bold', dayPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                                 {dayPnl >= 0 ? '+' : ''}{formatValuta(dayPnl)}
                               </span>
-                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                              <span className="text-[10px] text-[#80808A]">
                                 {dayOps.length} {dayOps.length === 1 ? 'operazione' : 'operazioni'}
                               </span>
-                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                              <span className="text-[10px] text-[#80808A]">
                                 WR {Math.round(dayWinRate)}%
                               </span>
                               {dayComm > 0 && (
@@ -1095,14 +1095,14 @@ export default function RegistroPage() {
                         </div>
                         <button
                           onClick={() => setSelectedCalendarDay(null)}
-                          className="p-1.5 rounded-lg hover:bg-violet-100/50 dark:hover:bg-violet-500/10 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          className="p-1.5 rounded-lg hover:bg-[#46265F]/10 transition-colors text-[#80808A] hover:text-[#F8F8FF]"
                         >
                           <X className="h-4 w-4" />
                         </button>
                       </div>
 
                       {/* Operations list */}
-                      <div className="divide-y divide-violet-200/10 dark:divide-violet-500/5 max-h-80 overflow-y-auto">
+                      <div className="divide-y divide-[#2D2D32]/10 max-h-80 overflow-y-auto">
                         {dayOps.map((op) => {
                           const pnl = op.pnl || 0;
                           const isLong = op.direzione === 'LONG';
@@ -1110,7 +1110,7 @@ export default function RegistroPage() {
                           return (
                             <div
                               key={op.id}
-                              className="flex items-center justify-between px-4 py-2.5 hover:bg-violet-50/40 dark:hover:bg-violet-900/5 transition-colors cursor-pointer group"
+                              className="flex items-center justify-between px-4 py-2.5 hover:bg-[#46265F]/5 transition-colors cursor-pointer group"
                               onClick={() => router.push(`/analisi/${op.id}`)}
                             >
                               <div className="flex items-center gap-3 flex-grow min-w-0">
@@ -1122,35 +1122,35 @@ export default function RegistroPage() {
                                 )}>
                                   {isLong ? 'L' : 'S'}
                                 </span>
-                                <span className="font-mono font-bold text-xs text-violet-700 dark:text-white flex-shrink-0">
+                                <span className="font-mono font-bold text-xs text-[#F8F8FF] flex-shrink-0">
                                   {op.ticker}
                                 </span>
-                                <span className="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">
+                                <span className="text-[11px] text-[#80808A] hidden sm:inline">
                                   {op.quantita} @ {op.prezzo_entrata?.toFixed(2)} → {op.prezzo_uscita?.toFixed(2) || '—'}
                                 </span>
                                 {op.strategia && (
                                   <span
                                     className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex-shrink-0"
                                     style={{
-                                      backgroundColor: op.strategia.colore ? `${op.strategia.colore}15` : 'rgba(139, 92, 246, 0.08)',
-                                      color: op.strategia.colore || '#8b5cf6',
+                                      backgroundColor: op.strategia.colore ? `${op.strategia.colore}15` : 'rgba(70, 38, 95, 0.08)',
+                                      color: op.strategia.colore || '#6A3D8F',
                                     }}
                                   >
-                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: op.strategia.colore || '#8b5cf6' }} />
+                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: op.strategia.colore || '#6A3D8F' }} />
                                     {op.strategia.nome}
                                   </span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
                                 {(op.ora_entrata || op.ora_uscita) && (
-                                  <span className="text-[10px] text-gray-400 dark:text-gray-500 hidden sm:inline">
+                                  <span className="text-[10px] text-[#80808A] hidden sm:inline">
                                     {op.ora_entrata || ''}{op.ora_entrata && op.ora_uscita ? ' → ' : ''}{op.ora_uscita || ''}
                                   </span>
                                 )}
                                 <span className={cn('text-xs font-bold flex-shrink-0', pnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                                   {pnl >= 0 ? '+' : ''}{formatValuta(pnl)}
                                 </span>
-                                <BarChart2 className="h-3.5 w-3.5 text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                                <BarChart2 className="h-3.5 w-3.5 text-[#c4a0e8] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                               </div>
                             </div>
                           );

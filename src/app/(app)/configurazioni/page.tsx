@@ -175,8 +175,8 @@ export default function ConfigurazioniPage() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="h-12 w-12 rounded-full bg-[#7F00FF] mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-500 dark:text-gray-400">Caricamento impostazioni...</p>
+          <div className="h-12 w-12 rounded-full bg-[#46265F] mx-auto mb-4 animate-pulse" />
+          <p className="text-[#80808A]">Caricamento impostazioni...</p>
         </div>
       </div>
     );
@@ -191,8 +191,8 @@ export default function ConfigurazioniPage() {
     >
       {/* Header */}
       <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">Configurazioni</h1>
-        <p className="text-gray-500 dark:text-gray-400">Gestisci il tuo profilo, le preferenze e i tuoi dati</p>
+        <h1 className="text-4xl font-bold text-[#F8F8FF] mb-2">Configurazioni</h1>
+        <p className="text-[#80808A]">Gestisci il tuo profilo, le preferenze e i tuoi dati</p>
       </motion.div>
 
       {/* Main Grid: Two columns on md+ screens */}
@@ -202,10 +202,10 @@ export default function ConfigurazioniPage() {
       >
         {/* SEZIONE 1: PROFILO */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-xl border border-violet-200/30 dark:border-violet-500/30 enhanced-card hover:shadow-2xl transition-all duration-300">
+          <Card className="hover:border-[#6A3D8F]/40 transition-all duration-300">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-purple-400" />
+                <User className="h-5 w-5 text-[#c4a0e8]" />
                 <div>
                   <CardTitle>Profilo</CardTitle>
                   <CardDescription>Gestisci le informazioni del tuo profilo</CardDescription>
@@ -214,7 +214,7 @@ export default function ConfigurazioniPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-800 dark:text-white">Nome visualizzato</label>
+                <label className="text-sm font-medium text-[#F8F8FF]">Nome visualizzato</label>
                 <Input
                   type="text"
                   value={nomeVisualizzato}
@@ -224,14 +224,14 @@ export default function ConfigurazioniPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-800 dark:text-white">Email</label>
-                <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#12121a] border border-gray-200 dark:border-[#1e1e2e] rounded-md">
+                <label className="text-sm font-medium text-[#F8F8FF]">Email</label>
+                <div className="px-3 py-2 text-sm text-[#80808A] bg-[#0F0F11] border border-[#2D2D32] rounded-md">
                   {profilo?.email || 'N/A'}
                 </div>
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveProfilo} disabled={isSaving} className="futuristic-button">
+                <Button onClick={handleSaveProfilo} disabled={isSaving}>
                   {isSaving ? 'Salvataggio...' : 'Salva Profilo'}
                 </Button>
               </div>
@@ -241,10 +241,10 @@ export default function ConfigurazioniPage() {
 
         {/* SEZIONE 2: CAPITALE INIZIALE */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-xl border border-violet-200/30 dark:border-violet-500/30 enhanced-card hover:shadow-2xl transition-all duration-300">
+          <Card className="hover:border-[#6A3D8F]/40 transition-all duration-300">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-purple-400" />
+                <DollarSign className="h-5 w-5 text-[#c4a0e8]" />
                 <div>
                   <CardTitle>Capitale Iniziale</CardTitle>
                   <CardDescription>Imposta il tuo capitale di trading</CardDescription>
@@ -253,9 +253,9 @@ export default function ConfigurazioniPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-800 dark:text-white">Capitale</label>
+                <label className="text-sm font-medium text-[#F8F8FF]">Capitale</label>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">€</span>
+                  <span className="text-[#80808A] font-medium">€</span>
                   <Input
                     type="number"
                     value={capitaleIniziale}
@@ -263,17 +263,16 @@ export default function ConfigurazioniPage() {
                     placeholder="10000"
                     min="0"
                     step="100"
-                    className="futuristic-input"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-800 dark:text-white">Valuta</label>
+                <label className="text-sm font-medium text-[#F8F8FF]">Valuta</label>
                 <select
                   value={valuta}
                   onChange={(e) => setValuta(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-gray-200 dark:border-[#1e1e2e] bg-white dark:bg-[#12121a] px-3 py-2 text-sm text-gray-800 dark:text-white placeholder:text-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-[#2D2D32] bg-[#1C1C1F] px-3 py-2 text-sm text-[#F8F8FF] focus:border-[#6A3D8F] focus:outline-none focus:ring-2 focus:ring-[#6A3D8F]/20 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="EUR">EUR - Euro</option>
                   <option value="USD">USD - Dollaro USA</option>
@@ -282,7 +281,7 @@ export default function ConfigurazioniPage() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSavePreferenze} disabled={isSaving} className="futuristic-button">
+                <Button onClick={handleSavePreferenze} disabled={isSaving}>
                   {isSaving ? 'Salvataggio...' : 'Salva'}
                 </Button>
               </div>
@@ -292,10 +291,10 @@ export default function ConfigurazioniPage() {
 
         {/* SEZIONE 3: COMPORTAMENTO */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-xl border border-violet-200/30 dark:border-violet-500/30 enhanced-card hover:shadow-2xl transition-all duration-300">
+          <Card className="hover:border-[#6A3D8F]/40 transition-all duration-300">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-purple-400" />
+                <Lock className="h-5 w-5 text-[#c4a0e8]" />
                 <div>
                   <CardTitle>Comportamento</CardTitle>
                   <CardDescription>Personalizza l&apos;applicazione</CardDescription>
@@ -304,33 +303,33 @@ export default function ConfigurazioniPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-[#1e1e2e]">
+                <div className="flex items-center justify-between py-3 border-b border-[#2D2D32]">
                   <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-white">Auto-tagging</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium text-[#F8F8FF]">Auto-tagging</p>
+                    <p className="text-xs text-[#80808A]">
                       Tag automatici per strategia
                     </p>
                   </div>
                   <Switch checked={autoTagging} onCheckedChange={setAutoTagging} />
                 </div>
 
-                <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-[#1e1e2e]">
+                <div className="flex items-center justify-between py-3 border-b border-[#2D2D32]">
                   <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-white">Suggerimenti Tag</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Durante l&apos;inserimento</p>
+                    <p className="text-sm font-medium text-[#F8F8FF]">Suggerimenti Tag</p>
+                    <p className="text-xs text-[#80808A]">Durante l&apos;inserimento</p>
                   </div>
                   <Switch checked={suggerimentiTag} onCheckedChange={setSuggerimentiTag} />
                 </div>
 
                 <div className="flex items-center justify-between py-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-white">Tema</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Scelta tema</p>
+                    <p className="text-sm font-medium text-[#F8F8FF]">Tema</p>
+                    <p className="text-xs text-[#80808A]">Scelta tema</p>
                   </div>
                   <select
                     value={theme}
                     onChange={(e) => setTheme(e.target.value)}
-                    className="px-3 py-1 text-sm rounded-md border border-gray-200 dark:border-[#1e1e2e] bg-white dark:bg-[#12121a] text-gray-800 dark:text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-opacity-50"
+                    className="px-3 py-1 text-sm rounded-md border border-[#2D2D32] bg-[#1C1C1F] text-[#F8F8FF] focus:border-[#6A3D8F] focus:outline-none focus:ring-2 focus:ring-[#6A3D8F]/20"
                   >
                     <option value="light">Chiaro</option>
                     <option value="dark">Scuro</option>
@@ -340,7 +339,7 @@ export default function ConfigurazioniPage() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleSaveComportamento} disabled={isSaving} className="futuristic-button">
+                <Button onClick={handleSaveComportamento} disabled={isSaving}>
                   {isSaving ? 'Salvataggio...' : 'Salva'}
                 </Button>
               </div>
@@ -350,10 +349,10 @@ export default function ConfigurazioniPage() {
 
         {/* SEZIONE 4: ESPORTA DATI */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-xl border border-violet-200/30 dark:border-violet-500/30 enhanced-card hover:shadow-2xl transition-all duration-300">
+          <Card className="hover:border-[#6A3D8F]/40 transition-all duration-300">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-purple-400" />
+                <Download className="h-5 w-5 text-[#c4a0e8]" />
                 <div>
                   <CardTitle>Esporta Dati</CardTitle>
                   <CardDescription>Scarica i tuoi dati</CardDescription>
@@ -376,10 +375,10 @@ export default function ConfigurazioniPage() {
 
       {/* SEZIONE 5: IMPORTA DATI - Full width */}
       <motion.div variants={itemVariants}>
-        <Card className="shadow-xl border border-violet-200/30 dark:border-violet-500/30 enhanced-card hover:shadow-2xl transition-all duration-300">
+        <Card className="hover:border-[#6A3D8F]/40 transition-all duration-300">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-purple-400" />
+              <Upload className="h-5 w-5 text-[#c4a0e8]" />
               <div>
                 <CardTitle>Importa Dati</CardTitle>
                 <CardDescription>
@@ -391,11 +390,11 @@ export default function ConfigurazioniPage() {
           <CardContent className="space-y-6">
             {/* Broker Selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-800 dark:text-white">Seleziona Broker</label>
+              <label className="text-sm font-medium text-[#F8F8FF]">Seleziona Broker</label>
               <select
                 value={selectedBroker}
                 onChange={(e) => setSelectedBroker(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-gray-200 dark:border-[#1e1e2e] bg-white dark:bg-[#12121a] px-3 py-2 text-sm text-gray-800 dark:text-white placeholder:text-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-opacity-50"
+                className="flex h-10 w-full rounded-md border border-[#2D2D32] bg-[#1C1C1F] px-3 py-2 text-sm text-[#F8F8FF] focus:border-[#6A3D8F] focus:outline-none focus:ring-2 focus:ring-[#6A3D8F]/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="default">Formato Standard</option>
                 <option value="tradezero">TradeZero</option>
@@ -406,16 +405,16 @@ export default function ConfigurazioniPage() {
 
             {/* Export Example Section */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-white">Formato CSV</h3>
-              <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800/50 space-y-2 text-xs text-gray-600 dark:text-gray-300">
+              <h3 className="text-sm font-semibold text-[#F8F8FF]">Formato CSV</h3>
+              <div className="p-3 rounded-lg bg-[#0F0F11] border border-[#2D2D32] space-y-2 text-xs text-[#80808A]">
                 {selectedBroker === 'tradezero' ? (
                   <div>
-                    <p className="font-medium text-gray-800 dark:text-white mb-2">TradeZero:</p>
+                    <p className="font-medium text-[#F8F8FF] mb-2">TradeZero:</p>
                     <p className="font-mono text-xs">Account | T/D | S/D | Currency | Type | Side | Symbol | Qty | Price | Exec Time | Comm | SEC | TAF | NSCC | Nasdaq | ECN Remove | ECN Add | Gross Proceeds | Net Proceeds | Clr Broker | Liq | Note</p>
                   </div>
                 ) : (
                   <div>
-                    <p className="font-medium text-gray-800 dark:text-white mb-2">Standard:</p>
+                    <p className="font-medium text-[#F8F8FF] mb-2">Standard:</p>
                     <p className="font-mono text-xs">date,time,ticker,direction,quantity,entryPrice,exitPrice,commission,strategy,notes,pnl</p>
                   </div>
                 )}
@@ -423,22 +422,22 @@ export default function ConfigurazioniPage() {
 
               <button
                 onClick={handleDownloadExample}
-                className="text-sm text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                className="text-sm text-[#6A3D8F] hover:text-[#c4a0e8] transition-colors flex items-center gap-1"
               >
                 <Download className="h-4 w-4" />
                 Scarica file di esempio
               </button>
             </div>
 
-            <Separator className="bg-gray-200 dark:bg-gray-800" />
+            <Separator className="bg-[#2D2D32]" />
 
             {/* Upload Section */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-800 dark:text-white">Carica File CSV</label>
+              <label className="text-sm font-medium text-[#F8F8FF]">Carica File CSV</label>
               <div
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className="border-2 border-dashed border-purple-500/50 rounded-lg p-8 text-center cursor-pointer hover:border-purple-400 transition-colors bg-purple-500/5"
+                className="border-2 border-dashed border-[#6A3D8F]/40 rounded-lg p-8 text-center cursor-pointer hover:border-[#6A3D8F]/70 transition-colors bg-[#46265F]/5"
               >
                 <input
                   ref={fileInputRef}
@@ -452,26 +451,26 @@ export default function ConfigurazioniPage() {
                   className="flex flex-col items-center gap-2"
                 >
                   {isImporting ? (
-                    <Loader className="h-8 w-8 text-purple-400 animate-spin" />
+                    <Loader className="h-8 w-8 text-[#c4a0e8] animate-spin" />
                   ) : (
-                    <Upload className="h-8 w-8 text-purple-400" />
+                    <Upload className="h-8 w-8 text-[#c4a0e8]" />
                   )}
-                  <p className="text-sm text-gray-800 dark:text-white font-medium">Trascina il file CSV qui</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">oppure clicca per selezionarlo</p>
+                  <p className="text-sm text-[#F8F8FF] font-medium">Trascina il file CSV qui</p>
+                  <p className="text-xs text-[#80808A]">oppure clicca per selezionarlo</p>
                 </div>
               </div>
             </div>
 
             {importedCount > 0 && (
-              <div className="mt-4 p-3 bg-emerald-900/20 border border-emerald-600/50 rounded-md">
-                <p className="text-sm text-emerald-400">
+              <div className="mt-4 p-3 bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-md">
+                <p className="text-sm text-[#22C55E]">
                   ✓ {importedCount} operazioni importate con successo
                 </p>
               </div>
             )}
 
             <div className="flex justify-end pt-2">
-              <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="futuristic-button">
+              <Button onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
                 {isImporting ? (
                   <>
                     <Loader className="h-4 w-4 mr-2 animate-spin" />
@@ -491,19 +490,19 @@ export default function ConfigurazioniPage() {
 
       {/* SEZIONE 6: ZONA PERICOLOSA */}
       <motion.div variants={itemVariants}>
-        <Card className="shadow-xl border border-red-200/30 dark:border-red-500/30 enhanced-card hover:shadow-2xl transition-all duration-300">
+        <Card className="border-[#DC2626]/30 hover:border-[#DC2626]/50 transition-all duration-300">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <AlertTriangle className="h-5 w-5 text-[#DC2626]" />
               <div>
-                <CardTitle className="text-red-500">Zona Pericolosa</CardTitle>
+                <CardTitle className="text-[#DC2626]">Zona Pericolosa</CardTitle>
                 <CardDescription>Azioni irreversibili - esegui con cautela</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-3 rounded-lg bg-red-900/10 border border-red-900/30">
-              <p className="text-sm text-red-300/80">
+            <div className="p-3 rounded-lg bg-[#DC2626]/10 border border-[#DC2626]/30">
+              <p className="text-sm text-[#DC2626]/80">
                 Questa azione eliminerà permanentemente tutte le tue operazioni, strategie, obiettivi e routine. Questa operazione non può essere annullata.
               </p>
             </div>
@@ -524,7 +523,7 @@ export default function ConfigurazioniPage() {
       <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-red-500">Elimina tutti i dati</DialogTitle>
+            <DialogTitle className="text-[#DC2626]">Elimina tutti i dati</DialogTitle>
             <DialogDescription>
               Stai per eliminare permanentemente tutti i tuoi dati incluse operazioni, strategie,
               obiettivi e routine. Questa azione non può essere annullata. Digita &quot;Confermo&quot; per

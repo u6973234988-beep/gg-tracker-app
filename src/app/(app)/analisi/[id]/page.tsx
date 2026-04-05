@@ -120,7 +120,7 @@ export default function AnalisiOperazionePage() {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
         <motion.div {...fadeUp} className="text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Operazione non trovata</p>
+          <p className="text-[#80808A] mb-4">Operazione non trovata</p>
           <Button variant="outline" onClick={() => router.push('/registro')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Torna al Registro
@@ -168,14 +168,14 @@ export default function AnalisiOperazionePage() {
             variant="ghost"
             size="icon"
             onClick={() => router.push('/registro')}
-            className="text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-xl h-9 w-9"
+            className="text-[#c4a0e8] hover:bg-[#46265F]/10 rounded-xl h-9 w-9"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
 
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <h1 className="text-xl font-bold tracking-tight text-[#F8F8FF]">
                 {operazione.ticker}
               </h1>
               <Badge
@@ -204,10 +204,10 @@ export default function AnalisiOperazionePage() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-[#80808A] mt-0.5">
               {formattedDate}
               {operazione.ora_entrata && (
-                <span className="font-mono ml-2 text-gray-400 dark:text-gray-500">
+                <span className="font-mono ml-2 text-[#80808A]">
                   {operazione.ora_entrata}
                   {operazione.ora_uscita && ` → ${operazione.ora_uscita}`}
                 </span>
@@ -219,10 +219,10 @@ export default function AnalisiOperazionePage() {
         {/* Navigation */}
         {sameDayOps.length > 1 && (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium tabular-nums hidden sm:inline">
+            <span className="text-[10px] text-[#80808A] font-medium tabular-nums hidden sm:inline">
               {currentIndex + 1}/{sameDayOps.length} oggi
             </span>
-            <div className="flex items-center bg-gray-100 dark:bg-[#1e1e30] rounded-lg p-0.5">
+            <div className="flex items-center bg-[#1C1C1F] rounded-lg p-0.5">
               <Button
                 variant="ghost"
                 size="icon"
@@ -291,7 +291,7 @@ export default function AnalisiOperazionePage() {
             )}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Risultato</p>
+                  <p className="text-[10px] font-medium text-[#80808A] uppercase tracking-wider">Risultato</p>
                   <p className={cn(
                     'text-2xl font-bold tabular-nums tracking-tight mt-0.5',
                     isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
@@ -312,7 +312,7 @@ export default function AnalisiOperazionePage() {
                 </div>
               </div>
               {(operazione.pnl_percentuale != null || priceChangePct != null) && (
-                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-200/50 dark:border-white/5">
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#2D2D32]/30">
                   {operazione.pnl_percentuale != null && (
                     <span className={cn(
                       'text-xs font-semibold tabular-nums',
@@ -322,7 +322,7 @@ export default function AnalisiOperazionePage() {
                     </span>
                   )}
                   {priceChangePct != null && (
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                    <span className="text-[10px] text-[#80808A] tabular-nums">
                       {priceChangePct >= 0 ? '+' : ''}{priceChangePct.toFixed(2)}% prezzo
                     </span>
                   )}
@@ -333,35 +333,35 @@ export default function AnalisiOperazionePage() {
 
           {/* Trade Details — compact grid */}
           <motion.div variants={fadeRight}>
-            <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] shadow-sm overflow-hidden">
               <div className="px-4 pt-3 pb-2">
-                <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Dettagli Trade</h3>
+                <h3 className="text-[10px] font-bold text-[#80808A] uppercase tracking-wider">Dettagli Trade</h3>
               </div>
               <div className="px-4 pb-3 space-y-2">
                 {/* Entry/Exit prices side-by-side */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-[#161622] border border-gray-100 dark:border-violet-500/10">
+                  <div className="p-2.5 rounded-lg bg-[#1C1C1F] border border-[#2D2D32]">
                     <div className="flex items-center gap-1 mb-1">
                       <Crosshair className="h-3 w-3 text-emerald-500" />
-                      <span className="text-[10px] font-medium text-gray-400">Entrata</span>
+                      <span className="text-[10px] font-medium text-[#80808A]">Entrata</span>
                     </div>
-                    <p className="text-sm font-mono font-bold text-gray-900 dark:text-white">
+                    <p className="text-sm font-mono font-bold text-[#F8F8FF]">
                       ${operazione.prezzo_entrata?.toFixed(2)}
                     </p>
                     {operazione.ora_entrata && (
-                      <p className="text-[9px] font-mono text-gray-400 mt-0.5">{operazione.ora_entrata}</p>
+                      <p className="text-[9px] font-mono text-[#80808A] mt-0.5">{operazione.ora_entrata}</p>
                     )}
                   </div>
-                  <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-[#161622] border border-gray-100 dark:border-violet-500/10">
+                  <div className="p-2.5 rounded-lg bg-[#1C1C1F] border border-[#2D2D32]">
                     <div className="flex items-center gap-1 mb-1">
-                      <Target className="h-3 w-3 text-violet-500" />
-                      <span className="text-[10px] font-medium text-gray-400">Uscita</span>
+                      <Target className="h-3 w-3 text-[#c4a0e8]" />
+                      <span className="text-[10px] font-medium text-[#80808A]">Uscita</span>
                     </div>
-                    <p className="text-sm font-mono font-bold text-gray-900 dark:text-white">
+                    <p className="text-sm font-mono font-bold text-[#F8F8FF]">
                       {operazione.prezzo_uscita ? `$${operazione.prezzo_uscita.toFixed(2)}` : '—'}
                     </p>
                     {operazione.ora_uscita && (
-                      <p className="text-[9px] font-mono text-gray-400 mt-0.5">{operazione.ora_uscita}</p>
+                      <p className="text-[9px] font-mono text-[#80808A] mt-0.5">{operazione.ora_uscita}</p>
                     )}
                   </div>
                 </div>
@@ -369,22 +369,22 @@ export default function AnalisiOperazionePage() {
                 {/* Key metrics row */}
                 <div className="grid grid-cols-2 gap-2">
                   {/* Quantity */}
-                  <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-gray-50/50 dark:bg-[#161622]/50">
-                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                  <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[#1C1C1F]/30">
+                    <div className="flex items-center gap-1.5 text-[#80808A]">
                       <Hash className="h-3 w-3" />
                       <span className="text-[10px]">Qty</span>
                     </div>
-                    <span className="text-[11px] font-mono font-semibold text-gray-900 dark:text-white">{operazione.quantita}</span>
+                    <span className="text-[11px] font-mono font-semibold text-[#F8F8FF]">{operazione.quantita}</span>
                   </div>
 
                   {/* Duration */}
                   {operazione.durata_minuti != null && operazione.durata_minuti > 0 && (
-                    <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-gray-50/50 dark:bg-[#161622]/50">
-                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                    <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[#1C1C1F]/30">
+                      <div className="flex items-center gap-1.5 text-[#80808A]">
                         <Clock className="h-3 w-3" />
                         <span className="text-[10px]">Durata</span>
                       </div>
-                      <span className="text-[11px] font-mono font-semibold text-gray-900 dark:text-white">
+                      <span className="text-[11px] font-mono font-semibold text-[#F8F8FF]">
                         {operazione.durata_minuti >= 60
                           ? `${Math.floor(operazione.durata_minuti / 60)}h ${operazione.durata_minuti % 60}m`
                           : `${operazione.durata_minuti}m`
@@ -395,10 +395,10 @@ export default function AnalisiOperazionePage() {
                 </div>
 
                 {/* SL / TP / R:R / Commissions */}
-                <div className="space-y-0.5 pt-1 border-t border-gray-100 dark:border-violet-500/10">
+                <div className="space-y-0.5 pt-1 border-t border-[#2D2D32]">
                   {operazione.stop_loss && (
                     <div className="flex items-center justify-between py-1.5">
-                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                      <div className="flex items-center gap-1.5 text-[#80808A]">
                         <ShieldAlert className="h-3 w-3 text-red-400" />
                         <span className="text-[10px]">Stop Loss</span>
                       </div>
@@ -407,7 +407,7 @@ export default function AnalisiOperazionePage() {
                   )}
                   {operazione.take_profit && (
                     <div className="flex items-center justify-between py-1.5">
-                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                      <div className="flex items-center gap-1.5 text-[#80808A]">
                         <TrendingUp className="h-3 w-3 text-emerald-400" />
                         <span className="text-[10px]">Take Profit</span>
                       </div>
@@ -416,18 +416,18 @@ export default function AnalisiOperazionePage() {
                   )}
                   {riskReward && (
                     <div className="flex items-center justify-between py-1.5">
-                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
-                        <Target className="h-3 w-3 text-violet-400" />
+                      <div className="flex items-center gap-1.5 text-[#80808A]">
+                        <Target className="h-3 w-3 text-[#c4a0e8]" />
                         <span className="text-[10px]">Risk/Reward</span>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 h-5 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/30">
+                      <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 h-5 text-[#c4a0e8] border-[#2D2D32]">
                         {riskReward.toFixed(1)}:1
                       </Badge>
                     </div>
                   )}
                   {operazione.commissione > 0 && (
                     <div className="flex items-center justify-between py-1.5">
-                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                      <div className="flex items-center gap-1.5 text-[#80808A]">
                         <DollarSign className="h-3 w-3 text-amber-400" />
                         <span className="text-[10px]">Commissioni</span>
                       </div>
@@ -435,13 +435,13 @@ export default function AnalisiOperazionePage() {
                     </div>
                   )}
                   <div className="flex items-center justify-between py-1.5">
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500">Stato</span>
+                    <span className="text-[10px] text-[#80808A]">Stato</span>
                     <Badge variant="outline" className="text-[9px] h-5 px-1.5 font-medium">{operazione.stato}</Badge>
                   </div>
                   {operazione.broker && (
                     <div className="flex items-center justify-between py-1.5">
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500">Broker</span>
-                      <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300">{operazione.broker}</span>
+                      <span className="text-[10px] text-[#80808A]">Broker</span>
+                      <span className="text-[11px] font-medium text-[#F8F8FF]">{operazione.broker}</span>
                     </div>
                   )}
                 </div>
@@ -451,17 +451,17 @@ export default function AnalisiOperazionePage() {
 
           {/* Unified Strategia + Regole/Condizioni Card */}
           <motion.div variants={fadeRight}>
-            <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] shadow-sm overflow-hidden">
               {/* Strategy header + selector */}
               <div className="px-4 pt-3 pb-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <h3 className="text-[10px] font-bold text-[#80808A] uppercase tracking-wider">
                     Strategia & Regole
                   </h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 px-2 text-[10px] text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10"
+                    className="h-6 px-2 text-[10px] text-[#c4a0e8] hover:bg-[#46265F]/10"
                     onClick={() => setShowStrategiaSelector(!showStrategiaSelector)}
                   >
                     {showStrategiaSelector ? <X className="h-3 w-3" /> : <BookOpen className="h-3 w-3" />}
@@ -473,21 +473,21 @@ export default function AnalisiOperazionePage() {
               <div className="px-4 pb-3 space-y-2">
                 {/* Current strategia display */}
                 {strategia && !showStrategiaSelector && (
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-[#161622] border border-gray-100 dark:border-violet-500/10">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#1C1C1F] border border-[#2D2D32]">
                     <div className="flex items-center gap-2.5">
                       <div
                         className="w-3 h-3 rounded-full shadow-sm"
                         style={{
-                          backgroundColor: strategia.colore || '#8b5cf6',
-                          boxShadow: `0 0 0 2px white, 0 0 0 3px ${strategia.colore || '#8b5cf6'}40`,
+                          backgroundColor: strategia.colore || '#6A3D8F',
+                          boxShadow: `0 0 0 2px white, 0 0 0 3px ${strategia.colore || '#6A3D8F'}40`,
                         }}
                       />
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{strategia.nome}</span>
+                      <span className="text-sm font-semibold text-[#F8F8FF]">{strategia.nome}</span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-gray-400 hover:text-red-500"
+                      className="h-6 w-6 text-[#80808A] hover:text-red-500"
                       onClick={() => handleAssociaStrategia(null)}
                       disabled={savingStrategia}
                     >
@@ -497,7 +497,7 @@ export default function AnalisiOperazionePage() {
                 )}
 
                 {!strategia && !showStrategiaSelector && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 italic py-1">
+                  <p className="text-xs text-[#80808A] italic py-1">
                     Nessuna strategia associata
                   </p>
                 )}
@@ -514,10 +514,10 @@ export default function AnalisiOperazionePage() {
                     >
                       <div className="space-y-1 max-h-48 overflow-y-auto">
                         {loadingStrategie ? (
-                          <p className="text-xs text-gray-400 py-2 text-center">Caricamento...</p>
+                          <p className="text-xs text-[#80808A] py-2 text-center">Caricamento...</p>
                         ) : strategie.length === 0 ? (
                           <div className="text-center py-3">
-                            <p className="text-xs text-gray-400 mb-2">Nessuna strategia nel playbook</p>
+                            <p className="text-xs text-[#80808A] mb-2">Nessuna strategia nel playbook</p>
                             <Button
                               variant="outline"
                               size="sm"
@@ -539,25 +539,25 @@ export default function AnalisiOperazionePage() {
                                   className={cn(
                                     'w-full flex items-center justify-between p-2 rounded-lg text-left transition-all duration-150',
                                     isSelected
-                                      ? 'bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30'
-                                      : 'hover:bg-gray-50 dark:hover:bg-[#161622] border border-transparent'
+                                      ? 'bg-[#46265F]/10 border border-[#2D2D32]'
+                                      : 'hover:bg-[#1C1C1F] border border-transparent'
                                   )}
                                 >
                                   <div className="flex items-center gap-2">
                                     <div
                                       className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                      style={{ backgroundColor: strat.colore || '#8b5cf6' }}
+                                      style={{ backgroundColor: strat.colore || '#6A3D8F' }}
                                     />
-                                    <span className="text-xs font-medium text-gray-900 dark:text-white">
+                                    <span className="text-xs font-medium text-[#F8F8FF]">
                                       {strat.nome}
                                     </span>
                                     {strat.winRate != null && (
-                                      <span className="text-[10px] text-gray-400">
+                                      <span className="text-[10px] text-[#80808A]">
                                         {strat.winRate.toFixed(0)}% WR
                                       </span>
                                     )}
                                   </div>
-                                  {isSelected && <Check className="h-3.5 w-3.5 text-violet-600" />}
+                                  {isSelected && <Check className="h-3.5 w-3.5 text-[#c4a0e8]" />}
                                 </button>
                               );
                             })}
@@ -581,7 +581,7 @@ export default function AnalisiOperazionePage() {
                 {/* Divider + Rules section (if strategy is set) */}
                 {operazione.strategia_id && !showStrategiaSelector && (
                   <>
-                    <div className="border-t border-gray-100 dark:border-violet-500/10 my-1" />
+                    <div className="border-t border-[#2D2D32] my-1" />
                     <AderenzaRegoleInline
                       operazioneId={operazione.id}
                       strategiaId={operazione.strategia_id}
@@ -594,9 +594,9 @@ export default function AnalisiOperazionePage() {
 
           {/* Notes Card — below strategy */}
           <motion.div variants={fadeRight}>
-            <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] shadow-sm overflow-hidden">
               <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Note</h3>
+                <h3 className="text-[10px] font-bold text-[#80808A] uppercase tracking-wider">Note</h3>
                 <AnimatePresence mode="wait">
                   {savingNote && (
                     <motion.span
@@ -604,7 +604,7 @@ export default function AnalisiOperazionePage() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="text-[10px] text-violet-500 flex items-center gap-1"
+                      className="text-[10px] text-[#c4a0e8] flex items-center gap-1"
                     >
                       <Save className="h-3 w-3 animate-pulse" /> Salvando...
                     </motion.span>
@@ -645,10 +645,10 @@ export default function AnalisiOperazionePage() {
                       saveNote();
                     }
                   }}
-                  className="min-h-[100px] text-xs bg-gray-50 dark:bg-[#161622] border-gray-200 dark:border-violet-500/10 resize-none rounded-lg focus:ring-violet-500/30 placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                  className="min-h-[100px] text-xs bg-[#1C1C1F] border-[#2D2D32] resize-none rounded-lg focus:ring-[#6A3D8F]/30 placeholder:text-[#80808A]/50"
                 />
-                <p className="text-[9px] text-gray-300 dark:text-gray-600">
-                  Salvataggio automatico al click fuori, oppure <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-mono">Ctrl+Enter</kbd>
+                <p className="text-[9px] text-[#80808A]">
+                  Salvataggio automatico al click fuori, oppure <kbd className="px-1 py-0.5 rounded bg-[#2D2D32] text-[#80808A] font-mono">Ctrl+Enter</kbd>
                 </p>
               </div>
             </div>
@@ -657,9 +657,9 @@ export default function AnalisiOperazionePage() {
           {/* Tags */}
           {operazione.tags && operazione.tags.length > 0 && (
             <motion.div variants={fadeRight}>
-              <div className="rounded-xl border border-gray-200 dark:border-violet-500/20 bg-white dark:bg-[#1e1e30] shadow-sm overflow-hidden">
+              <div className="rounded-xl border border-[#2D2D32] bg-[#1C1C1F] shadow-sm overflow-hidden">
                 <div className="px-4 pt-3 pb-2">
-                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Tag</h3>
+                  <h3 className="text-[10px] font-bold text-[#80808A] uppercase tracking-wider">Tag</h3>
                 </div>
                 <div className="px-4 pb-3">
                   <div className="flex flex-wrap gap-1.5">
@@ -693,7 +693,7 @@ const GROUP_CONFIG: Record<string, { label: string; icon: React.ReactNode; color
   entry: { label: 'Condizioni di Ingresso', icon: <TrendingUp className="h-3 w-3" />, color: 'text-blue-600 dark:text-blue-400' },
   stop_loss: { label: 'Stop Loss', icon: <Shield className="h-3 w-3" />, color: 'text-red-600 dark:text-red-400' },
   take_profit: { label: 'Take Profit', icon: <Target className="h-3 w-3" />, color: 'text-green-600 dark:text-green-400' },
-  condizioni_mercato: { label: 'Condizioni di Mercato', icon: <BarChart2 className="h-3 w-3" />, color: 'text-violet-600 dark:text-violet-400' },
+  condizioni_mercato: { label: 'Condizioni di Mercato', icon: <BarChart2 className="h-3 w-3" />, color: 'text-[#c4a0e8]' },
 };
 
 function getGroupLabel(groupKey: string) {
@@ -702,7 +702,7 @@ function getGroupLabel(groupKey: string) {
   return {
     label: groupKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     icon: <BookOpen className="h-3 w-3" />,
-    color: 'text-gray-600 dark:text-gray-400',
+    color: 'text-[#80808A]',
   };
 }
 
@@ -711,11 +711,11 @@ function AderenzaRegoleInline({ operazioneId, strategiaId }: { operazioneId: str
   const [expanded, setExpanded] = React.useState(true);
 
   if (loading && !aderenza) {
-    return <p className="text-xs text-gray-400 animate-pulse text-center py-2">Caricamento regole...</p>;
+    return <p className="text-xs text-[#80808A] animate-pulse text-center py-2">Caricamento regole...</p>;
   }
 
   if (!aderenza || aderenza.totali === 0) {
-    return <p className="text-xs text-gray-400 dark:text-gray-500 italic py-1">Nessuna regola definita</p>;
+    return <p className="text-xs text-[#80808A] italic py-1">Nessuna regola definita</p>;
   }
 
   const regoleByGruppo: Record<string, typeof aderenza.regole> = {};
@@ -739,22 +739,22 @@ function AderenzaRegoleInline({ operazioneId, strategiaId }: { operazioneId: str
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-1.5">
-          <BookOpen className="h-3 w-3 text-violet-500" />
-          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aderenza Regole</span>
+          <BookOpen className="h-3 w-3 text-[#c4a0e8]" />
+          <span className="text-[10px] font-bold text-[#80808A] uppercase tracking-wider">Aderenza Regole</span>
         </div>
         <div className="flex items-center gap-2">
           <span className={cn('text-xs font-bold tabular-nums', pctColor)}>
             {pct}%
           </span>
-          <span className="text-[10px] text-gray-400">
+          <span className="text-[10px] text-[#80808A]">
             {aderenza.rispettate}/{aderenza.totali}
           </span>
-          {expanded ? <ChevronUp className="h-3 w-3 text-gray-400" /> : <ChevronDown className="h-3 w-3 text-gray-400" />}
+          {expanded ? <ChevronUp className="h-3 w-3 text-[#80808A]" /> : <ChevronDown className="h-3 w-3 text-[#80808A]" />}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-[#2D2D32] rounded-full overflow-hidden">
         <div
           className={cn('h-full rounded-full transition-all duration-500', barColor)}
           style={{ width: `${pct}%` }}
@@ -794,14 +794,14 @@ function AderenzaRegoleInline({ operazioneId, strategiaId }: { operazioneId: str
                             'w-full flex items-center gap-2 p-2 rounded-lg border text-left transition-all duration-150',
                             isChecked
                               ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20'
-                              : 'bg-gray-50/50 dark:bg-[#161622]/30 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                              : 'bg-[#1C1C1F]/30 border-[#2D2D32] hover:border-[#6A3D8F]/20'
                           )}
                         >
                           <div className={cn(
                             'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all',
                             isChecked
                               ? 'bg-emerald-500 border-emerald-500 text-white'
-                              : 'border-gray-300 dark:border-gray-600'
+                              : 'border-[#2D2D32]'
                           )}>
                             {isChecked && (
                               <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -811,7 +811,7 @@ function AderenzaRegoleInline({ operazioneId, strategiaId }: { operazioneId: str
                           </div>
                           <span className={cn(
                             'text-xs font-medium flex-1',
-                            isChecked ? 'text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400'
+                            isChecked ? 'text-[#F8F8FF]' : 'text-[#80808A]'
                           )}>
                             {regola.descrizione}
                           </span>

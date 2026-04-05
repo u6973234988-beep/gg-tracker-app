@@ -167,13 +167,13 @@ export default function PlaybookPage() {
     return (
       <div className="min-h-screen relative">
         {/* Header */}
-        <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-[#0a0a0f]/90 border-b border-gray-200/80 dark:border-violet-500/20 shadow-sm">
+        <header className="sticky top-0 z-30 bg-[#1C1C1F] border-b border-[#2D2D32]">
           <div className="w-full max-w-[98%] mx-auto py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-500/20">
-                <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              <div className="p-2 rounded-lg bg-[#46265F]/20">
+                <BookOpen className="h-4 w-4 text-[#c4a0e8]" />
               </div>
-              <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+              <h1 className="text-lg font-bold tracking-tight text-[#F8F8FF]">
                 Trading Playbook
               </h1>
             </div>
@@ -181,14 +181,12 @@ export default function PlaybookPage() {
               <Button
                 variant="outline"
                 onClick={handleBackFromDetail}
-                className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 text-gray-700 dark:text-gray-300 font-medium"
                 size="sm"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Torna alle Strategie
               </Button>
               <Button
-                className="bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-lg shadow-violet-500/25 font-bold"
                 onClick={handleCreateNew}
                 size="sm"
               >
@@ -204,7 +202,7 @@ export default function PlaybookPage() {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-xl bg-white dark:bg-[#1e1e30] border border-gray-200 dark:border-violet-500/20 shadow-lg dark:shadow-violet-500/5"
+            className="relative overflow-hidden rounded-xl bg-[#1C1C1F] border border-[#2D2D32]"
           >
             <div className="relative z-10 w-full px-0">
               <DettaglioStrategia
@@ -223,10 +221,10 @@ export default function PlaybookPage() {
 
           {/* Loading overlay */}
           {!isPageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 dark:bg-[#0a0a0f]/80 backdrop-blur-sm rounded-xl z-20">
+            <div className="absolute inset-0 flex items-center justify-center bg-[#0F0F11]/80 rounded-xl z-20">
               <div className="flex flex-col items-center">
-                <div className="h-12 w-12 rounded-full border-3 border-violet-500 border-t-transparent animate-spin" />
-                <span className="mt-3 text-sm font-bold text-gray-700 dark:text-violet-300">
+                <div className="h-12 w-12 rounded-full border-2 border-[#6A3D8F] border-t-transparent animate-spin" />
+                <span className="mt-3 text-sm font-bold text-[#c4a0e8]">
                   Caricamento playbook...
                 </span>
               </div>
@@ -235,8 +233,8 @@ export default function PlaybookPage() {
         </main>
 
         {/* Footer */}
-        <footer className="mt-auto border-t border-gray-200/80 dark:border-violet-500/20 bg-gray-50/80 dark:bg-[#161622]/80 backdrop-blur-sm py-3">
-          <div className="w-full max-w-[98%] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
+        <footer className="mt-auto border-t border-[#2D2D32] bg-[#0F0F11] py-3">
+          <div className="w-full max-w-[98%] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#80808A] font-medium">
             <div>Trading Playbook &bull; Gestisci le tue strategie di trading in modo efficace</div>
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
@@ -265,19 +263,18 @@ export default function PlaybookPage() {
   return (
     <div className="min-h-screen relative">
       {/* Header sticky */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/95 dark:bg-[#0a0a0f]/90 border-b border-gray-200/80 dark:border-violet-500/20 shadow-sm">
+      <header className="sticky top-0 z-30 bg-[#1C1C1F] border-b border-[#2D2D32]">
         <div className="w-full max-w-[98%] mx-auto py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-500/20">
-              <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <div className="p-2 rounded-lg bg-[#46265F]/20">
+              <BookOpen className="h-4 w-4 text-[#c4a0e8]" />
             </div>
-            <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+            <h1 className="text-lg font-bold tracking-tight text-[#F8F8FF]">
               Trading Playbook
             </h1>
           </div>
           <div className="flex items-center gap-3">
             <Button
-              className="bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-lg shadow-violet-500/25 font-bold"
               onClick={handleCreateNew}
               size="sm"
             >
@@ -295,18 +292,18 @@ export default function PlaybookPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-[#1e1e30] rounded-xl p-5 border border-gray-200 dark:border-violet-500/20 shadow-sm dark:shadow-violet-500/5 transition-all duration-300"
+            className="bg-[#1C1C1F] rounded-xl p-5 border border-[#2D2D32] transition-all duration-300"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4 w-full md:w-auto">
                 {/* View mode toggle */}
-                <div className="bg-gray-100 dark:bg-gray-800/60 p-1 rounded-lg border border-gray-200 dark:border-violet-500/20 flex">
+                <div className="bg-[#0F0F11] p-1 rounded-lg border border-[#2D2D32] flex">
                   <button
                     onClick={() => setViewType('list')}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
                       viewType === 'list'
-                        ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                        ? 'bg-[#46265F] text-[#F8F8FF]'
+                        : 'text-[#80808A] hover:text-[#c4a0e8]'
                     }`}
                   >
                     <List className="h-3.5 w-3.5" />
@@ -316,8 +313,8 @@ export default function PlaybookPage() {
                     onClick={() => setViewType('grid')}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
                       viewType === 'grid'
-                        ? 'bg-white dark:bg-[#161622] text-violet-600 dark:text-violet-400 shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                        ? 'bg-[#46265F] text-[#F8F8FF]'
+                        : 'text-[#80808A] hover:text-[#c4a0e8]'
                     }`}
                   >
                     <Grid3x3 className="h-3.5 w-3.5" />
@@ -327,12 +324,12 @@ export default function PlaybookPage() {
 
                 {/* Search input */}
                 <div className="relative flex-1 min-w-[250px] max-w-md group">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-violet-400 group-focus-within:text-violet-600 dark:group-focus-within:text-violet-300 transition-colors duration-200" />
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#80808A] group-focus-within:text-[#c4a0e8] transition-colors duration-200" />
                   <Input
                     placeholder="Cerca playbook..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10 shadow-sm group-focus-within:shadow-md transition-all border-gray-200 dark:border-violet-500/30 focus:border-violet-400 bg-white dark:bg-[#161622] focus:ring-2 focus:ring-violet-500/10 text-gray-900 dark:text-white placeholder:text-gray-400"
+                    className="pl-10 h-10"
                   />
                 </div>
               </div>
@@ -343,7 +340,7 @@ export default function PlaybookPage() {
                   <select
                     value={sortType}
                     onChange={(e) => setSortType(e.target.value as SortType)}
-                    className="px-3 py-2 bg-white dark:bg-[#161622] border border-gray-200 dark:border-violet-500/30 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10 outline-none hover:border-violet-300 transition-colors"
+                    className="px-3 py-2 bg-[#1C1C1F] border border-[#2D2D32] text-[#F8F8FF] rounded-lg text-sm font-medium focus:border-[#6A3D8F] focus:outline-none focus:ring-2 focus:ring-[#6A3D8F]/20 transition-colors"
                   >
                     <option value="name">Nome</option>
                     <option value="trades">Operazioni</option>
@@ -353,7 +350,6 @@ export default function PlaybookPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-                    className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 bg-white dark:bg-[#161622] text-gray-700 dark:text-gray-300 font-medium"
                   >
                     <SlidersHorizontal className="mr-2 h-4 w-4" />
                     {sortLabel} {sortDirection === 'asc' ? '↑' : '↓'}
@@ -368,7 +364,7 @@ export default function PlaybookPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-red-700 dark:text-red-400 text-sm font-medium"
+              className="p-4 bg-[#DC2626]/10 border border-[#DC2626]/30 rounded-xl text-[#DC2626] text-sm font-medium"
             >
               Errore: {errore}
             </motion.div>
@@ -378,8 +374,8 @@ export default function PlaybookPage() {
           {isLoading && !strategie.length ? (
             <div className="flex items-center justify-center py-24">
               <div className="text-center space-y-4">
-                <Loader className="h-10 w-10 animate-spin text-violet-600 dark:text-violet-400 mx-auto" />
-                <p className="text-gray-500 dark:text-gray-400 font-medium">Caricamento strategie...</p>
+                <Loader className="h-10 w-10 animate-spin text-[#6A3D8F] mx-auto" />
+                <p className="text-[#80808A] font-medium">Caricamento strategie...</p>
               </div>
             </div>
           ) : filteredAndSortedStrategie.length === 0 ? (
@@ -387,19 +383,18 @@ export default function PlaybookPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white dark:bg-[#1e1e30] rounded-xl border border-gray-200 dark:border-violet-500/20 shadow-lg dark:shadow-violet-500/5 overflow-hidden"
+              className="bg-[#1C1C1F] rounded-xl border border-[#2D2D32] overflow-hidden"
             >
               <div className="flex flex-col items-center justify-center p-12 text-center">
                 <div className="relative mb-8">
-                  <div className="absolute inset-0 bg-violet-100 dark:bg-violet-900/30 rounded-full blur-2xl" />
-                  <div className="relative p-6 rounded-full bg-violet-50 dark:bg-violet-500/10">
-                    <BookOpen className="h-16 w-16 text-violet-600 dark:text-violet-400" />
+                  <div className="relative p-6 rounded-full bg-[#46265F]/10">
+                    <BookOpen className="h-16 w-16 text-[#c4a0e8]" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-3">
+                <h3 className="text-2xl font-bold tracking-tight text-[#F8F8FF] mb-3">
                   {searchTerm ? 'Nessuna Strategia Trovata' : 'Nessun Playbook Creato'}
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400 mt-1 mb-8 max-w-lg leading-relaxed">
+                <p className="text-[#80808A] mt-1 mb-8 max-w-lg leading-relaxed">
                   {searchTerm
                     ? 'Prova a modificare i termini di ricerca'
                     : 'Crea il tuo primo playbook per iniziare a definire le tue strategie di trading e monitorare le tue performance.'}
@@ -409,14 +404,12 @@ export default function PlaybookPage() {
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button
                       variant="outline"
-                      className="border-gray-200 dark:border-violet-500/30 hover:border-violet-400 bg-white dark:bg-[#161622] text-gray-700 dark:text-gray-300 font-medium"
                       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                     >
                       <ArrowUp className="mr-2 h-4 w-4" />
                       Sfoglia Playbook
                     </Button>
                     <Button
-                      className="bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-lg shadow-violet-500/25 font-bold"
                       onClick={handleCreateNew}
                     >
                       <Plus className="mr-2 h-4 w-4" />
@@ -437,15 +430,15 @@ export default function PlaybookPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1 }}
-                      className="flex flex-col items-center p-5 bg-gray-50 dark:bg-[#161622] rounded-xl border border-gray-200 dark:border-violet-500/20 hover:shadow-md hover:border-violet-300 dark:hover:border-violet-500/40 transition-all duration-300 group"
+                      className="flex flex-col items-center p-5 bg-[#0F0F11] rounded-xl border border-[#2D2D32] hover:border-[#6A3D8F]/40 transition-all duration-300 group"
                     >
-                      <div className="bg-violet-100 dark:bg-violet-500/15 p-3 rounded-xl mb-4 w-12 h-12 flex items-center justify-center group-hover:bg-violet-200 dark:group-hover:bg-violet-500/25 transition-colors duration-300">
-                        <feature.icon className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                      <div className="bg-[#46265F]/15 p-3 rounded-xl mb-4 w-12 h-12 flex items-center justify-center group-hover:bg-[#46265F]/25 transition-colors duration-300">
+                        <feature.icon className="h-6 w-6 text-[#c4a0e8]" />
                       </div>
-                      <h4 className="text-sm font-bold tracking-tight text-gray-900 dark:text-white mb-2">
+                      <h4 className="text-sm font-bold tracking-tight text-[#F8F8FF] mb-2">
                         {feature.title}
                       </h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center leading-relaxed">{feature.desc}</p>
+                      <p className="text-xs text-[#80808A] text-center leading-relaxed">{feature.desc}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -457,21 +450,21 @@ export default function PlaybookPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-[#1e1e30] rounded-xl border border-gray-200 dark:border-violet-500/20 shadow-lg dark:shadow-violet-500/5 overflow-hidden"
+              className="bg-[#1C1C1F] rounded-xl border border-[#2D2D32] overflow-hidden"
             >
               {/* Section header */}
-              <div className="p-5 border-b border-gray-100 dark:border-violet-500/15 bg-gray-50/80 dark:bg-[#161622]/60">
+              <div className="p-5 border-b border-[#2D2D32] bg-[#0F0F11]/60">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    <h2 className="text-lg font-bold tracking-tight text-[#F8F8FF] flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-[#c4a0e8]" />
                       Le Tue Strategie di Trading
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-[#80808A] mt-1">
                       Seleziona una strategia per visualizzare o modificare il playbook
                     </p>
                   </div>
-                  <div className="text-sm font-bold bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-violet-200/50 dark:border-violet-500/20">
+                  <div className="text-sm font-bold bg-[#46265F]/20 text-[#c4a0e8] px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-[#6A3D8F]/20">
                     <Sparkles className="h-3.5 w-3.5" />
                     {filteredAndSortedStrategie.length} strategie
                   </div>
@@ -516,8 +509,8 @@ export default function PlaybookPage() {
       </main>
 
       {/* Footer con stats */}
-      <footer className="mt-auto border-t border-gray-200/80 dark:border-violet-500/20 bg-gray-50/80 dark:bg-[#161622]/80 backdrop-blur-sm py-3">
-        <div className="w-full max-w-[98%] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
+      <footer className="mt-auto border-t border-[#2D2D32] bg-[#0F0F11] py-3">
+        <div className="w-full max-w-[98%] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#80808A] font-medium">
           <div>Trading Playbook &bull; Gestisci le tue strategie di trading in modo efficace</div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">

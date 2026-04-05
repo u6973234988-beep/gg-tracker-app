@@ -7,23 +7,24 @@ import { cn } from '@/lib/utils';
 /**
  * Definisce le varianti e gli stili del pulsante usando CVA
  * Supporta varianti di stile, dimensioni e stati
+ * GG Tracker Design System — Deep Purple #46265F / Vivid Purple #6A3D8F
  */
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-[#0F0F11] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6A3D8F] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-[#7F00FF] text-white hover:bg-[#6B00D4] dark:bg-[#7F00FF] dark:hover:bg-[#6B00D4]',
+          'bg-[#46265F] text-[#F8F8FF] hover:bg-[#6A3D8F] hover:shadow-[0_0_20px_rgba(106,61,143,0.3)]',
         secondary:
-          'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-[#1e1e2e] dark:text-white dark:hover:bg-[#2a2a3e]',
+          'bg-[#1C1C1F] border border-[#2D2D32] text-[#F8F8FF] hover:border-[#6A3D8F] hover:bg-[#1C1C1F]',
         destructive:
-          'bg-[#FF4757] text-white hover:bg-[#E63946] dark:bg-[#FF4757] dark:hover:bg-[#E63946]',
+          'bg-[#DC2626] text-white hover:bg-red-700',
         outline:
-          'border border-[#7F00FF] text-[#7F00FF] hover:bg-[#7F00FF] hover:text-white dark:border-[#7F00FF] dark:text-[#7F00FF] dark:hover:bg-[#7F00FF] dark:hover:text-white',
+          'border border-[#2D2D32] bg-transparent text-[#80808A] hover:border-[#6A3D8F] hover:text-[#c4a0e8]',
         ghost:
-          'text-gray-700 hover:bg-gray-100 dark:text-white dark:hover:bg-[#2a2a3e]',
-        link: 'text-[#7F00FF] underline-offset-4 hover:underline dark:text-[#7F00FF] dark:hover:underline',
+          'text-[#80808A] hover:bg-[#46265F]/15 hover:text-[#c4a0e8]',
+        link: 'text-[#6A3D8F] underline-offset-4 hover:underline hover:text-[#c4a0e8]',
       },
       size: {
         default: 'h-10 px-4 py-2',
